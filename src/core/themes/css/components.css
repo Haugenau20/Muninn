@@ -272,8 +272,8 @@
     fill: var(--logo-on);
   }
 
-  /* The rune ᛗ as text (`RuneMark`). Its font is loaded with this one
-     character only (index.html), so it never sets anything else. */
+  /* The rune ᛗ as text (`RuneMark`). Its font holds the Runic block only
+     (styles/fonts.css), so it never sets anything else. */
   .rune-mark {
     font-family: 'Noto Sans Runic', var(--font-primary);
     line-height: 1;

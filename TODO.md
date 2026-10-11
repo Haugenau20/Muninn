@@ -19,7 +19,6 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 
 | Priority | ID | Item | Size | Status | Why this priority |
 |---|---|---|---|---|---|
-| medium | T144 | Every page loads its fonts from Google | S | open | Each visit hands the visitor's address to Google before any consent, and the privacy page does not say so |
 | medium | T139 | CI signs in to Google Cloud with long-lived keys | M | open | A leaked key deploys code that reads every group, and a PR's dependencies run beside the Hosting key |
 | medium | T141 | The site's contact address is a Gmail account | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
 | medium | T146 | The functions run as an Editor of the whole project | M | open | Any code deployed as a function, by CI's key (T139) or a poisoned dependency, reaches every resource in the project |
@@ -39,6 +38,9 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
 | low | T143 | The About page's coffee link and photo | S | blocked | Both built and switched off; wait on a link and a picture from the maintainer |
 | low | T145 | Invitation tokens are stored as document ids | M | open | Whoever can read the collection holds working tokens: the console, the operator's runtime, a group's admins |
+| low | T149 | The redirect-only Hosting site stores every build too | S | open | About 110 MB of releases nobody is served, growing with every merge; no one is hurt meanwhile |
+| low | T148 | Does the theme belong in Firestore? | S | open | A question for the maintainer; the current design works |
+| nit | T147 | Should `colour-schema.json` leave `docs/design/`? | S | open | A question for the maintainer; nothing is wrong where it is |
 
 The dormant `theme-contract` questions at the bottom are unranked on purpose.
 
@@ -117,24 +119,6 @@ documents agreed with each other and none of them agreed with the product.
 ## Bugs
 
 Bugs the behavioural suites find live in `docs/testing/bug-tracking/README.md`.
-
-### T144 — Every page loads its fonts from Google
-**Type** bug · **Size** S · **Status** open · **Verified** 2026-10-10
-
-`index.html` loads Archivo, Zilla Slab and the one Noto Sans Runic glyph from
-`fonts.googleapis.com` (`:32`, `:45`, `:49`), so every visit, signed in or
-not, asks Google's servers first and hands them the visitor's network address
-and browser. Nothing asks the visitor, and the privacy page names Google
-Analytics and reCAPTCHA but not this. Seen in the dev server's network log
-(both stylesheets, before any answer to the analytics question).
-
-- **Fix**: serve the fonts from the site itself (the `.woff2` files beside the
-  build, `@font-face` in `globals.css`), which removes the request rather than
-  disclosing it. Check the runic glyph still renders: it is subset to one
-  character by the `text=` parameter today.
-- **Why it matters**: a German court (LG München I, 2022) held exactly this
-  embedding, without consent, to breach the GDPR.
-- **Source**: found while making Google Analytics ask first, 2026-10-10
 
 ---
 
@@ -270,10 +254,17 @@ important**.
   note, per-session pages?); whether quick add should create a note or add a line
   to an existing one; whether a drawing is stored as an image (Storage, which
   has its own quota and orphan sweep) or as vector data in Firestore.
+- **Sharing a note** with the group or a campaign's members (added from
+  todo.txt, 2026-10-10, low priority). Notes are owner-only on purpose
+  (`firestore.rules.prod:648`, after a hole that let the whole group read
+  them), and that rule's comment already says how sharing should work: copy or
+  publish the note into a campaign-scoped collection rather than widen the
+  owner-only rule. Open: a copy (a snapshot) or a live shared note, and to whom:
+  the group, or a campaign's players.
 - **Related**: `docs/architecture/migration/deep-dive-feature-enhancements.md`
   sketches session templates and collaborative editing for notes (ideas only,
   nothing built).
-- **Source**: todo.txt, 2026-10-06
+- **Source**: todo.txt, 2026-10-06; sharing, todo.txt, 2026-10-10
 
 ### T137 — An operator page: founder links, extraction limits, metrics
 **Type** feature · **Size** L · **Status** open · **Verified** 2026-10-09
@@ -591,6 +582,33 @@ gone through. **Later, not now** (maintainer, 2026-10-10).
   US spelling inside a key, a path or a stored value must stay.
 - **Source**: maintainer, 2026-10-10, during the Muninn identity work
 
+### T149 — The redirect-only Hosting site stores every build too
+**Type** debt · **Size** S · **Status** open · **Verified** 2026-10-10
+
+The default site, `dnd-campaign-companion`, only answers with a 301 to
+`muninn.quest` (T118), but every merge uploads the full build to it as well,
+because the deploy has no `target` (`firebase-hosting-merge.yml:136`) and its
+entry in `firebase/firebase.json` has `public: build`. Both sites keep every
+release: each `live` channel's retained-release count is unlimited.
+
+- **Measured** (Hosting API, 2026-10-10): 40 finalised versions on the
+  default site, about 110 MB, and 39 on `muninn-quest`, about 111 MB. So a
+  copy of every build is stored that nobody is ever served.
+- **Not doubled: Storage.** There is one Firebase Storage bucket,
+  `dnd-campaign-companion.firebasestorage.app` (US-WEST1, 2.7 MiB, `groups/`
+  only), which is what `firebaseConfig.ts:10` names. The other buckets hold
+  function sources and uploads in `europe-west1`; two in `us-central1` are
+  empty, and no function runs there.
+- **Touches**: the default site's `public` folder in `firebase.json`, and the
+  release retention on both sites (Hosting → the site → release storage
+  settings, outside the repo).
+- **Catch**: a site must have content to deploy (`firebase.json`, `//4`), so
+  the fix is a one-file folder, not none. Sign-in emails still land on this
+  site's `/__/auth/action`, which Firebase serves itself; check it on a preview
+  channel of this site the way `//4` describes before merging.
+- **Source**: todo.txt, 2026-10-10 ("stored double, under dnd campaign companion
+  and muninn quest")
+
 ---
 
 ## Decisions
@@ -616,6 +634,46 @@ risk for a public repo and site? A question for the maintainer, not settled here
 - **If the answer is yes**: invented sample data, new screenshots, and a new
   example on the home page. That is the M.
 - **Source**: todo.txt, 2026-10-08
+
+### T147 — Should `colour-schema.json` leave `docs/design/`?
+**Type** decision · **Size** S · **Status** open · **Verified** 2026-10-10
+
+The maintainer asks whether the colour schema's JSON belongs somewhere other
+than the documentation folder.
+
+- **Measured**: `docs/design/colour-schema.json` (25 KB) is the generated
+  output of the contract in `colour-schema.md` beside it, and a test fixture:
+  `src/core/themes/__tests__/schema-fixture.test.ts:20` and
+  `oklch-oracle.test.ts` read it by a relative path into `docs/`. Nothing in
+  the build or the scripts reads it.
+- **For staying**: it is the half of a pair, and the `.md` calls the two
+  together "the source of truth". It is deliberately kept apart from the code
+  it checks (`colour-schema.md` §9: an implementation PR never edits either).
+- **For moving**: jest reaching into `docs/` is unusual, and a docs folder is
+  where people expect to edit freely.
+- **Catch**: a move edits `colour-schema.md`, which §9 says no implementation
+  PR touches, so the maintainer would make or approve that change.
+- **Source**: todo.txt, 2026-10-10
+
+### T148 — Does the theme belong in Firestore?
+**Type** decision · **Size** S · **Status** open · **Verified** 2026-10-10
+
+The maintainer asks whether storing the theme on the account is necessary.
+
+- **Measured**: picking a theme applies it at once and saves it in the browser
+  (`ThemeContext.tsx:73`, key `medieval-companion-theme`), then, signed in,
+  writes `users/{uid}.preferences.theme` (`useAccountTheme.ts:54`). At sign-in
+  the account's theme wins over the browser's (`SessionManager.tsx:35`). Users
+  who have none get the old per-membership theme copied up once
+  (`SessionManager.tsx:89`). The rules allow `preferences` among the fields a
+  user may change (`firestore.rules.prod:585`).
+- **What it buys**: the theme follows the person to a new device or browser.
+  There are two themes, light and dark; the default is light, and the system's
+  dark-mode setting is not consulted.
+- **If the answer is no**: the browser's key alone; the account write, the
+  membership migration and their tests go; `preferences` stays in the rules
+  until stored values are cleared or ignored.
+- **Source**: todo.txt, 2026-10-10
 
 ---
 
