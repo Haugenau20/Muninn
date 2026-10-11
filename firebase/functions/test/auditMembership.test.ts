@@ -16,7 +16,9 @@ type Audit = {
   accounts: number;
   profiles: number;
 };
-type RevertRecord = {project: string; repairedAt: string; writes: Array<{path: string; before: unknown}>};
+type RevertRecord = {
+  project: string; kind?: string; repairedAt: string; writes: Array<{path: string; before: unknown}>;
+};
 
 // A plain-JS operator script, so required rather than imported.
 // eslint-disable-next-line @typescript-eslint/no-var-requires

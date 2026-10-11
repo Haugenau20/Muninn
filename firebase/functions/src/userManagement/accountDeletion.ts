@@ -10,7 +10,7 @@ import {
   strandsGroup,
 } from "../shared/groupAdmins";
 import {memberGroupIds} from "../shared/memberGroups";
-import {releaseUsernames} from "../shared/usernameReservations";
+import {releaseAllUsernames} from "../shared/usernameReservations";
 import {releaseAccountSlot} from "../signUp/accountCount";
 
 /** One group of an account, as its deletion would leave it. */
@@ -158,10 +158,9 @@ export async function deleteAccount(uid: string): Promise<void> {
   const batch = getFirestore().batch();
 
   // Release the name reservations in every group -- found by owner, never by
-  // the profile's client-written `username` (SEC-005, T080).
-  for (const groupId of groups) {
-    await releaseUsernames(batch, groupId, uid);
-  }
+  // the profile's client-written `username` (SEC-005, T080), and across
+  // groups rather than by the profiles, which a retry may no longer find.
+  await releaseAllUsernames(batch, uid);
 
   if (userDoc.exists) batch.delete(userDoc.ref);
 

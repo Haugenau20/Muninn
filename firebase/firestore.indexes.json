@@ -168,6 +168,20 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "usernames",
+      "fieldPath": "userId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
       "collectionGroup": "users",
       "fieldPath": "userId",
       "indexes": [

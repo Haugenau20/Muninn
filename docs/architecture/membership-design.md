@@ -154,6 +154,12 @@ read it, keep working. Requires the production index.
   script or one of its own; the plan decides). **Maintainer**: run it after the merge.
 - No rule changes: `groups` is already outside the client's update allowlist
   (`firestore.rules.prod:583`).
+- Account deletion releases a user's names with one collection-group query on
+  `usernames.userId`, not group by group. Its group profiles go before its batch
+  commits, so that a failed note deletion leaves the account whole; a retry
+  after a failed commit then has no profile, and since this step no array, to
+  find the groups by. **Maintainer**: create that collection-group index
+  before step 4 merges, as for `users.userId`.
 
 ## Testing
 
