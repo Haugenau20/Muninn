@@ -38,7 +38,7 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
 | low | T143 | The About page's coffee link and photo | S | blocked | Both built and switched off; wait on a link and a picture from the maintainer |
 | low | T145 | Invitation tokens are stored as document ids | M | open | Whoever can read the collection holds working tokens: the console, the operator's runtime, a group's admins |
-| low | T149 | The redirect-only Hosting site stores every build too | S | open | About 110 MB of releases nobody is served, growing with every merge; no one is hurt meanwhile |
+| low | T149 | Both Hosting sites keep every release | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 | low | T148 | Does the theme belong in Firestore? | S | open | A question for the maintainer; the current design works |
 | nit | T147 | Should `colour-schema.json` leave `docs/design/`? | S | open | A question for the maintainer; nothing is wrong where it is |
 
@@ -582,30 +582,25 @@ gone through. **Later, not now** (maintainer, 2026-10-10).
   US spelling inside a key, a path or a stored value must stay.
 - **Source**: maintainer, 2026-10-10, during the Muninn identity work
 
-### T149 — The redirect-only Hosting site stores every build too
-**Type** debt · **Size** S · **Status** open · **Verified** 2026-10-10
+### T149 — Both Hosting sites keep every release
+**Type** debt · **Size** S · **Status** open · **Verified** 2026-10-11
 
-The default site, `dnd-campaign-companion`, only answers with a 301 to
-`muninn.quest` (T118), but every merge uploads the full build to it as well,
-because the deploy has no `target` (`firebase-hosting-merge.yml:136`) and its
-entry in `firebase/firebase.json` has `public: build`. Both sites keep every
-release: each `live` channel's retained-release count is unlimited.
+Each site's `live` channel keeps every release it was ever given: its
+retained-release count is unlimited. The default site, `dnd-campaign-companion`,
+only redirects to `muninn.quest` (T118) and now uploads one placeholder
+page (`firebase/redirect-site/`), but it still holds a copy of every build it
+was sent before that.
 
 - **Measured** (Hosting API, 2026-10-10): 40 finalised versions on the
-  default site, about 110 MB, and 39 on `muninn-quest`, about 111 MB. So a
-  copy of every build is stored that nobody is ever served.
+  default site, about 110 MB, and 39 on `muninn-quest`, about 111 MB.
+- **Fix** (maintainer, console): Hosting → each site → release storage
+  settings, a small number of releases kept (enough to roll back a few merges).
+  Outside the repo; nothing to merge.
 - **Not doubled: Storage.** There is one Firebase Storage bucket,
   `dnd-campaign-companion.firebasestorage.app` (US-WEST1, 2.7 MiB, `groups/`
   only), which is what `firebaseConfig.ts:10` names. The other buckets hold
   function sources and uploads in `europe-west1`; two in `us-central1` are
   empty, and no function runs there.
-- **Touches**: the default site's `public` folder in `firebase.json`, and the
-  release retention on both sites (Hosting → the site → release storage
-  settings, outside the repo).
-- **Catch**: a site must have content to deploy (`firebase.json`, `//4`), so
-  the fix is a one-file folder, not none. Sign-in emails still land on this
-  site's `/__/auth/action`, which Firebase serves itself; check it on a preview
-  channel of this site the way `//4` describes before merging.
 - **Source**: todo.txt, 2026-10-10 ("stored double, under dnd campaign companion
   and muninn quest")
 
