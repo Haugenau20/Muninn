@@ -28,9 +28,13 @@ test("the fonts come from the site itself, before anything is agreed to", async 
 
   const loaded = await page.evaluate(async () => {
     await document.fonts.ready;
-    return Array.from(document.fonts)
-      .filter((face) => face.status === "loaded")
-      .map((face) => face.family.replace(/["']/g, ""));
+    // forEach, not Array.from: iterating a FontFaceSet needs the
+    // dom.iterable lib, which this package's tsconfig leaves out.
+    const families: string[] = [];
+    document.fonts.forEach((face) => {
+      if (face.status === "loaded") families.push(face.family.replace(/["']/g, ""));
+    });
+    return families;
   });
   expect(new Set(loaded)).toEqual(new Set(["Archivo", "Zilla Slab", "Noto Sans Runic"]));
 
