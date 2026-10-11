@@ -281,7 +281,6 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
       const updatedLocalFields = {
         ...updates,
         updatedAt: now,
-        dateModified: now,
         // Keep isUnsaved: true for local notes
       };
       
@@ -322,7 +321,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
       setDrafts(prevDrafts =>
         prevDrafts.map(draft =>
           draft.id === noteId
-            ? { ...draft, extractedEntities: mark(draft.extractedEntities), updatedAt: now, dateModified: now }
+            ? { ...draft, extractedEntities: mark(draft.extractedEntities), updatedAt: now }
             : draft
         )
       );

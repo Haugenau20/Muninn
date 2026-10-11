@@ -105,7 +105,8 @@ describe('QuestContext.updateQuestsStatus', () => {
     const writes = mockBatchOperations.mock.calls[0][0];
     for (const write of writes) {
       expect(typeof write.data.dateCompleted).toBe('string');
-      expect(write.data.dateCompleted).toBe(write.data.dateModified);
+      expect(new Date(write.data.dateCompleted).toISOString()).toBe(write.data.dateCompleted);
+      expect(write.data).not.toHaveProperty('dateModified');
     }
   });
 

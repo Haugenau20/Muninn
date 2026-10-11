@@ -334,7 +334,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id,
       data: {
         status,
-        ...(status === 'completed' && { dateCompleted: modificationAttribution.dateModified }),
+        ...(status === 'completed' && { dateCompleted: new Date().toISOString() }),
         ...modificationAttribution,
         ...modificationTimes()
       }

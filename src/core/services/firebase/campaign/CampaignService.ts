@@ -194,8 +194,7 @@ import {
         await updateDoc(campaignRef, {
           ...data,
           modifiedBy: userId,
-          dateModified: new Date(),
-          // The server's clock, as every record's edits now carry (T132).
+          // The server's clock, as every record's edits carry (T132).
           modifiedAt: serverTimestamp()
         });
       } catch (error) {

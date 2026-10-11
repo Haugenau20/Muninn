@@ -152,7 +152,6 @@ const ConvertToQuestDialog: React.FC<ConvertToQuestDialogProps> = ({
         objectives: objectives as QuestObjective[],
         relatedNPCIds,
         location, // Use the location state
-        dateAdded: new Date().toISOString().split('T')[0]
       };
 
       await onConvert(rumorIds, questData);

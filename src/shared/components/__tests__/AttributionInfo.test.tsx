@@ -88,8 +88,10 @@ describe('AttributionInfo', () => {
     expect(screen.queryByText(/Modified by/)).not.toBeInTheDocument();
   });
 
-  test('ignores a server time still pending, using the string written beside it', () => {
+  // Nothing is written beside a server time any more (T132): a write still
+  // on its way reads as now, when the server is about to stamp it.
+  test('reads a server time still pending as today', () => {
     render(<AttributionInfo item={makeItem({ createdAt: { isEqual: () => false } })} />);
-    expect(screen.getByText('Added by Wren on 15/01/2024')).toBeInTheDocument();
+    expect(screen.getByText(`Added by Wren on ${new Date().toLocaleDateString('en-uk')}`)).toBeInTheDocument();
   });
 });

@@ -720,8 +720,8 @@ describe('NoteEditor', () => {
     // The footer states the save mechanism alongside the timestamp ("...
     // saves as you write"), so these match by substring rather than an exact
     // string -- see the "writing surface" block for the mechanism assertion.
-    test('should show "Not saved yet" when note has no dateModified and is not unsaved', () => {
-      setupMocks({ note: makeNote({ isUnsaved: false, dateModified: undefined }) });
+    test('should show "Not saved yet" when a saved note carries no time at all', () => {
+      setupMocks({ note: makeNote({ isUnsaved: false, dateModified: undefined, dateAdded: undefined }) });
       render(<NoteEditor noteId="note-1" />);
       expect(screen.getByText(/not saved yet/i)).toBeInTheDocument();
     });

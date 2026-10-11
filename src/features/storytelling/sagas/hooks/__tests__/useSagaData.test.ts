@@ -356,7 +356,6 @@ describe('useSagaData', () => {
           createdByUsername: 'GroupHero',
           createdByCharacterId: 'char-1',
           createdByCharacterName: 'Aria',
-          dateAdded: expect.any(String),
         })
       );
     });
@@ -422,7 +421,6 @@ describe('useSagaData', () => {
           modifiedByUsername: 'EditorName',
           modifiedByCharacterId: 'char-1',
           modifiedByCharacterName: 'Editor Character',
-          dateModified: expect.any(String),
         })
       );
     });
@@ -523,7 +521,6 @@ describe('useSagaData', () => {
           createdByUsername: 'NewAuthor',
           modifiedBy: 'user-new',
           modifiedByUsername: 'NewAuthor',
-          dateAdded: expect.any(String),
         })
       );
     });
@@ -552,7 +549,6 @@ describe('useSagaData', () => {
           title: 'New Title',
           modifiedBy: 'user-1',
           modifiedByUsername: 'GroupUsername',
-          dateModified: expect.any(String),
         })
       );
     });
@@ -672,7 +668,6 @@ describe('useSagaData', () => {
           modifiedByUsername: 'EditorName',
           modifiedByCharacterId: 'char-1',
           modifiedByCharacterName: 'Editor Character',
-          dateModified: expect.any(String),
         })
       );
 

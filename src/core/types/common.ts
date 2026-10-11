@@ -13,8 +13,11 @@ export interface ContentAttribution {
   createdByCharacterId?: string | null;
   /** Character name active when item was created */
   createdByCharacterName?: string | null;
-  /** Date item was created */
-  dateAdded: string;
+  /**
+   * When the item was created, by the writer's clock. Written until T132 and
+   * no longer; read only as `recordTimes`' fallback for an older record.
+   */
+  dateAdded?: string;
   
   /** User ID who last modified the item (optional) */
   modifiedBy?: string;
@@ -24,13 +27,13 @@ export interface ContentAttribution {
   modifiedByCharacterId?: string | null;
   /** Character name active when item was modified (optional) */
   modifiedByCharacterName?: string | null;
-  /** Date item was last modified (optional) */
+  /** When the item was last modified, by the writer's clock. Not written since T132. */
   dateModified?: string;
 
   /**
-   * When the item was created, by the server's clock (T132). Written beside
-   * `dateAdded` until every record carries it; read through `recordTimes`,
-   * which falls back to `dateAdded`. Null while a write is pending.
+   * When the item was created, by the server's clock (T132). Read through
+   * `recordTimes`, which falls back to `dateAdded` for an older record. Null
+   * while a write is pending.
    */
   createdAt?: StoredTime | ServerTimeSentinel | null;
   /** When the item was last modified, by the server's clock (T132). */

@@ -5,6 +5,7 @@ import Typography from "../../../../core/components/Typography";
 import Button from "../../../../core/components/Button";
 import NoteCard from "./NoteCard";
 import { Note } from "../types";
+import { recordTimes } from "core/attribution";
 import { displayTitle } from "../utils/note-title";
 import { useNotes } from "../context/NoteContext";
 import { useCreateNote } from "../hooks/useCreateNote";
@@ -74,8 +75,12 @@ const NotesList: React.FC = () => {
       return true;
     });
 
+    // Created is the server's time (T132); edited is the note's own
+    // `updatedAt`, which every save stamps.
     const timestamp = (note: Note) =>
-      new Date(sortMode === "edited" ? note.updatedAt : note.dateAdded).getTime();
+      sortMode === "edited"
+        ? new Date(note.updatedAt).getTime()
+        : recordTimes(note).created?.getTime() ?? 0;
 
     return [...filtered].sort((a, b) => {
       // Unsaved notes pin to the top under every sort: they are the only rows

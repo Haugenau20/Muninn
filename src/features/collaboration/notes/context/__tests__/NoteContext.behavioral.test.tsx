@@ -369,8 +369,9 @@ describe('NoteContext Behavioral Tests', () => {
       });
 
       const note = capturedContext.notes[0];
-      expect(note).toHaveProperty('dateAdded');
-      expect(note).toHaveProperty('dateModified');
+      // Its times are the server's, stamped when it is first saved (T132).
+      expect(note).not.toHaveProperty('dateAdded');
+      expect(note).not.toHaveProperty('dateModified');
       expect(note).toHaveProperty('createdBy', 'test-user');
       expect(note).toHaveProperty('createdByUsername', 'Test User');
       expect(note).toHaveProperty('createdByCharacterName', 'Test Character');

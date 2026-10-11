@@ -362,7 +362,8 @@ describe('ConvertToQuestDialog', () => {
       expect(new Set(questData.relatedNPCIds)).toEqual(new Set(['npc-1', 'npc-2', 'npc-3']));
     });
 
-    test('should set dateAdded to today (YYYY-MM-DD)', async () => {
+    // The quest's creation time is the server's, stamped by the write (T132).
+    test('should send no client-clock creation date', async () => {
       const onConvert = jest.fn().mockResolvedValue('q1');
       render(
         <ConvertToQuestDialog
@@ -378,7 +379,7 @@ describe('ConvertToQuestDialog', () => {
         expect(onConvert).toHaveBeenCalled();
       });
       const [, questData] = onConvert.mock.calls[0];
-      expect(questData.dateAdded).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(questData).not.toHaveProperty('dateAdded');
     });
 
     test('should show error if onConvert rejects', async () => {
