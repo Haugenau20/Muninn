@@ -31,7 +31,7 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T118 | Finish the move to `muninn.quest` | S | open | Everything runs on `muninn.quest`; left: Google's branding check, and two cosmetic leftovers |
 | low | T134 | The saga in sections | M | blocked | The saga is one document that will hit 1 MiB; how a sectioned saga is edited is the maintainer's call |
 | low | T135 | The index file matches production | S | blocked | Waits on the maintainer reading production's indexes; cheap once they have |
-| low | T136 | One membership document | L | in progress | Correct today; only removes a way for two copies to disagree; four stacked merges, each with a maintainer step |
+| low | T136 | One membership document | S | blocked | Done in code; the retired array still sits on production's accounts until the maintainer runs the removal |
 | low | T116 | `firebase-admin` 13 → 14 in the functions | M | blocked | 14 would not clear the last advisory (`uuid`, via Storage), and the functions' jest cannot load its ES-module dependencies |
 | low | T111 | Is it worth expanding the notes feature? | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
@@ -475,26 +475,18 @@ unknown; unused indexes cost storage and write time (F8).
 - **Source**: `data-model-review.md` change 6 (F8)
 
 ### T136 — One membership document
-**Type** debt · **Size** L · **Status** in progress · **Verified** 2026-10-11
+**Type** debt · **Size** S · **Status** blocked · **Verified** 2026-10-11
 
-Membership is stored twice: `users/{uid}.groups` (what every rule reads, so each
-check reads the whole global profile) and `groups/{g}/users/{uid}` (the roster,
-with the role). Only functions write either, so they agree while every function
-is correct, and once they did not (F7).
+Membership is the group profile `groups/{g}/users/{uid}` alone: the rules check
+that it exists, the app lists a user's groups by the profiles' `userId`, and
+nothing reads or writes `users/{uid}.groups` any more
+([`docs/architecture/membership-design.md`](docs/architecture/membership-design.md)).
+The array still sits on production's accounts.
 
-- **Design** (approved by the maintainer 2026-10-11):
-  [`docs/architecture/membership-design.md`](docs/architecture/membership-design.md).
-  The group profile becomes the only record: `isGroupMember` checks it with
-  `exists()`, the app lists a user's groups with a collection-group query on
-  `userId`, and the array goes. Not the review's `members` collection, which
-  would have left two documents per member.
-- **Four merges**, each after the one before has shipped: (1) the audit script
-  `audit-membership.js`, the rule that lets a user list their own profiles, and
-  the index; (2) the app and the functions read profiles; (3) the rules switch;
-  (4) the array is no longer written, and a script removes it.
-- **Maintainer**: create the `users.userId` collection-group index in production
-  before (2) merges (the deploy pushes no indexes, T135); run the audit after
-  (1) and again before (3).
+- **Blocked on the maintainer**: `node scripts/audit-membership.js --project
+  dnd-campaign-companion --remove-array`, then again with `--apply
+  --revert-file <path outside the repo>`, from `firebase/functions`. Then
+  delete this entry.
 - **Source**: `data-model-review.md` change 7 (F7)
 
 ### T139 — CI signs in to Google Cloud with long-lived keys

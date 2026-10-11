@@ -39,7 +39,7 @@
 //     with no `match /{path=**}/chapters/{chapterId}` rule, so a collection
 //     group query would be denied in production (and would need a separate
 //     composite index besides). Instead this script enumerates explicitly:
-//     `users/{uid}.groups` -> `groups/{groupId}/campaigns` ->
+//     the user's group profiles (T136) -> `groups/{groupId}/campaigns` ->
 //     `groups/{groupId}/campaigns/{campaignId}/chapters`, mirroring the path
 //     shape `DocumentService.getCollectionRef` builds
 //     (src/core/services/firebase/data/DocumentService.ts).
@@ -86,7 +86,7 @@ import * as path from "path";
 import * as readline from "readline";
 import * as dotenv from "dotenv";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, doc, getDoc, getDocs, updateDoc, Timestamp, Firestore } from "firebase/firestore";
+import { getFirestore, collection, collectionGroup, doc, getDocs, query, updateDoc, where, Timestamp, Firestore } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { firebaseConfig } from "../../core/services/firebase/config/firebaseConfig";
 
@@ -485,7 +485,7 @@ interface WalkResult {
 /**
  * Enumerates every chapter (and, incidentally, every story-progress document)
  * reachable from the signed-in user's own group memberships:
- *   users/{uid}.groups -> groups/{groupId}/campaigns -> .../chapters
+ *   the user's group profiles -> groups/{groupId}/campaigns -> .../chapters
  * Deliberately NOT a collectionGroup('chapters') query — see the file header
  * comment for why that would be denied in production.
  */
@@ -494,14 +494,15 @@ async function walkReachableChapters(db: Firestore, uid: string): Promise<WalkRe
   const storyProgress: FetchedStoryProgress[] = [];
   const warnings: string[] = [];
 
-  const userDocSnap = await getDoc(doc(db, "users", uid));
-  if (!userDocSnap.exists()) {
-    throw new Error(`No users/${uid} document found for the signed-in account`);
-  }
-  const groupIds: string[] = (userDocSnap.data().groups as string[] | undefined) ?? [];
+  // The groups are those holding a group profile of the user, the one record
+  // of membership (T136); the rules let a user list their own.
+  const profiles = await getDocs(query(collectionGroup(db, "users"), where("userId", "==", uid)));
+  const groupIds = profiles.docs
+    .map((profile) => profile.ref.parent.parent?.id)
+    .filter((groupId): groupId is string => Boolean(groupId));
 
   if (groupIds.length === 0) {
-    warnings.push(`users/${uid} has no groups — nothing to scan`);
+    warnings.push(`${uid} has no group profile — nothing to scan`);
   }
 
   for (const groupId of groupIds) {

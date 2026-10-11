@@ -255,6 +255,11 @@ reads the whole global profile.
 **Recommendation.** Not urgent; it is correct today. From scratch, membership is one document,
 `groups/{g}/members/{uid}` with the role, checked with `exists()`.
 
+**Done differently (T136, 2026-10-11).** The group profile itself became that document: the rules
+check that `groups/{g}/users/{uid}` exists, the app lists a user's groups by the profiles' `userId`,
+and the array is no longer written. A separate `members` document would have left two per member.
+See [membership-design.md](membership-design.md).
+
 ### F8. The index file is stale and not deployed
 
 `firestore.indexes.json` declares 20 composite indexes for queries the client never makes. Every

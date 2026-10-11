@@ -2,7 +2,6 @@
 import {
   DocumentReference,
   FieldPath,
-  FieldValue,
   getFirestore,
   Timestamp,
 } from "firebase-admin/firestore";
@@ -38,12 +37,11 @@ export function groupDeletionRef(
  *
  * The order closes the group before it empties it. A write that lands
  * before a stage is removed by a later one; none can land after:
- *  1. membership ends: members lose the group from `users/{uid}.groups`,
- *     then the member profiles themselves go, before anything beneath them.
- *     The profile is the one record of membership (T136) and the array what
- *     the rules read until they move to it, so after this no member read or
- *     write passes under either; `isGroupAdmin` reads `role` on the profile,
- *     so the admin-only writes (invitations, the crest) close too;
+ *  1. membership ends: the member profiles themselves go, before anything
+ *     beneath them. The profile is the one record of membership (T136), so
+ *     no member read or write passes again; `isGroupAdmin` reads `role`
+ *     there, so the admin-only writes (invitations, the crest) close too.
+ *     Then whoever has the group active has it cleared;
  *  2. what lay beneath the profiles: private notes and reading progress;
  *  3. everything else beneath the group: campaigns and their contents,
  *     invitations, name reservations, upload ledgers;
@@ -57,28 +55,22 @@ export async function finishGroupDeletion(groupId: string): Promise<void> {
   const db = getFirestore();
   const groupRef = db.collection("groups").doc(groupId);
 
-  // 1. The array first, found by the array itself, not by the member
-  // profiles: while the rules read it, anyone holding the group in `groups`
-  // without a profile still passes `isGroupMember`.
-  const members = await db
-    .collection("users")
-    .where("groups", "array-contains", groupId)
-    .get();
-  const memberWriter = checkedBulkWriter();
-  for (const member of members.docs) {
-    memberWriter.update(member.ref, {
-      groups: FieldValue.arrayRemove(groupId),
-      ...(member.get("activeGroupId") === groupId ? {activeGroupId: null} : {}),
-    });
-  }
-  await memberWriter.close("member account(s)");
-
-  // The profiles alone, not what lies beneath them: membership ends here,
-  // whatever stage 2 then takes its time over.
+  // 1. The profiles alone, not what lies beneath them: membership ends
+  // here, whatever stage 2 then takes its time over.
   const profiles = await groupRef.collection("users").select().get();
   const profileWriter = checkedBulkWriter();
   profiles.docs.forEach((doc) => profileWriter.delete(doc.ref));
   await profileWriter.close("member profile(s)");
+
+  // Found by the active group itself, not by the profiles just deleted, so
+  // a retry still finds whoever is left.
+  const active = await db
+    .collection("users")
+    .where("activeGroupId", "==", groupId)
+    .get();
+  const activeWriter = checkedBulkWriter();
+  active.docs.forEach((doc) => activeWriter.update(doc.ref, {activeGroupId: null}));
+  await activeWriter.close("member account(s)");
 
   // 2 and 3. `recursiveDelete` finds descendants whether or not their
   // parent still exists, so a retry picks up whatever a failure left.

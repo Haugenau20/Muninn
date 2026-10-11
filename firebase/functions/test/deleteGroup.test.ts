@@ -98,16 +98,17 @@ describe("deleting a group", () => {
     expect(await fileExists(FILES.lookalikeGroup)).toBe(true);
   });
 
+  // T136: membership is the group profile, which goes with the group; the
+  // accounts stay, and lose the group as their active one.
   it("keeps every member's account, without the group", async () => {
     await remove("gandalf");
 
-    const gandalf = (await db.doc("users/gandalf").get()).data();
-    expect(gandalf?.groups).toEqual([]);
-    expect(gandalf?.activeGroupId).toBeNull();
+    expect(await isThere(`groups/${GROUP}/users/gandalf`)).toBe(false);
+    expect(await isThere(`groups/${GROUP}/users/frodo`)).toBe(false);
+    expect((await db.doc("users/gandalf").get()).get("activeGroupId")).toBeNull();
 
-    const frodo = (await db.doc("users/frodo").get()).data();
-    expect(frodo?.groups).toEqual(["g2"]);
-    expect(frodo?.activeGroupId).toBe("g2");
+    expect(await isThere("groups/g2/users/frodo")).toBe(true);
+    expect((await db.doc("users/frodo").get()).get("activeGroupId")).toBe("g2");
   });
 
   it("leaves other groups alone", async () => {
@@ -193,8 +194,8 @@ describe("a deletion that fails partway", () => {
     expect(await isThere(record.path)).toBe(false);
   });
 
-  it("stops at a member it could not take the group from, and a retry finishes", async () => {
-    failNextUpdateOf("users/frodo");
+  it("stops at an account it could not clear the group from, and a retry finishes", async () => {
+    failNextUpdateOf("users/gandalf");
 
     await expectHttpsError(remove("gandalf"), "internal");
     // Nothing past the failed stage happened; the group is marked and
@@ -205,7 +206,7 @@ describe("a deletion that fails partway", () => {
     expect(await fileExists(FILES.crest)).toBe(true);
 
     await remove("gandalf");
-    expect((await db.doc("users/frodo").get()).data()?.groups).toEqual(["g2"]);
+    expect((await db.doc("users/gandalf").get()).get("activeGroupId")).toBeNull();
     expect(await isThere(group.path)).toBe(false);
     expect(await isThere(record.path)).toBe(false);
   });
@@ -259,15 +260,15 @@ describe("a deletion that fails partway", () => {
   });
 
   it("takes the group from someone who joined while it was being deleted", async () => {
-    failNextUpdateOf("users/frodo");
+    failNextUpdateOf("users/gandalf");
     await expectHttpsError(remove("gandalf"), "internal");
     // The function refuses to admit anyone to a marked group; this is the
     // backstop for a write that slipped in anyway.
-    await db.doc("users/sam").set({id: "sam", groups: [GROUP], activeGroupId: GROUP});
+    await db.doc(`groups/${GROUP}/users/sam`).set({userId: "sam", role: "member"});
+    await db.doc("users/sam").set({id: "sam", activeGroupId: GROUP});
 
     await remove("gandalf");
-    const sam = (await db.doc("users/sam").get()).data();
-    expect(sam?.groups).toEqual([]);
-    expect(sam?.activeGroupId).toBeNull();
+    expect(await isThere(`groups/${GROUP}/users/sam`)).toBe(false);
+    expect((await db.doc("users/sam").get()).get("activeGroupId")).toBeNull();
   });
 });

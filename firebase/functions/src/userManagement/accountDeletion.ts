@@ -10,7 +10,7 @@ import {
   strandsGroup,
 } from "../shared/groupAdmins";
 import {memberGroupIds} from "../shared/memberGroups";
-import {releaseUsernames} from "../shared/usernameReservations";
+import {releaseAllUsernames} from "../shared/usernameReservations";
 import {releaseAccountSlot} from "../signUp/accountCount";
 
 /** One group of an account, as its deletion would leave it. */
@@ -86,7 +86,7 @@ export async function planAccountDeletion(uid: string): Promise<AccountDeletionP
     signInOf(uid),
     db.collection("users").doc(uid).get(),
   ]);
-  const groupIds = await memberGroupIds(uid, profile);
+  const groupIds = await memberGroupIds(uid);
 
   const groups = await Promise.all(groupIds.map(async (groupId) => {
     const group = db.collection("groups").doc(groupId);
@@ -129,7 +129,7 @@ export async function planAccountDeletion(uid: string): Promise<AccountDeletionP
  */
 export async function deleteAccount(uid: string): Promise<void> {
   const userDoc = await getFirestore().collection("users").doc(uid).get();
-  const groups = await memberGroupIds(uid, userDoc);
+  const groups = await memberGroupIds(uid);
 
   if (!userDoc.exists && groups.length === 0) {
     // The global profile is the last Firestore record this deletes -- it
@@ -158,10 +158,9 @@ export async function deleteAccount(uid: string): Promise<void> {
   const batch = getFirestore().batch();
 
   // Release the name reservations in every group -- found by owner, never by
-  // the profile's client-written `username` (SEC-005, T080).
-  for (const groupId of groups) {
-    await releaseUsernames(batch, groupId, uid);
-  }
+  // the profile's client-written `username` (SEC-005, T080), and across
+  // groups rather than by the profiles, which a retry may no longer find.
+  await releaseAllUsernames(batch, uid);
 
   if (userDoc.exists) batch.delete(userDoc.ref);
 

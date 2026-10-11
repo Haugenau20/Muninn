@@ -30,7 +30,7 @@ const UID = 'uid-1';
 
 /** The fake database, by document path. */
 const mockDatabase: Record<string, Record<string, unknown>> = {
-  [`users/${UID}`]: { email: 'frodo@example.com', groups: ['g1'], activeGroupId: 'g1' },
+  [`users/${UID}`]: { email: 'frodo@example.com', activeGroupId: 'g1' },
   'groups/g1': { name: 'The Fellowship' },
   [`groups/g1/users/${UID}`]: { userId: UID, username: 'Frodo', activeCampaignId: 'c2', characters: [] },
   'groups/g1/campaigns/c1': { name: 'There' },

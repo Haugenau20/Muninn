@@ -78,22 +78,11 @@ export const removeUserFromGroup = functions.onCall(
       // Execute as a batch to ensure atomicity
       const batch = getFirestore().batch();
       
-      // Update the user's global profile to remove this group
+      // The group is no longer theirs to have active.
       const globalUserRef = getFirestore().collection("users").doc(userId);
       const globalUser = await globalUserRef.get();
-      
-      if (globalUser.exists) {
-        const userData = globalUser.data();
-        const updatedGroups = (userData?.groups || []).filter(
-          (g: string) => g !== groupId
-        );
-        
-        // Update the global user profile
-        batch.update(globalUserRef, {
-          groups: updatedGroups,
-          // Clear activeGroupId if it matches the group being removed
-          ...(userData?.activeGroupId === groupId ? { activeGroupId: null } : {})
-        });
+      if (globalUser.exists && globalUser.get("activeGroupId") === groupId) {
+        batch.update(globalUserRef, {activeGroupId: null});
       }
       
       // Release the user's name reservations -- found by owner, never by
@@ -103,14 +92,12 @@ export const removeUserFromGroup = functions.onCall(
       // Leaving a group takes your private notes with you; they live in a
       // subcollection of this document, which a batched delete would orphan.
       //
-      // This runs BEFORE the commit, mirroring deleteUser, and the ordering is
-      // load-bearing. The batch strips this group from the user's global
-      // `groups` array, so committing first and failing here would leave the
-      // notes orphaned with no way back: the leave-group path no longer sees
-      // the membership, so nothing would retry the subtree deletion. Failing
-      // before the commit leaves the user in the group and the operation
-      // retryable. The reservations were already read above, so deleting the
-      // profile document here costs the batch nothing.
+      // This runs BEFORE the commit, mirroring deleteUser. The profile is the
+      // membership (T136), and `recursiveDelete` removes it only after
+      // everything beneath it, so a failure here leaves the user in the
+      // group, notes and all, and the operation retryable. The reservations
+      // were already read above, so deleting the profile document here costs
+      // the batch nothing.
       await deleteGroupUserDocument(groupId, userId);
 
       // Commit all changes

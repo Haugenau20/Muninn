@@ -131,7 +131,7 @@ describe("deleting an account", () => {
 
   // T136: the group profile is the record of membership, so a group whose
   // profile the array no longer lists is still theirs to clean up -- with
-  // its private notes. While the array exists, what it lists is too.
+  // its private notes.
   it("deletes a group profile the array does not list, with its private notes", async () => {
     await db.doc("users/frodo").update({groups: ["g2"]});
 
@@ -143,10 +143,11 @@ describe("deleting an account", () => {
     expect(await exists("groups/g1/usernames/mr-underhill")).toBe(false);
   });
 
-  it("still releases the names in a group only the array lists", async () => {
+  // Names are found by owner across groups, not through the profiles: a
+  // retry whose profiles already went must still release them.
+  it("releases a name in a group it has no profile in", async () => {
     await db.doc("groups/g2/users/frodo").delete();
 
-    expect((await planAccountDeletion("frodo")).groups.map((group) => group.groupId)).toEqual(["g1", "g2"]);
     await deleteAccount("frodo");
 
     expect(await exists("groups/g2/usernames/frodo")).toBe(false);

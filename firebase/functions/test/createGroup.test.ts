@@ -225,11 +225,14 @@ describe("createGroup", () => {
       });
     });
 
-    it("adds the group to the caller's groups, and makes it the active one", async () => {
+    // T136: membership is the group profile above; the global profile no
+    // longer lists groups, and an array left on it from before is not touched.
+    it("makes the group the caller's active one, and lists it nowhere else", async () => {
       const {groupId} = await create({name: "The Fellowship", username: "Gandalf", founderToken}, "gandalf");
 
-      expect((await db.doc("users/gandalf").get()).data()).toMatchObject({
-        groups: ["older-group", groupId],
+      expect((await db.doc("users/gandalf").get()).data()).toEqual({
+        id: "gandalf",
+        groups: ["older-group"],
         activeGroupId: groupId,
       });
     });
@@ -239,12 +242,9 @@ describe("createGroup", () => {
     const founderToken = await founderLink();
     const {groupId} = await create({name: "The Fellowship", username: "Frodo", founderToken}, "frodo");
 
-    expect((await db.doc("users/frodo").get()).data()).toMatchObject({
-      id: "frodo",
-      email: "frodo@example.com",
-      groups: [groupId],
-      activeGroupId: groupId,
-    });
+    const profile = (await db.doc("users/frodo").get()).data();
+    expect(profile).toMatchObject({id: "frodo", email: "frodo@example.com", activeGroupId: groupId});
+    expect(profile).not.toHaveProperty("groups");
     expect((await db.doc(`groups/${groupId}/users/frodo`).get()).data()?.role).toBe("admin");
   });
 });

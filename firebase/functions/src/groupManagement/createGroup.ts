@@ -190,21 +190,15 @@ export const createGroup = functions.onCall(
           createdBy: callerUid,
         });
 
-        // Add the group to the caller's global profile.
+        // Make it the caller's active group. Membership is the group profile
+        // below (T136); the global profile no longer lists groups.
         if (userDoc.exists) {
-          const userData = userDoc.data() || {};
-          const updatedGroups = [...(userData.groups || []), groupId];
-
-          transaction.update(userDocRef, {
-            groups: updatedGroups,
-            activeGroupId: groupId, // Set as the active group.
-          });
+          transaction.update(userDocRef, {activeGroupId: groupId});
         } else {
           // If the user document doesn't exist (shouldn't happen), create it.
           transaction.set(userDocRef, {
             id: callerUid,
             email: callerEmail,
-            groups: [groupId],
             activeGroupId: groupId,
             lastLogin: now,
             createdAt: now,

@@ -110,7 +110,6 @@ export async function seed(): Promise<void> {
 
   batch.set(db.doc(`users/${player.uid}`), {
     email: player.email,
-    groups: [group.id],
     activeGroupId: group.id,
     createdAt: NOW,
     lastLoginAt: NOW,

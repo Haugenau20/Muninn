@@ -93,7 +93,6 @@ function makeUserProfile(overrides: Partial<UserProfile> = {}): UserProfile {
   return {
     id: "user-1",
     email: "test@example.com",
-    groups: ["group-1"],
     activeGroupId: "group-1",
     lastLogin: new Date().toISOString(),
     createdAt: new Date().toISOString(),
@@ -783,7 +782,7 @@ describe("FirebaseContext Behavioral Testing", () => {
     // getGroups does not read the global profile again.
     test("asks getGroups for the groups without handing it the global profile's array", async () => {
       mockGetUserProfile.mockResolvedValue(
-        makeUserProfile({ id: "u-1", groups: ["g-stale"], activeGroupId: "g-1" })
+        makeUserProfile({ id: "u-1", activeGroupId: "g-1" })
       );
       mockGetGroups.mockResolvedValue([makeGroup("g-1"), makeGroup("g-2")]);
 
@@ -1342,7 +1341,7 @@ describe("FirebaseContext Behavioral Testing", () => {
       const newUser = makeUser("u-new");
       mockGetUser.mockReturnValue(newUser);
       mockGetUserProfile.mockResolvedValue(
-        makeUserProfile({ id: "u-new", groups: ["group-9"], activeGroupId: "group-9" })
+        makeUserProfile({ id: "u-new", activeGroupId: "group-9" })
       );
       mockGetGroups.mockResolvedValue([makeGroup("group-9")]);
       mockGetGroupUserProfile.mockResolvedValue(makeGroupUserProfile({ userId: "u-new" }));
@@ -1411,7 +1410,7 @@ describe("FirebaseContext Behavioral Testing", () => {
         await capturedAuthCallback!(null);
       });
       await act(async () => {
-        held.resolve(makeUserProfile({ id: "user-1", activeGroupId: "group-1", groups: ["group-1"] }));
+        held.resolve(makeUserProfile({ id: "user-1", activeGroupId: "group-1" }));
         await first;
       });
 
@@ -1424,7 +1423,7 @@ describe("FirebaseContext Behavioral Testing", () => {
 
     test("does not restore the old group and campaign after sign-out", async () => {
       mockGetUserProfile.mockResolvedValue(
-        makeUserProfile({ id: "user-1", activeGroupId: "group-1", groups: ["group-1"] })
+        makeUserProfile({ id: "user-1", activeGroupId: "group-1" })
       );
       mockGetGroups.mockResolvedValue([makeGroup("group-1")]);
       const heldProfile = deferred<GroupUserProfile>();
@@ -1456,7 +1455,7 @@ describe("FirebaseContext Behavioral Testing", () => {
       const held = deferred<UserProfile>();
       mockGetUserProfile
         .mockReturnValueOnce(held.promise)
-        .mockResolvedValueOnce(makeUserProfile({ id: "user-2", activeGroupId: null, groups: [] }));
+        .mockResolvedValueOnce(makeUserProfile({ id: "user-2", activeGroupId: null }));
       const { result } = renderHook(() => useFirebaseContext(), { wrapper });
 
       let first!: Promise<void>;
@@ -1467,7 +1466,7 @@ describe("FirebaseContext Behavioral Testing", () => {
         await capturedAuthCallback!(makeUser("user-2"));
       });
       await act(async () => {
-        held.resolve(makeUserProfile({ id: "user-1", activeGroupId: null, groups: [] }));
+        held.resolve(makeUserProfile({ id: "user-1", activeGroupId: null }));
         await first;
       });
 
@@ -1592,7 +1591,7 @@ describe("FirebaseContext Behavioral Testing", () => {
     /** Sign a user in with two groups, group-1 active, and settle the provider. */
     async function signInWithTwoGroups() {
       mockGetUserProfile.mockResolvedValue(
-        makeUserProfile({ groups: ["group-1", "group-2"], activeGroupId: "group-1" })
+        makeUserProfile({ activeGroupId: "group-1" })
       );
       mockGetGroups.mockResolvedValue([makeGroup("group-1"), makeGroup("group-2")]);
       mockGetGroupUserProfile.mockResolvedValue(

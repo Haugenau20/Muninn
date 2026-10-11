@@ -1,6 +1,6 @@
 // functions/src/groupManagement/redeemInvitation.ts
 import * as functions from "firebase-functions/v2/https";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {getFirestore} from "firebase-admin/firestore";
 import {ENFORCE_APP_CHECK} from "../shared/appCheck";
 import {rethrowHttpsError} from "../shared/httpsErrors";
 import {registrationTokenProblem} from "../shared/registrationToken";
@@ -158,17 +158,13 @@ export const redeemInvitation = functions.onCall(
         const now = new Date();
 
         if (userDoc.exists) {
-          transaction.update(userRef, {
-            groups: FieldValue.arrayUnion(groupId),
-            activeGroupId: groupId,
-          });
+          transaction.update(userRef, {activeGroupId: groupId});
         } else {
           transaction.set(userRef, {
             id: uid,
             ...(request.auth?.token.email ?
               {email: request.auth.token.email} :
               {}),
-            groups: [groupId],
             activeGroupId: groupId,
             lastLogin: now,
             createdAt: now,

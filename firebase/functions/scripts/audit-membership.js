@@ -44,6 +44,17 @@
  *
  *   node scripts/audit-membership.js --project dnd-campaign-companion --revert <file> [--apply]
  *
+ * REMOVE THE ARRAY. Once nothing reads or writes `users/{uid}.groups` (T136
+ * step 4 live), `--remove-array` counts the accounts still carrying it, and
+ * with `--apply` deletes it from each, in a transaction per account, keeping
+ * what it held in the revert file:
+ *
+ *   node scripts/audit-membership.js --project dnd-campaign-companion --remove-array
+ *   node scripts/audit-membership.js --project dnd-campaign-companion --remove-array --apply --revert-file <file>
+ *
+ * Its `--revert` puts an array back on each account that has none again.
+ * The audit skips accounts without the field, so it stays quiet afterwards.
+ *
  * Give the revert file a path outside the repo (it will not overwrite one
  * that exists). `--emulator` runs any mode against the dev emulators.
  */
@@ -67,15 +78,15 @@ function groupOf(path) {
  * Read both copies: every account's array, and every group profile.
  *
  * @param {import("firebase-admin/firestore").Firestore} db The database
- * @return {Promise<{arrays: Map<string, string[]>, profiles: Array<{path: string,
- *   groupId: string, uid: string, userId: unknown}>}>} The arrays by uid, and
- *   the group profiles
+ * @return {Promise<{arrays: Map<string, string[]|null>, profiles: Array<{path: string,
+ *   groupId: string, uid: string, userId: unknown}>}>} The arrays by uid (null
+ *   for an account without one: removed, so not compared), and the group profiles
  */
 async function readMembership(db) {
   const arrays = new Map();
   for await (const doc of db.collection("users").stream()) {
     const groups = doc.get("groups");
-    arrays.set(doc.id, Array.isArray(groups) ? groups.filter((id) => typeof id === "string") : []);
+    arrays.set(doc.id, Array.isArray(groups) ? groups.filter((id) => typeof id === "string") : null);
   }
   const profiles = [];
   for await (const doc of db.collectionGroup("users").stream()) {
@@ -103,7 +114,7 @@ async function auditMembership(db) {
 
   const noProfile = [];
   for (const [uid, groups] of arrays) {
-    for (const groupId of new Set(groups)) {
+    for (const groupId of new Set(groups ?? [])) {
       if (!held.has(`${uid}/${groupId}`)) noProfile.push({uid, groupId});
     }
   }
@@ -111,8 +122,10 @@ async function auditMembership(db) {
     .filter(({uid, userId}) => userId !== uid)
     .map(({path, userId}) => ({path, userId: userId ?? null}))
     .sort((a, b) => a.path.localeCompare(b.path));
+  // An account whose array was removed is not compared; one with no account
+  // at all still is.
   const notInArray = profiles
-    .filter(({uid, groupId}) => !(arrays.get(uid) ?? []).includes(groupId))
+    .filter(({uid, groupId}) => arrays.get(uid) !== null && !(arrays.get(uid) ?? []).includes(groupId))
     .map(({uid, groupId}) => ({uid, groupId}));
 
   return {
@@ -145,6 +158,82 @@ async function repairMembership(db, record) {
     });
     if (before !== undefined) record.writes.push({path, before});
   }
+}
+
+/**
+ * The accounts still carrying `groups`.
+ *
+ * @param {import("firebase-admin/firestore").Firestore} db The database
+ * @return {Promise<string[]>} Their paths
+ */
+async function arrayHolders(db) {
+  const paths = [];
+  for await (const doc of db.collection("users").stream()) {
+    if (doc.get("groups") !== undefined) paths.push(doc.ref.path);
+  }
+  return paths.sort();
+}
+
+/**
+ * Delete `groups` from every account carrying it, each in its own
+ * transaction. Each account's entry is added to `record.writes` as soon as
+ * it commits.
+ *
+ * @param {import("firebase-admin/firestore").Firestore} db The database
+ * @param {{writes: Array<{path: string, before: unknown}>}} record The revert
+ *   record, filled as accounts are written
+ * @return {Promise<void>}
+ */
+async function removeArrays(db, record) {
+  for (const path of await arrayHolders(db)) {
+    const before = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(db.doc(path));
+      if (!doc.exists || doc.get("groups") === undefined) return undefined;
+      transaction.update(doc.ref, {groups: FieldValue.delete()});
+      return doc.get("groups");
+    });
+    if (before !== undefined) record.writes.push({path, before});
+  }
+}
+
+/**
+ * Revert a removal: an array goes back on each account that has none again.
+ *
+ * @param {import("firebase-admin/firestore").Firestore} db The database
+ * @param {{writes: Array<{path: string, before: unknown}>}} record The revert file
+ * @param {boolean} apply Whether to write
+ * @return {Promise<{unchanged: string[], changed: string[]}>} The accounts as
+ *   the removal left them, and those changed or gone since
+ */
+async function revertArrays(db, record, apply) {
+  const unchanged = [];
+  const changed = [];
+  for (const write of record.writes) {
+    const asLeft = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(db.doc(write.path));
+      if (!doc.exists || doc.get("groups") !== undefined) return false;
+      if (apply) transaction.update(doc.ref, {groups: write.before});
+      return true;
+    }, apply ? {} : {readOnly: true});
+    (asLeft ? unchanged : changed).push(write.path);
+  }
+  return {unchanged: unchanged.sort(), changed: changed.sort()};
+}
+
+/**
+ * Revert either kind of run: a repair's `userId`, or a removed array.
+ *
+ * @param {import("firebase-admin/firestore").Firestore} db The database
+ * @param {{kind?: string, writes: Array<{path: string, before: unknown}>}} record
+ *   The revert file
+ * @param {boolean} apply Whether to write
+ * @return {Promise<{unchanged: string[], changed: string[]}>} The documents as
+ *   the run left them, and those changed or gone since
+ */
+async function revertRecord(db, record, apply) {
+  return record.kind === "removeArray" ?
+    revertArrays(db, record, apply) :
+    revertMembership(db, record, apply);
 }
 
 /**
@@ -208,16 +297,18 @@ async function main() {
   };
   const emulator = args.includes("--emulator");
   const apply = args.includes("--apply");
+  const removeArray = args.includes("--remove-array");
   const projectId = valueOf("--project");
   const revertFrom = valueOf("--revert");
   const revertFile = valueOf("--revert-file");
   const valued = ["--project", "--revert", "--revert-file"];
   const unknown = args.filter((arg, i) =>
-    !valued.includes(args[i - 1]) && ![...valued, "--emulator", "--apply"].includes(arg));
+    !valued.includes(args[i - 1]) && ![...valued, "--emulator", "--apply", "--remove-array"].includes(arg));
   if (unknown.length) console.error(`Unknown argument(s): ${unknown.join(" ")}`);
-  if (unknown.length || !projectId || (apply && !revertFrom && !revertFile) || (revertFrom && revertFile)) {
+  if (unknown.length || !projectId || (apply && !revertFrom && !revertFile) || (revertFrom && revertFile) ||
+      (removeArray && revertFrom)) {
     console.error(
-      "Usage: node scripts/audit-membership.js --project <project-id> [--emulator]\n" +
+      "Usage: node scripts/audit-membership.js --project <project-id> [--emulator] [--remove-array]\n" +
       "         [--apply --revert-file <file> | --revert <file> [--apply]]"
     );
     process.exitCode = 2;
@@ -234,18 +325,39 @@ async function main() {
   if (revertFrom) {
     const record = JSON.parse(fs.readFileSync(revertFrom, "utf8"));
     if (record.project !== projectId) {
-      console.error(`${revertFrom} records a repair of ${record.project}, not ${projectId}.`);
+      console.error(`${revertFrom} records a run on ${record.project}, not ${projectId}.`);
       process.exitCode = 2;
       return;
     }
-    console.error(`Reverting the repair of ${record.repairedAt} on ${where}${apply ? "" : ", read-only"}...`);
-    const {unchanged, changed} = await revertMembership(db, record, apply);
-    console.log(`${unchanged.length} profile(s) still as the repair left them${apply ? ", restored" : ", to be restored"}.`);
+    console.error(`Reverting the run of ${record.repairedAt} on ${where}${apply ? "" : ", read-only"}...`);
+    const {unchanged, changed} = await revertRecord(db, record, apply);
+    console.log(`${unchanged.length} document(s) still as the run left them${apply ? ", restored" : ", to be restored"}.`);
     if (changed.length) {
       console.log(`${changed.length} changed since, or gone; left as they are:`);
       for (const path of changed) console.log(`  ${path}`);
     }
     if (!apply) console.log("Nothing has been changed. Run again with --apply to restore them.");
+    return;
+  }
+
+  if (removeArray && apply) {
+    // Claim the revert file before writing anything.
+    const out = fs.openSync(revertFile, "wx");
+    console.error(`Removing users/{uid}.groups on ${where}...`);
+    const record = {project: projectId, kind: "removeArray", repairedAt: new Date().toISOString(), writes: []};
+    try {
+      await removeArrays(db, record);
+    } finally {
+      fs.writeFileSync(out, JSON.stringify(record, null, 2));
+      fs.closeSync(out);
+    }
+    console.log(`Removed the array from ${record.writes.length} account(s); the revert file is ${revertFile}.`);
+    return;
+  }
+
+  if (removeArray) {
+    console.log(`${(await arrayHolders(db)).length} account(s) still carry users/{uid}.groups.`);
+    console.log("Nothing has been changed. Run again with --apply --revert-file <file> to remove it.");
     return;
   }
 
@@ -281,5 +393,8 @@ module.exports = {
   auditMembership,
   repairMembership,
   revertMembership,
+  arrayHolders,
+  removeArrays,
+  revertRecord,
   formatAudit,
 };
