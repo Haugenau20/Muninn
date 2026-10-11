@@ -324,8 +324,9 @@
 // change, never in the console. Every merge to `main` redeploys this file, so a
 // console edit lasts only until then.
 //
-// Note the rules are path-scoped, so a `collectionGroup` query has no matching
-// rule and WILL be denied.
+// Note the rules are path-scoped, so a `collectionGroup` query is denied
+// unless a recursive match (`/{path=**}/...`) allows it. One does: a user's
+// own group profiles, for the list of their groups (T136).
 
 rules_version = '2';
 service cloud.firestore {
@@ -586,6 +587,17 @@ service cloud.firestore {
 
       // No client deletes a profile: the `deleteUser` Cloud Function does,
       // for the account's own holder, with everything beneath it.
+    }
+
+    // A user's own group profiles, one per group, across groups: how the app
+    // lists the groups someone is in (T136). List only, and only profiles
+    // whose server-written `userId` is the reader's. It matches every `users`
+    // collection: top-level profiles carry no `userId`, so it grants nothing
+    // there, and on a group's roster only a profile of one's own, which exists
+    // only for a member. `notes` and `story-progress` sit deeper and do not
+    // match.
+    match /{path=**}/users/{profileId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
     // Group-level access
