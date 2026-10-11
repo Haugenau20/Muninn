@@ -48,8 +48,8 @@ export function campaignSlug(name: string): string {
  * since a deleted campaign is no longer there to count.
  *
  * Every member may create one (decided 2026-10-08), as the rules allowed; a
- * member is someone whose profile lists the group, as the rules'
- * `isGroupMember` reads it. Not while the group is being deleted (T037).
+ * member is someone with a group profile there, the one record of membership
+ * (T136). Not while the group is being deleted (T037).
  *
  * The id is the name's slug, or the slug and a random suffix when that is
  * taken, and the creator's active campaign becomes the new one.
@@ -103,16 +103,14 @@ export const createCampaign = functions.onCall(
 
     try {
       const campaignId = await db.runTransaction(async (transaction) => {
-        const [profile, group, member, existing, ...taken] = await Promise.all([
-          transaction.get(db.collection("users").doc(uid)),
+        const [group, member, existing, ...taken] = await Promise.all([
           transaction.get(groupRef),
           transaction.get(groupRef.collection("users").doc(uid)),
           transaction.get(campaigns.limit(MAX_GROUP_CAMPAIGNS)),
           ...candidates.map((candidate) => transaction.get(candidate)),
         ]);
 
-        const groups: unknown = profile.get("groups");
-        if (!group.exists || !Array.isArray(groups) || !groups.includes(groupId)) {
+        if (!group.exists || !member.exists) {
           throw new functions.HttpsError(
             "permission-denied",
             "You are not a member of this group."
@@ -143,9 +141,7 @@ export const createCampaign = functions.onCall(
           createdBy: uid,
           isActive: true,
         });
-        if (member.exists) {
-          transaction.update(member.ref, {activeCampaignId: free.id});
-        }
+        transaction.update(member.ref, {activeCampaignId: free.id});
         return free.id;
       });
 

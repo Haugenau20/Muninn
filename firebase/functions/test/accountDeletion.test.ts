@@ -79,9 +79,19 @@ describe("planning an account's deletion", () => {
 
   it("reports a sign-in whose profile is already gone", async () => {
     await db.doc("users/frodo").delete();
+    await db.recursiveDelete(db.collection("groups/g1/users/frodo/notes"));
+    await db.recursiveDelete(db.doc("groups/g1/users/frodo"));
+    await db.doc("groups/g2/users/frodo").delete();
     expect(await planAccountDeletion("frodo")).toEqual({
       uid: "frodo", email: "frodo@example.com", hasSignIn: true, hasProfile: false, groups: [],
     });
+  });
+
+  // T136: the group profiles are the membership, so they are found without
+  // the global profile that used to list them.
+  it("reports the group profiles of an account whose global profile is gone", async () => {
+    await db.doc("users/frodo").delete();
+    expect((await planAccountDeletion("frodo")).groups.map((group) => group.groupId)).toEqual(["g1", "g2"]);
   });
 
   it("reports an account that does not exist as having nothing", async () => {
@@ -119,6 +129,29 @@ describe("deleting an account", () => {
     expect((await db.doc("groups/g1/users/gandalf").get()).data()?.role).toBe("admin");
   });
 
+  // T136: the group profile is the record of membership, so a group whose
+  // profile the array no longer lists is still theirs to clean up -- with
+  // its private notes. While the array exists, what it lists is too.
+  it("deletes a group profile the array does not list, with its private notes", async () => {
+    await db.doc("users/frodo").update({groups: ["g2"]});
+
+    expect((await planAccountDeletion("frodo")).groups.map((group) => group.groupId)).toEqual(["g1", "g2"]);
+    await deleteAccount("frodo");
+
+    expect(await exists("groups/g1/users/frodo")).toBe(false);
+    expect(await count("groups/g1/users/frodo/notes")).toBe(0);
+    expect(await exists("groups/g1/usernames/mr-underhill")).toBe(false);
+  });
+
+  it("still releases the names in a group only the array lists", async () => {
+    await db.doc("groups/g2/users/frodo").delete();
+
+    expect((await planAccountDeletion("frodo")).groups.map((group) => group.groupId)).toEqual(["g1", "g2"]);
+    await deleteAccount("frodo");
+
+    expect(await exists("groups/g2/usernames/frodo")).toBe(false);
+  });
+
   it("finishes a profile whose sign-in is already gone", async () => {
     await getAuth().deleteUser("frodo");
 
@@ -126,6 +159,17 @@ describe("deleting an account", () => {
 
     expect(await exists("users/frodo")).toBe(false);
     expect(await exists("groups/g1/users/frodo")).toBe(false);
+  });
+
+  it("deletes group profiles that outlived the global profile, with their private notes", async () => {
+    await db.doc("users/frodo").delete();
+
+    await deleteAccount("frodo");
+
+    expect(await exists("groups/g1/users/frodo")).toBe(false);
+    expect(await count("groups/g1/users/frodo/notes")).toBe(0);
+    expect(await exists("groups/g2/users/frodo")).toBe(false);
+    await expect(getAuth().getUser("frodo")).rejects.toMatchObject({code: "auth/user-not-found"});
   });
 
   it("finishes a sign-in whose profile is already gone", async () => {

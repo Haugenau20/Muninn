@@ -46,6 +46,13 @@ describe("createCampaign", () => {
     expect((await db.doc(`groups/${GROUP}/users/frodo`).get()).get("activeCampaignId")).toBe("the-salt-road");
   });
 
+  it("lets a member the array does not list create one: the profile is the membership (T136)", async () => {
+    await db.doc("users/frodo").update({groups: []});
+    const {campaignId} = await create({groupId: GROUP, name: "The Salt Road"}, "frodo");
+
+    expect(campaignId).toBe("the-salt-road");
+  });
+
   it("gives a second campaign of the same name an id of its own, leaving the first alone", async () => {
     await create({groupId: GROUP, name: "The Salt Road"}, "frodo");
     const {campaignId} = await create({groupId: GROUP, name: "The Salt Road"}, "gandalf");
@@ -92,6 +99,14 @@ describe("createCampaign", () => {
     });
 
     it("someone who is not a member, and creates nothing", async () => {
+      await expectHttpsError(create({groupId: GROUP, name: "Mordor"}, "sauron"), "permission-denied");
+      expect(await campaignCount()).toBe(0);
+    });
+
+    // A member is someone with a group profile there (T136): the array
+    // listing the group is not enough.
+    it("someone the array lists with no profile there, and creates nothing", async () => {
+      await db.doc("users/sauron").update({groups: ["mordor", GROUP]});
       await expectHttpsError(create({groupId: GROUP, name: "Mordor"}, "sauron"), "permission-denied");
       expect(await campaignCount()).toBe(0);
     });

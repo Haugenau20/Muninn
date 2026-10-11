@@ -9,7 +9,8 @@
  * every request. The budget is one request per document or collection restore
  * actually needs:
  *
- *   users/{uid}                  the account: its groups and active group
+ *   users/{uid}                  the account: its active group
+ *   users, every group, by uid   the user's group profiles: which groups (T136)
  *   groups/{g}                   the group's metadata, for the switcher
  *   groups/{g}/users/{uid}       membership, username, active campaign
  *   groups/{g}/campaigns         the campaigns to choose from
@@ -31,7 +32,7 @@ const UID = 'uid-1';
 const mockDatabase: Record<string, Record<string, unknown>> = {
   [`users/${UID}`]: { email: 'frodo@example.com', groups: ['g1'], activeGroupId: 'g1' },
   'groups/g1': { name: 'The Fellowship' },
-  [`groups/g1/users/${UID}`]: { username: 'Frodo', activeCampaignId: 'c2', characters: [] },
+  [`groups/g1/users/${UID}`]: { userId: UID, username: 'Frodo', activeCampaignId: 'c2', characters: [] },
   'groups/g1/campaigns/c1': { name: 'There' },
   'groups/g1/campaigns/c2': { name: 'Back Again' },
 };
@@ -41,9 +42,12 @@ const mockRequests: string[] = [];
 
 const mockSnapshotOf = (path: string) => ({
   id: path.split('/').pop(),
+  ref: { path, parent: { parent: { id: path.split('/').slice(-3)[0] } } },
   exists: () => path in mockDatabase,
   data: () => mockDatabase[path],
 });
+
+type MockQuery = { path?: string; collectionGroup?: string; constraints?: Array<{ field: string; value: unknown }> };
 
 const mockPathOf = (parent: { path?: string } | undefined, segments: string[]) =>
   parent && parent.path ? [parent.path, ...segments].join('/') : segments.join('/');
@@ -62,7 +66,17 @@ jest.mock('firebase/firestore', () => ({
     mockRequests.push(`get ${ref.path}`);
     return mockSnapshotOf(ref.path);
   },
-  getDocs: async (ref: { path: string }) => {
+  getDocs: async (ref: MockQuery) => {
+    if (ref.collectionGroup) {
+      // Every collection of that name, filtered by the query's equalities.
+      const filters = ref.constraints ?? [];
+      mockRequests.push(`list */${ref.collectionGroup} where ${filters.map((f) => `${f.field} == ${f.value}`).join(', ')}`);
+      const docs = Object.keys(mockDatabase)
+        .filter((path) => path.split('/').length % 2 === 0 && path.split('/').slice(-2)[0] === ref.collectionGroup)
+        .filter((path) => filters.every((f) => mockDatabase[path][f.field] === f.value))
+        .map(mockSnapshotOf);
+      return { docs, empty: docs.length === 0, size: docs.length };
+    }
     mockRequests.push(`list ${ref.path}`);
     const prefix = `${ref.path}/`;
     const docs = Object.keys(mockDatabase)
@@ -72,8 +86,10 @@ jest.mock('firebase/firestore', () => ({
   },
   setDoc: jest.fn(),
   updateDoc: jest.fn(),
-  query: (ref: unknown) => ref,
-  where: jest.fn(),
+  collectionGroup: (_db: unknown, collectionGroup: string) => ({ collectionGroup }),
+  query: (ref: MockQuery, ...constraints: Array<{ field: string; value: unknown }>) =>
+    ({ ...ref, constraints: [...(ref.constraints ?? []), ...constraints] }),
+  where: (field: string, _op: string, value: unknown) => ({ field, value }),
   writeBatch: jest.fn(),
   onSnapshot: jest.fn(),
   runTransaction: jest.fn(),
@@ -143,6 +159,7 @@ test('restore makes one request per document or collection it needs, and no more
     'get groups/g1',
     `get groups/g1/users/${UID}`,
     `get users/${UID}`,
+    `list */users where userId == ${UID}`,
     'list groups/g1/campaigns',
   ]);
 });
