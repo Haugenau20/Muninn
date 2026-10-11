@@ -588,6 +588,17 @@ service cloud.firestore {
       // for the account's own holder, with everything beneath it.
     }
 
+    // A user's own group profiles, one per group, across groups: how the app
+    // lists the groups someone is in (T136). List only, and only profiles
+    // whose server-written `userId` is the reader's. It matches every `users`
+    // collection: top-level profiles carry no `userId`, so it grants nothing
+    // there, and on a group's roster only a profile of one's own, which exists
+    // only for a member. `notes` and `story-progress` sit deeper and do not
+    // match.
+    match /{path=**}/users/{profileId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
     // Group-level access
     match /groups/{groupId} {
       // Group data is readable by its members

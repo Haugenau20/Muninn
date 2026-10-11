@@ -216,6 +216,68 @@ describe("only its holder reads a profile (T140)", () => {
   });
 });
 
+// T136: the app lists a user's groups by their group profiles, one in each
+// group, rather than by `users/{uid}.groups`. The rule that allows it matches
+// every `users` collection, so its reach is pinned here.
+describe("listing one's own groups (T136)", () => {
+  const mine = (uid: string) => as(uid).collectionGroup("users").where("userId", "==", uid);
+
+  beforeEach(() => env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await db.doc("groups/shire").set({name: "The Shire"});
+    await db.doc("groups/shire/users/frodo").set({userId: "frodo", username: "Frodo", role: "admin"});
+    await db.doc(`groups/${G}/users/frodo/notes/n1`).set({content: "Mine", campaignId: "c1"});
+  }));
+
+  it("a member lists their group profiles in every group", async () => {
+    const found = await assertSucceeds(mine("frodo").get());
+    expect(found.docs.map((doc) => doc.ref.parent.parent?.id).sort()).toEqual([G, "shire"]);
+  });
+
+  it("a stranger may ask, and finds none", async () => {
+    const found = await assertSucceeds(mine("sauron").get());
+    expect(found.empty).toBe(true);
+  });
+
+  it("nobody lists another person's", async () => {
+    await assertFails(as("gandalf").collectionGroup("users").where("userId", "==", "frodo").get());
+  });
+
+  it("nobody lists every group profile", async () => {
+    await assertFails(as("frodo").collectionGroup("users").get());
+  });
+
+  it("nor anyone signed out", async () => {
+    await assertFails(
+      env.unauthenticatedContext().firestore().collectionGroup("users").where("userId", "==", "frodo").get()
+    );
+  });
+
+  it("top-level profiles have no userId, so the query matches none", async () => {
+    const found = await assertSucceeds(as("frodo").collection("users").where("userId", "==", "frodo").get());
+    expect(found.empty).toBe(true);
+  });
+
+  it("it opens no top-level profile to another reader", async () => {
+    await assertFails(as("sauron").doc("users/frodo").get());
+    await assertFails(as("sauron").collection("users").get());
+  });
+
+  it("a stranger lists nothing of a group's roster", async () => {
+    const found = await assertSucceeds(
+      as("sauron").collection(`groups/${G}/users`).where("userId", "==", "sauron").get()
+    );
+    expect(found.empty).toBe(true);
+    await assertFails(as("sauron").collection(`groups/${G}/users`).get());
+    await assertFails(as("sauron").doc(`groups/${G}/users/frodo`).get());
+  });
+
+  it("it reaches no private notes beneath a profile", async () => {
+    await assertFails(as("gandalf").collection(`groups/${G}/users/frodo/notes`).get());
+    await assertFails(as("gandalf").collectionGroup("notes").get());
+  });
+});
+
 describe("server-owned profile fields (T080)", () => {
   const usage = {isUnlimited: false, daily: {count: 10}, weekly: {count: 30}, monthly: {count: 100}};
 

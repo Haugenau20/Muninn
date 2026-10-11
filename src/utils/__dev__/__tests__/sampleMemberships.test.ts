@@ -78,6 +78,18 @@ describe("sample memberships", () => {
     }
   });
 
+  // The app lists a user's groups by the group profiles naming them in
+  // `userId` (T136); the seed wrote none, so every seeded user had no group.
+  it("names each group profile's holder, as the app's group list reads it", async () => {
+    await addUsersToGroups({}, users, { group1Id: "group1", group2Id: "group2" }, "2026-09-24");
+
+    const profiles = Object.entries(writes()).filter(([path]) => /^groups\/[^/]+\/users\/[^/]+$/.test(path));
+    expect(profiles.length).toBeGreaterThan(0);
+    for (const [path, data] of profiles) {
+      expect({ path, userId: data.userId }).toEqual({ path, userId: path.split("/")[3] });
+    }
+  });
+
   // The app reads characters as `{id, name}` entries (`CharacterNameEntry`).
   // The seed wrote bare strings, and the profile page crashed on the first
   // one: its character row hashes the missing id.

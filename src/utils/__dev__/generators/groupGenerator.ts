@@ -48,6 +48,9 @@ export const addUsersToGroups = async (db: any, users: UserData[], groups: { gro
     for (const groupId of userGroups) {
       // Create user membership in group
       const groupUserData = {
+        // As `redeemInvitation` writes it: the app lists a user's groups by
+        // this field (T136).
+        userId: user.id,
         username: user.username,
         role: isAdmin ? 'admin' : 'member',
         joinedAt: formattedDate,
