@@ -29,7 +29,6 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T057 | Sign in with a code from the email | M | blocked | On hold by the maintainer; its sending domain exists now (`muninn.quest`); the current phone-approval flow works |
 | low | T055 | Opt-in second factor | M | needs scoping | Kept for later, not now (2026-10-02); prefer an authenticator app over SMS |
 | low | T118 | Finish the move to `muninn.quest` | S | open | Everything runs on `muninn.quest`; left: Google's branding check, and two cosmetic leftovers |
-| low | T132 | Stop writing `dateAdded` / `dateModified` | M | open | The rules check the server's times now; the old strings are only clutter, and a browser before T132 still reads them |
 | low | T134 | The saga in sections | M | blocked | The saga is one document that will hit 1 MiB; how a sectioned saga is edited is the maintainer's call |
 | low | T135 | The index file matches production | S | blocked | Waits on the maintainer reading production's indexes; cheap once they have |
 | low | T136 | One membership document | L | open | Correct today; only removes a way for two copies to disagree |
@@ -423,7 +422,7 @@ anyway. What is left:
 - **Source**: todo.txt, 2026-10-06; the site, sign-in, mail, redirect and repo
   moved 2026-10-07
 
-### Restructuring Firestore before the site scales (T132 to T136)
+### Restructuring Firestore before the site scales (T134 to T136)
 
 Decided by the maintainer on 2026-10-08: **R2**, Firestore restructured; the
 site stays on Firebase. Why, and the routes set aside, are in
@@ -441,24 +440,6 @@ field that moves or is renamed ships in steps: the frontend reads both shapes;
 the script rewrites; a later frontend drops the old shape; only then, in its own
 merge, a rule refuses it. The review's read-only production checks (campaign
 sizes, how often a link's two halves disagree) go into each change's audit.
-
-### T132 — Stop writing `dateAdded` / `dateModified`
-**Type** debt · **Size** M · **Status** open · **Verified** 2026-10-09
-
-Every record and note write stamps `createdAt` / `modifiedAt` with the
-server's clock, and the rules check them and the writer's id
-(`stampsCreation`, `stampsModification` in `firestore.rules.prod`). Beside
-them every write still sets the old client-clock strings `dateAdded` /
-`dateModified`, which readers fall back to where a record has no server time
-(`core/attribution`, `recordTimes`).
-
-- **Change**: a frontend that writes the strings no more and reads only the
-  server's times, which completes the `dateAdded` → `createdAt` rename in
-  `database-field-alignment.md`. Records written before T132 have both, from
-  `migrate-records.js`.
-- **Catch**: a browser on an app from before T132 reads only the strings; ship
-  it a while after the reading frontend.
-- **Source**: `data-model-review.md` change 3 (F5, F6); answered 2026-10-08
 
 ### T134 — The saga in sections
 **Type** debt · **Size** M · **Status** blocked · **Verified** 2026-10-09

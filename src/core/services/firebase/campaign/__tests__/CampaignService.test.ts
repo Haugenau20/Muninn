@@ -429,7 +429,9 @@ describe('CampaignService', () => {
       const [, updateData] = mockUpdateDoc.mock.calls[0];
       expect(updateData.name).toBe('Updated Campaign');
       expect(updateData.modifiedBy).toBe('campaign-user');
-      expect(updateData.dateModified).toBeDefined();
+      // The server's clock only (T132).
+      expect(updateData.modifiedAt).toBeDefined();
+      expect(updateData).not.toHaveProperty('dateModified');
     });
 
     test('should throw when updateDoc fails', async () => {

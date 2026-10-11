@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useImperativeHandle, forwardRef } from "react";
 import { Note } from "../types";
+import { recordTimes } from "core/attribution";
 import Typography from "../../../../core/components/Typography";
 import Input from 'core/components/Input';
 import { useAutoGrow } from 'shared/hooks/useAutoGrow';
@@ -156,7 +157,7 @@ const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
         content: noteData.content || "",
       };
       // Set last saved time from note's modification date (if saved)
-      setLastSaved(noteData.isUnsaved ? null : (noteData.dateModified ? new Date(noteData.dateModified) : null));
+      setLastSaved(noteData.isUnsaved ? null : recordTimes(noteData).modified);
 
       // An edit whose save failed after this note was left (T085): put it
       // back, say so, and let "Try again" or the next autosave write it.

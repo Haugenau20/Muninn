@@ -23,14 +23,15 @@ export interface AttributionSource {
 /**
  * Builds the full attribution metadata for a newly created content item.
  *
- * Sets both the `created*` and `modified*` fields to the same actor and the
- * same timestamp, since creation and initial modification are the same event.
+ * Sets both the `created*` and `modified*` fields to the same actor, since
+ * creation and initial modification are the same event. The times are the
+ * server's, from {@link creationTimes}: the client-clock strings `dateAdded`
+ * and `dateModified` are no longer written (T132).
  *
  * @param src The acting user's uid and active group user profile.
  * @returns A complete {@link ContentAttribution} object.
  */
 export function buildCreationAttribution(src: AttributionSource): ContentAttribution {
-  const now = new Date().toISOString();
   const username = getUserName(src.activeGroupUserProfile);
   const characterId = src.activeGroupUserProfile?.activeCharacterId ?? null;
   const characterName = getActiveCharacterName(src.activeGroupUserProfile);
@@ -40,20 +41,19 @@ export function buildCreationAttribution(src: AttributionSource): ContentAttribu
     createdByUsername: username,
     createdByCharacterId: characterId,
     createdByCharacterName: characterName,
-    dateAdded: now,
     modifiedBy: src.uid,
     modifiedByUsername: username,
     modifiedByCharacterId: characterId,
     modifiedByCharacterName: characterName,
-    dateModified: now,
   };
 }
 
 /**
  * Builds the attribution delta for a modification to an existing content item.
  *
- * Only returns the `modified*` fields (plus `dateModified`) so the caller can
- * spread it over the existing entity without disturbing the `created*` fields.
+ * Only returns the `modified*` fields so the caller can spread it over the
+ * existing entity without disturbing the `created*` fields. The time is the
+ * server's, from {@link modificationTimes} (T132).
  *
  * @param src The acting user's uid and active group user profile.
  * @returns The subset of {@link ContentAttribution} fields touched by a modification.
@@ -66,14 +66,12 @@ export function buildModificationAttribution(
   | "modifiedByUsername"
   | "modifiedByCharacterId"
   | "modifiedByCharacterName"
-  | "dateModified"
 > {
   return {
     modifiedBy: src.uid,
     modifiedByUsername: getUserName(src.activeGroupUserProfile),
     modifiedByCharacterId: src.activeGroupUserProfile?.activeCharacterId ?? null,
     modifiedByCharacterName: getActiveCharacterName(src.activeGroupUserProfile),
-    dateModified: new Date().toISOString(),
   };
 }
 
@@ -115,17 +113,31 @@ export function toTime(value: AnyTime): Date | null {
 }
 
 /**
- * When a record was created and last modified (T132): the server's times
- * where it has them, else the client-written strings every older record
- * carries -- and a write still pending, whose server time is null, falls
- * back to the string written beside it.
+ * Whether a server time is a write still on its way: the sentinel, or the
+ * null the SDK reads in its place until the server has stamped it.
+ *
+ * @param value The stored time
+ */
+function isPendingTime(value: AnyTime): boolean {
+  if (value === null) return true;
+  return typeof value === "object" && !(value instanceof Date) && !("toDate" in value);
+}
+
+/**
+ * When a record was created and last modified (T132): the server's times.
+ * A write still pending, whose server time is not yet known, reads as now,
+ * which is when the server is about to stamp it. A record written before
+ * T132 that never got server times falls back to the client-clock strings
+ * `dateAdded` / `dateModified`, which nothing writes any more.
  *
  * @param item The record's attribution
  */
 export function recordTimes(
   item: Partial<Pick<ContentAttribution, "createdAt" | "modifiedAt" | "dateAdded" | "dateModified">> | null | undefined,
 ): { created: Date | null; modified: Date | null } {
-  const created = toTime(item?.createdAt) ?? toTime(item?.dateAdded);
-  const modified = toTime(item?.modifiedAt) ?? toTime(item?.dateModified) ?? created;
+  const timeOf = (server: AnyTime, legacy: string | undefined): Date | null =>
+    toTime(server) ?? (isPendingTime(server) ? new Date() : toTime(legacy));
+  const created = timeOf(item?.createdAt, item?.dateAdded);
+  const modified = timeOf(item?.modifiedAt, item?.dateModified) ?? created;
   return { created, modified };
 }

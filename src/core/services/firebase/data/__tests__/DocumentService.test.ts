@@ -114,15 +114,6 @@ function makeQuerySnapshot(docs: ReturnType<typeof makeDocSnapshot>[]) {
   return { docs };
 }
 
-/**
- * Asserts that `value` is a string in ISO 8601 format (e.g. produced by
- * `new Date().toISOString()`), without pinning to an exact instant.
- */
-function expectIso8601String(value: unknown) {
-  expect(typeof value).toBe('string');
-  expect(value as string).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-}
-
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe('DocumentService', () => {
@@ -514,7 +505,6 @@ describe('DocumentService', () => {
       expect(data.createdByUsername).toBe('Bilbo');
       expect(data.createdByCharacterId).toBe('char-1');
       expect(data.createdByCharacterName).toBe('Frodo');
-      expectIso8601String(data.dateAdded);
 
       // creation also stamps modified* (creation and initial modification are
       // the same event)
@@ -522,12 +512,13 @@ describe('DocumentService', () => {
       expect(data.modifiedByUsername).toBe('Bilbo');
       expect(data.modifiedByCharacterId).toBe('char-1');
       expect(data.modifiedByCharacterName).toBe('Frodo');
-      expectIso8601String(data.dateModified);
-      expect(data.dateModified).toBe(data.dateAdded);
 
-      // T132: and the server's clock, which the rules can check as request.time.
+      // T132: the server's clock, which the rules can check as request.time,
+      // and no writer's clock beside it.
       expect(data.createdAt).toBe('SERVER_TIMESTAMP');
       expect(data.modifiedAt).toBe('SERVER_TIMESTAMP');
+      expect(data).not.toHaveProperty('dateAdded');
+      expect(data).not.toHaveProperty('dateModified');
     });
 
     test('should null both character-name fields when the profile has no activeCharacterId', async () => {
@@ -781,7 +772,9 @@ describe('DocumentService', () => {
       expect(data.modifiedByUsername).toBe('Sam');
       expect(data.modifiedByCharacterId).toBe('char-2');
       expect(data.modifiedByCharacterName).toBe('Samwise');
-      expectIso8601String(data.dateModified);
+      // The server's clock only (T132).
+      expect(data.modifiedAt).toBe('SERVER_TIMESTAMP');
+      expect(data).not.toHaveProperty('dateModified');
 
       // updates must never overwrite creation attribution (bug #1203)
       expect(data).not.toHaveProperty('createdBy');
@@ -815,7 +808,8 @@ describe('DocumentService', () => {
 
       const written = mockFirestoreStore.read('gondolin')!;
       expect(written).toMatchObject({ name: 'Gondolin', parentId: 'doriath', modifiedByUsername: 'Elrond' });
-      expectIso8601String(written.dateModified);
+      expect(written.modifiedAt).toBe('SERVER_TIMESTAMP');
+      expect(written).not.toHaveProperty('dateModified');
       expect(written).not.toHaveProperty('createdBy');
     });
 
@@ -919,7 +913,8 @@ describe('DocumentService', () => {
 
       const quest = mockFirestoreStore.read('find-the-fire')!;
       expect(quest).toMatchObject({ title: 'Find the fire', createdByUsername: 'Sam' });
-      expectIso8601String(quest.dateAdded);
+      expect(quest.createdAt).toBe('SERVER_TIMESTAMP');
+      expect(quest).not.toHaveProperty('dateAdded');
       for (const id of ['smoke', 'ash']) {
         const rumor = mockFirestoreStore.read(id)!;
         expect(rumor).toMatchObject({ convertedToQuestId: 'find-the-fire', modifiedByUsername: 'Sam' });

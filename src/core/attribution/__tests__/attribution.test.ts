@@ -30,11 +30,9 @@ describe("attribution", () => {
       expect(result.modifiedByUsername).toBe("alice");
       expect(result.modifiedByCharacterId).toBe("char-1");
       expect(result.modifiedByCharacterName).toBe("Gandalf");
-      expect(typeof result.dateAdded).toBe("string");
-      expect(typeof result.dateModified).toBe("string");
     });
 
-    test("sets created* and modified* to identical values, with dateAdded === dateModified", () => {
+    test("sets created* and modified* to identical values", () => {
       const result = buildCreationAttribution({
         uid,
         activeGroupUserProfile: profileWithCharacter,
@@ -44,7 +42,6 @@ describe("attribution", () => {
       expect(result.modifiedByUsername).toBe(result.createdByUsername);
       expect(result.modifiedByCharacterId).toBe(result.createdByCharacterId);
       expect(result.modifiedByCharacterName).toBe(result.createdByCharacterName);
-      expect(result.dateAdded).toBe(result.dateModified);
     });
 
     test("yields null for character id/name fields when activeCharacterId is absent", () => {
@@ -73,19 +70,20 @@ describe("attribution", () => {
       expect(result.createdByCharacterName).toBeNull();
     });
 
-    test("produces valid ISO timestamps", () => {
+    // T132: the times are the server's (`creationTimes`); no writer's clock.
+    test("writes no client-clock time", () => {
       const result = buildCreationAttribution({
         uid,
         activeGroupUserProfile: profileWithCharacter,
       });
 
-      expect(new Date(result.dateAdded).toISOString()).toBe(result.dateAdded);
-      expect(new Date(result.dateModified as string).toISOString()).toBe(result.dateModified);
+      expect(result).not.toHaveProperty("dateAdded");
+      expect(result).not.toHaveProperty("dateModified");
     });
   });
 
   describe("buildModificationAttribution", () => {
-    test("returns only the modified* fields plus dateModified (no created* keys)", () => {
+    test("returns only the modified* fields (no created* keys, no client-clock time)", () => {
       const result = buildModificationAttribution({
         uid,
         activeGroupUserProfile: profileWithCharacter,
@@ -93,7 +91,6 @@ describe("attribution", () => {
 
       expect(Object.keys(result).sort()).toEqual(
         [
-          "dateModified",
           "modifiedBy",
           "modifiedByCharacterId",
           "modifiedByCharacterName",
@@ -141,19 +138,20 @@ describe("attribution", () => {
       expect(result.modifiedByCharacterName).toBeNull();
     });
 
-    test("produces a valid ISO timestamp", () => {
+    // T132: the time is the server's (`modificationTimes`).
+    test("writes no client-clock time", () => {
       const result = buildModificationAttribution({
         uid,
         activeGroupUserProfile: profileWithCharacter,
       });
 
-      expect(new Date(result.dateModified as string).toISOString()).toBe(result.dateModified);
+      expect(result).not.toHaveProperty("dateModified");
     });
   });
 });
 
-// T132: records carry the server's times beside the old client-written
-// strings; readers take the server's where they can.
+// T132: records carry the server's times; a record from before them may
+// have only the old client-written strings, which readers fall back to.
 describe("recordTimes", () => {
   const at = (iso: string) => ({ toDate: () => new Date(iso) });
 
@@ -178,5 +176,24 @@ describe("recordTimes", () => {
     expect(toTime({ isEqual: () => false })).toBeNull();
     expect(toTime("not a date")).toBeNull();
     expect(recordTimes(null)).toEqual({ created: null, modified: null });
+  });
+
+  // Nothing is written beside a server time any more, so a write still on
+  // its way has no other time to show: it reads as now, when the server is
+  // about to stamp it.
+  it("reads a write still pending as now, the null the SDK gives and the sentinel alike", () => {
+    const before = Date.now();
+    const fromNull = recordTimes({ createdAt: null, modifiedAt: null });
+    const fromSentinel = recordTimes({ createdAt: { isEqual: () => false } as never });
+    for (const time of [fromNull.created, fromNull.modified, fromSentinel.created]) {
+      expect(time?.getTime()).toBeGreaterThanOrEqual(before);
+      expect(time?.getTime()).toBeLessThanOrEqual(Date.now());
+    }
+  });
+
+  it("an edit pending on an older record reads as now, not as its old string", () => {
+    const times = recordTimes({ dateAdded: "2020-01-01T00:00:00Z", dateModified: "2020-01-02T00:00:00Z", modifiedAt: null });
+    expect(times.created?.toISOString()).toBe("2020-01-01T00:00:00.000Z");
+    expect(times.modified?.getFullYear()).toBe(new Date().getFullYear());
   });
 });

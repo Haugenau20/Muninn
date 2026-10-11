@@ -11,7 +11,8 @@ import {
   type AttachSources,
 } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
-import { formatNoteDate } from 'shared/utils/dateFormatter';
+import { formatCalendarDate } from 'shared/utils/dateFormatter';
+import { recordTimes } from 'core/attribution';
 import useCreatorName from 'shared/hooks/useCreatorName';
 import { Rumor, RumorNote, RumorStatus, SourceType } from '../types';
 import { useCampaignRecordNotes } from '../../shared/recordNotes';
@@ -483,7 +484,8 @@ export const RumorRowEditor: React.FC<RumorRowEditorProps> = ({
                     color="muted"
                     className="text-xs whitespace-nowrap tabular-nums"
                   >
-                    {formatNoteDate(note.dateAdded)}
+                    {/* When it was written, by the server's clock (T132). */}
+                    {formatCalendarDate(recordTimes(note).created ?? new Date())}
                   </Typography>
                   <Typography variant="body-sm">{note.content}</Typography>
                 </div>

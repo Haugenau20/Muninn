@@ -351,9 +351,7 @@ describe('RumorContext Behavioral Testing', () => {
           sourceName: 'Northern Merchant',
           id: 'dragons-in-the-north',
           createdBy: 'test-user',
-          dateAdded: expect.any(String),
           modifiedBy: 'test-user',
-          dateModified: expect.any(String),
           relatedNPCs: [],
           relatedLocations: [],
           notes: []
@@ -688,7 +686,6 @@ describe('RumorContext Behavioral Testing', () => {
           title: 'Updated Rumour Title',
           content: 'Updated rumour content',
           modifiedBy: 'test-user',
-          dateModified: expect.any(String)
         })
       );
     });
@@ -710,7 +707,6 @@ describe('RumorContext Behavioral Testing', () => {
         expect.objectContaining({
           status: 'confirmed',
           modifiedBy: 'test-user',
-          dateModified: expect.any(String)
         })
       );
     });

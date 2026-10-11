@@ -540,7 +540,6 @@ describe('StoryContext Behavioral Testing', () => {
           createdByUsername: 'Test User',
           createdByCharacterName: 'Test Character',
           modifiedBy: 'test-user',
-          dateAdded: expect.any(String)
         })
       });
       expect(mockFirebaseServices.document.setDocument).not.toHaveBeenCalled();
@@ -619,7 +618,6 @@ describe('StoryContext Behavioral Testing', () => {
         order: 3,
         modifiedBy: 'user-b',
         modifiedByUsername: 'User B',
-        dateModified: expect.any(String)
       }));
       expect(Object.keys(moved.data).filter((key) => key.startsWith('created') || key === 'dateAdded')).toEqual([]);
       expect(batch).toHaveLength(3);
@@ -800,7 +798,6 @@ describe('StoryContext Behavioral Testing', () => {
             content: null,
             contentLength: 'Updated chapter content'.length,
             modifiedBy: 'test-user',
-            dateModified: expect.any(String)
           })
         },
         {

@@ -115,7 +115,9 @@ describe('NPCContext.updateNPCsStatus', () => {
     ]);
     for (const write of writes) {
       expect(write.data.modifiedBy).toBe('user-1');
-      expect(typeof write.data.dateModified).toBe('string');
+      // The server's clock only (T132).
+      expect(write.data.modifiedAt).toBeDefined();
+      expect(write.data).not.toHaveProperty('dateModified');
     }
     expect(mockUpdateData).not.toHaveBeenCalled();
   });
