@@ -278,6 +278,54 @@ describe("listing one's own groups (T136)", () => {
   });
 });
 
+// T136: membership is the group profile `groups/{g}/users/{uid}`, the one
+// record of it; `users/{uid}.groups` no longer decides anything.
+describe("membership is the group profile (T136)", () => {
+  beforeEach(() => env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    // A member the array does not list.
+    await db.doc("users/merry").set({id: "merry", groups: []});
+    await db.doc(`groups/${G}/users/merry`).set({userId: "merry", username: "Merry", role: "member"});
+    // An admin the array does not list.
+    await db.doc("users/elrond").set({id: "elrond", groups: []});
+    await db.doc(`groups/${G}/users/elrond`).set({userId: "elrond", username: "Elrond", role: "admin"});
+    // Listed in the array, with no profile in the group.
+    await db.doc("users/pippin").set({id: "pippin", groups: [G]});
+  }));
+
+  it("a member the array does not list reads the group and its campaigns", async () => {
+    await assertSucceeds(as("merry").doc(`groups/${G}`).get());
+    await assertSucceeds(as("merry").doc(`groups/${G}/campaigns/c1/npcs/n1`).get());
+    await assertSucceeds(as("merry").doc(`groups/${G}/users/frodo`).get());
+  });
+
+  it("a member the array does not list writes an NPC", async () => {
+    await assertSucceeds(
+      as("merry").doc(`groups/${G}/campaigns/c1/npcs/n2`).set({name: "Fatty", ...created("merry")})
+    );
+  });
+
+  it("an admin the array does not list edits the group", async () => {
+    await assertSucceeds(as("elrond").doc(`groups/${G}`).update({description: "Nine walkers"}));
+  });
+
+  it("someone the array lists without a profile reads nothing of the group", async () => {
+    await assertFails(as("pippin").doc(`groups/${G}`).get());
+    await assertFails(as("pippin").doc(`groups/${G}/campaigns/c1/npcs/n1`).get());
+    await assertFails(as("pippin").doc(`groups/${G}/users/frodo`).get());
+  });
+
+  it("someone the array lists without a profile writes nothing", async () => {
+    await assertFails(
+      as("pippin").doc(`groups/${G}/campaigns/c1/npcs/n2`).set({name: "Pippin", ...created("pippin")})
+    );
+  });
+
+  it("someone the array lists without a profile keeps no reading progress there", async () => {
+    await assertFails(as("pippin").doc(`groups/${G}/users/pippin/story-progress/c1`).set({currentChapter: "ch1"}));
+  });
+});
+
 describe("server-owned profile fields (T080)", () => {
   const usage = {isUnlimited: false, daily: {count: 10}, weekly: {count: 30}, monthly: {count: 100}};
 
