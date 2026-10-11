@@ -46,7 +46,7 @@ describe("leaving a group", () => {
     const error = await expectHttpsError(leave("gandalf"), "failed-precondition");
     expect(error.message).toMatch(/only admin/);
     expect(await isMember("gandalf")).toBe(true);
-    expect((await db.doc("users/gandalf").get()).data()?.groups).toEqual([GROUP]);
+    expect((await db.doc("users/gandalf").get()).get("activeGroupId")).toBe(GROUP);
   });
 
   it("is allowed to the only admin when nobody else is in the group", async () => {
@@ -65,7 +65,7 @@ describe("leaving a group", () => {
     await seed({gandalf: "admin", frodo: "member"});
     await leave("frodo");
     expect(await isMember("frodo")).toBe(false);
-    expect((await db.doc("users/frodo").get()).data()?.groups).toEqual([]);
+    expect((await db.doc("users/frodo").get()).get("activeGroupId")).toBeNull();
   });
 });
 

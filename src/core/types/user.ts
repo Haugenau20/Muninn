@@ -29,8 +29,6 @@ export interface UserProfile {
   id: string;
   /** User's email address from Firebase Authentication */
   email: string;
-  /** List of group IDs the user belongs to */
-  groups: string[];
   /** ID of the active group */
   activeGroupId?: string | null;
   /** Timestamp of last login */

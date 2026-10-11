@@ -173,8 +173,9 @@ The reason is recorded in that file.
   records their server times and moves notes and chapter text into their own documents, a record
   per transaction, with a revert file. `issue-founder-invitation.js` (T125) issues a founder link -- one account,
   to start one group -- and prints it; it only adds. `audit-membership.js` (T136) lists where
-  `users/{uid}.groups` and the group profiles disagree and, with `--apply`, sets a profile's missing
-  `userId`, with a revert file. Tested through what they export
+  `users/{uid}.groups` and the group profiles disagree and, with `--apply`, sets a profile's
+  missing `userId`; `--remove-array` deletes the retired array; both with a revert file. Tested
+  through what they export
   (`auditLocationIds.test.ts`, `migrateLocationIds.test.ts`, `accountDeletion.test.ts`,
   `deleteAccountScript.test.ts`, `founderInvitations.test.ts`, `issueFounderInvitationScript.test.ts`,
   `migrateLinks.test.ts`, `migrateRecords.test.ts`, `auditMembership.test.ts`);

@@ -45,9 +45,10 @@ describe("sample memberships", () => {
 
     const profile = writes()[`users/${uidOf("Faramir")}`];
     // The shape `removeUserFromGroup` leaves behind for someone whose last
-    // group is gone -- not a missing field.
-    expect(profile.groups).toEqual([]);
+    // group is gone -- not a missing field. No account lists its groups since
+    // T136: membership is the group profile.
     expect(profile.activeGroupId).toBeNull();
+    expect(profile).not.toHaveProperty("groups");
   });
 
   it("gives that account no membership document anywhere", async () => {
@@ -66,15 +67,15 @@ describe("sample memberships", () => {
     expect(admins.sort()).toEqual(["DungeonMaster", "Eowyn"]);
   });
 
-  it("keeps the profile's group list and the membership documents in agreement", async () => {
+  it("makes each account's active group one it has a group profile in", async () => {
     await createUserProfiles({}, users);
     await addUsersToGroups({}, users, { group1Id: "group1", group2Id: "group2" }, "2026-09-24");
 
     const all = writes();
     for (const user of users) {
-      const listed = all[`users/${user.id}`].groups;
+      const active = all[`users/${user.id}`].activeGroupId;
       const joined = ["group1", "group2"].filter((g) => all[`groups/${g}/users/${user.id}`]);
-      expect({ user: user.username, groups: joined }).toEqual({ user: user.username, groups: listed });
+      expect({ user: user.username, active }).toEqual({ user: user.username, active: joined[0] ?? null });
     }
   });
 

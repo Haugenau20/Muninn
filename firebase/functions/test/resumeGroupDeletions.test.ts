@@ -19,13 +19,14 @@ const fileExists = async (path: string) => (await imageBucket().file(path).exist
 
 /**
  * Leaves group `groupId` the way a deletion that failed after the group
- * document went leaves it: a record, a member still holding the group, a
- * descendant and a picture.
+ * document went leaves it: a record, a member's profile and an account with
+ * the group active, a descendant and a picture.
  */
 async function seedStranded(groupId: string, requestedAgoMs: number) {
   await db.doc(`groupDeletions/${groupId}`)
     .set({requestedBy: "gandalf", requestedAt: ago(requestedAgoMs)});
-  await db.doc(`users/frodo-${groupId}`).set({groups: [groupId], activeGroupId: groupId});
+  await db.doc(`groups/${groupId}/users/frodo-${groupId}`).set({userId: `frodo-${groupId}`, role: "member"});
+  await db.doc(`users/frodo-${groupId}`).set({activeGroupId: groupId});
   await db.doc(`groups/${groupId}/campaigns/c1/npcs/n1`).set({name: "Bilbo"});
   await imageBucket().file(`groups/${groupId}/crest/a.webp`)
     .save(Buffer.from("x"), {contentType: "image/webp"});
@@ -46,7 +47,8 @@ describe("resumeGroupDeletions", () => {
     const result = await resumeGroupDeletions(NOW);
 
     expect(result).toEqual({finished: ["g1"], failed: [], more: false});
-    expect((await db.doc("users/frodo-g1").get()).data()?.groups).toEqual([]);
+    expect(await isThere("groups/g1/users/frodo-g1")).toBe(false);
+    expect((await db.doc("users/frodo-g1").get()).get("activeGroupId")).toBeNull();
     expect(await isThere("groups/g1/campaigns/c1/npcs/n1")).toBe(false);
     expect(await fileExists("groups/g1/crest/a.webp")).toBe(false);
     expect(await isThere("groupDeletions/g1")).toBe(false);

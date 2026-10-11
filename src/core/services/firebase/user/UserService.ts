@@ -46,7 +46,6 @@ import {
             return {
             id: userId,
             email: userData.email || '',
-            groups: userData.groups || [],
             activeGroupId: userData.activeGroupId || null,
             lastLogin: userData.lastLogin || new Date(),
             createdAt: userData.createdAt || new Date(),

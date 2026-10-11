@@ -26,6 +26,10 @@ const script = require("../scripts/audit-membership.js") as {
   repairMembership: (db: unknown, record: RevertRecord) => Promise<void>;
   revertMembership: (db: unknown, record: RevertRecord, apply: boolean) =>
     Promise<{unchanged: string[]; changed: string[]}>;
+  arrayHolders: (db: unknown) => Promise<string[]>;
+  removeArrays: (db: unknown, record: RevertRecord) => Promise<void>;
+  revertRecord: (db: unknown, record: RevertRecord & {kind?: string}, apply: boolean) =>
+    Promise<{unchanged: string[]; changed: string[]}>;
   formatAudit: (audit: Audit) => string;
 };
 
@@ -128,5 +132,45 @@ describe("audit-membership", () => {
     expect(cat.exists).toBe(true);
     expect(cat.data()).not.toHaveProperty("userId");
     expect(await userIdOf("groups/g2/users/dan")).toBe("someone");
+  });
+});
+
+// Step 4: once nothing reads or writes the array, the script removes it.
+describe("audit-membership --remove-array", () => {
+  beforeEach(seed);
+
+  it("removes the array from every account carrying it, and records what each held", async () => {
+    const record = {...fresh(), kind: "removeArray"};
+    await script.removeArrays(db, record);
+
+    expect(await script.arrayHolders(db)).toEqual([]);
+    expect(record.writes).toEqual(expect.arrayContaining([
+      {path: "users/ann", before: ["g1", "g2"]},
+      {path: "users/eve", before: []},
+    ]));
+    expect(record.writes).toHaveLength(5);
+    // Nothing else on the account changes.
+    expect((await db.doc("users/ann").get()).data()).toEqual({id: "ann", activeGroupId: "g1"});
+  });
+
+  it("leaves the audit quiet: an account without the array is not compared", async () => {
+    await script.removeArrays(db, {...fresh(), kind: "removeArray"});
+    const audit = await script.auditMembership(db);
+
+    expect(audit.noProfile).toEqual([]);
+    // Fay has no account at all, which is still worth knowing.
+    expect(audit.notInArray).toEqual([{uid: "fay", groupId: "g2"}]);
+  });
+
+  it("puts the arrays back, except on an account given one since", async () => {
+    const record = {...fresh(), kind: "removeArray"};
+    await script.removeArrays(db, record);
+    await db.doc("users/eve").update({groups: ["g9"]});
+
+    const result = await script.revertRecord(db, record, true);
+
+    expect(result.changed).toEqual(["users/eve"]);
+    expect((await db.doc("users/ann").get()).get("groups")).toEqual(["g1", "g2"]);
+    expect((await db.doc("users/eve").get()).get("groups")).toEqual(["g9"]);
   });
 });

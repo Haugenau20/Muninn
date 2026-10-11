@@ -157,7 +157,9 @@ describe("leaving a group", () => {
 
     expect(await noteCount(G1, "bilbo")).toBe(0);
     expect(await noteCount(G2, "bilbo")).toBe(3);
-    expect((await db.doc("users/bilbo").get()).data()?.groups).toEqual([G2]);
+    // T136: the group profiles are the membership.
+    expect((await db.doc(`groups/${G1}/users/bilbo`).get()).exists).toBe(false);
+    expect((await db.doc(`groups/${G2}/users/bilbo`).get()).exists).toBe(true);
   });
 
   it("lets a group admin remove a member, notes included", async () => {
@@ -174,8 +176,8 @@ describe("leaving a group", () => {
 
     await expectHttpsError(leave(G1, "frodo"), "internal");
 
-    // Still a member, so the leave path can see the membership and retry.
-    expect((await db.doc("users/frodo").get()).data()?.groups).toEqual([G1]);
+    // Still a member -- the profile is the membership (T136) -- so the leave
+    // path can see the membership and retry.
     expect((await db.doc(`groups/${G1}/users/frodo`).get()).exists).toBe(true);
     expect(await noteCount(G1, "frodo")).toBe(3);
 
@@ -183,7 +185,7 @@ describe("leaving a group", () => {
     await leave(G1, "frodo");
 
     expect(await noteCount(G1, "frodo")).toBe(0);
-    expect((await db.doc("users/frodo").get()).data()?.groups).toEqual([]);
+    expect((await db.doc(`groups/${G1}/users/frodo`).get()).exists).toBe(false);
   });
 });
 
@@ -203,7 +205,7 @@ describe("a removal that fails after the notes are gone", () => {
     await leave(G1, "frodo");
 
     expect((await db.doc(`groups/${G1}/usernames/frodo`).get()).exists).toBe(false);
-    expect((await db.doc("users/frodo").get()).data()?.groups).toEqual([]);
+    expect((await db.doc("users/frodo").get()).get("activeGroupId")).not.toBe(G1);
   });
 
   it("deleting an account: a retry still releases the member's name", async () => {

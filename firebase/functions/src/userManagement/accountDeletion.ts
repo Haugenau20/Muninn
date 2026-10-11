@@ -86,7 +86,7 @@ export async function planAccountDeletion(uid: string): Promise<AccountDeletionP
     signInOf(uid),
     db.collection("users").doc(uid).get(),
   ]);
-  const groupIds = await memberGroupIds(uid, profile);
+  const groupIds = await memberGroupIds(uid);
 
   const groups = await Promise.all(groupIds.map(async (groupId) => {
     const group = db.collection("groups").doc(groupId);
@@ -129,7 +129,7 @@ export async function planAccountDeletion(uid: string): Promise<AccountDeletionP
  */
 export async function deleteAccount(uid: string): Promise<void> {
   const userDoc = await getFirestore().collection("users").doc(uid).get();
-  const groups = await memberGroupIds(uid, userDoc);
+  const groups = await memberGroupIds(uid);
 
   if (!userDoc.exists && groups.length === 0) {
     // The global profile is the last Firestore record this deletes -- it

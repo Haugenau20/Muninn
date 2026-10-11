@@ -141,9 +141,10 @@ export const createUserProfiles = async (db: any, users: UserData[]) => {
   for (const user of users) {
     const groups = SAMPLE_MEMBERSHIPS[user.username]?.groups ?? [];
     
+    // Membership is the group profile `addUsersToGroups` writes (T136); the
+    // account only names its active group.
     const userData = {
       email: user.email,
-      groups: groups,
       lastLoginAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       // First group as active; null for nobody's-member, as removeUserFromGroup leaves it

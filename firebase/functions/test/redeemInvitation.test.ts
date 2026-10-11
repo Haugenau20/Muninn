@@ -193,8 +193,10 @@ describe("redeemInvitation", () => {
       expect(result).toEqual({success: true, groupId: GROUP});
 
       const user = (await db.doc("users/u1").get()).data();
-      expect(user).toMatchObject({id: "u1", email: "frodo@shire.test", groups: [GROUP], activeGroupId: GROUP});
+      expect(user).toMatchObject({id: "u1", email: "frodo@shire.test", activeGroupId: GROUP});
       expect(user?.isAdmin).toBeUndefined();
+      // T136: membership is the group profile below; the global profile lists no groups.
+      expect(user).not.toHaveProperty("groups");
 
       expect((await db.doc(`groups/${GROUP}/users/u1`).get()).data()).toMatchObject({
         userId: "u1",
@@ -228,15 +230,17 @@ describe("redeemInvitation", () => {
   });
 
   describe("for an existing account", () => {
-    it("adds the group to the ones it already has, and makes it active", async () => {
+    // T136: an array left on the global profile from before is not touched.
+    it("makes the group active, and leaves an old array as it was", async () => {
       await seed();
       await db.doc("users/u1").set({id: "u1", email: "frodo@shire.test", groups: ["other"], activeGroupId: "other"});
 
       await redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1");
 
-      expect((await db.doc("users/u1").get()).data()).toMatchObject({
+      expect((await db.doc("users/u1").get()).data()).toEqual({
+        id: "u1",
         email: "frodo@shire.test",
-        groups: ["other", GROUP],
+        groups: ["other"],
         activeGroupId: GROUP,
       });
       expect((await db.doc(`groups/${GROUP}/users/u1`).get()).data()).toMatchObject({

@@ -179,14 +179,15 @@ describe('UserService', () => {
       expect(profile).not.toBeNull();
       expect(profile?.id).toBe('uid-1');
       expect(profile?.email).toBe('test@example.com');
-      expect(profile?.groups).toEqual(['g1', 'g2']);
     });
 
-    test('should default to empty array for groups when field is missing', async () => {
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { email: 'a@b.com' }));
+    // T136: membership is the group profiles; an array still stored on the
+    // account from before is not handed on as if it meant something.
+    test('does not carry the old groups array', async () => {
+      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { email: 'a@b.com', groups: ['g1'] }));
       const svc = UserService.getInstance();
       const profile = await svc.getUserProfile('uid-1');
-      expect(profile?.groups).toEqual([]);
+      expect(profile).not.toHaveProperty('groups');
     });
   });
 
