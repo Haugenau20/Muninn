@@ -33,9 +33,9 @@ const MEMBERS: GroupMember[] = [
 ];
 
 const TOKENS: RegistrationToken[] = [
-  { token: "spare-1", notes: "Spare invitation", used: false, createdAt: new Date("2025-05-31") },
-  { token: "used-1", notes: "Aragorn", used: true, usedBy: "u3", createdAt: new Date("2025-05-30") },
-  { token: "used-2", used: true, usedBy: "u4", createdAt: new Date("2025-05-30") },
+  { id: "spare-1", notes: "Spare invitation", used: false, createdAt: new Date("2025-05-31") },
+  { id: "used-1", notes: "Aragorn", used: true, usedBy: "u3", createdAt: new Date("2025-05-30") },
+  { id: "used-2", used: true, usedBy: "u4", createdAt: new Date("2025-05-30") },
 ];
 
 const deleteUser = jest.fn().mockResolvedValue(undefined);
@@ -43,10 +43,13 @@ const setMemberRole = jest.fn().mockResolvedValue(undefined);
 const generateRegistrationToken = jest.fn().mockResolvedValue("fresh-token");
 const deleteRegistrationToken = jest.fn().mockResolvedValue(undefined);
 const updateRegistrationTokenNotes = jest.fn().mockResolvedValue(undefined);
+// The token behind an invitation id comes from the server (T145).
+let revealRegistrationToken = jest.fn();
 let getRegistrationTokens = jest.fn();
 
 function setup({ members = MEMBERS, tokens = TOKENS, membersLoading = false } = {}) {
   getRegistrationTokens = jest.fn().mockResolvedValue(tokens);
+  revealRegistrationToken = jest.fn().mockResolvedValue("revealed-token");
   useGroups.mockReturnValue({
     user: { uid: "u1" },
     activeGroup: { id: "g1", name: "The Fellowship" },
@@ -57,6 +60,7 @@ function setup({ members = MEMBERS, tokens = TOKENS, membersLoading = false } = 
   useInvitations.mockReturnValue({
     generateRegistrationToken,
     getRegistrationTokens,
+    revealRegistrationToken,
     deleteRegistrationToken,
     updateRegistrationTokenNotes,
   });
@@ -318,7 +322,7 @@ describe("AdminPeoplePage", () => {
     });
 
     test("says so plainly when an invitation has no note", async () => {
-      setup({ tokens: [{ token: "t", used: false, createdAt: new Date("2025-05-31") }] });
+      setup({ tokens: [{ id: "t", used: false, createdAt: new Date("2025-05-31") }] });
       await settle();
       expect(screen.getByText("Not yet sent to anyone")).toBeInTheDocument();
     });
@@ -326,7 +330,7 @@ describe("AdminPeoplePage", () => {
     // T013: a row says when its invitation stops working.
     test("states when an invitation expires", async () => {
       const inAWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      setup({ tokens: [{ token: "t", used: false, createdAt: new Date(), expiresAt: inAWeek }] });
+      setup({ tokens: [{ id: "t", used: false, createdAt: new Date(), expiresAt: inAWeek }] });
       await settle();
       const row = within(invitationsList()).getByRole("listitem");
       expect(row).toHaveTextContent(/Expires /);
@@ -336,7 +340,7 @@ describe("AdminPeoplePage", () => {
     test("an expired invitation says so and offers no link, only revoking", async () => {
       setup({
         tokens: [
-          { token: "t", used: false, createdAt: new Date("2025-05-01"), expiresAt: new Date("2025-05-15") },
+          { id: "t", used: false, createdAt: new Date("2025-05-01"), expiresAt: new Date("2025-05-15") },
         ],
       });
       await settle();
@@ -347,7 +351,7 @@ describe("AdminPeoplePage", () => {
     });
 
     test("an invitation from before expiry existed still says when it was made", async () => {
-      setup({ tokens: [{ token: "t", used: false, createdAt: new Date("2025-05-31") }] });
+      setup({ tokens: [{ id: "t", used: false, createdAt: new Date("2025-05-31") }] });
       await settle();
       const row = within(invitationsList()).getByRole("listitem");
       expect(row).toHaveTextContent(/Created /);
@@ -420,7 +424,7 @@ describe("AdminPeoplePage", () => {
     });
 
     test("an unnamed invitation can be named", async () => {
-      setup({ tokens: [{ token: "t", used: false, createdAt: new Date("2025-05-31") }] });
+      setup({ tokens: [{ id: "t", used: false, createdAt: new Date("2025-05-31") }] });
       await settle();
       await userEvent.click(
         screen.getByRole("button", { name: /Say who this invitation is for/i })
@@ -505,8 +509,32 @@ describe("AdminPeoplePage", () => {
       expect(dialog).not.toHaveTextContent(/expires when used/);
     });
 
+    test("copies an open invitation's link from the token the server reveals, never from its id (T145)", async () => {
+      setup();
+      await settle();
+      await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
+
+      expect(revealRegistrationToken).toHaveBeenCalledWith("spare-1");
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText(/\/join\?token=revealed-token/)).toBeInTheDocument();
+      expect(dialog).not.toHaveTextContent(/spare-1/);
+    });
+
+    test("says why when the link cannot be shown again, and opens nothing", async () => {
+      setup();
+      revealRegistrationToken.mockRejectedValue(
+        new Error("This invitation's link cannot be shown again. Revoke it and invite them again.")
+      );
+      await settle();
+      await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
+      await settle();
+
+      expect(screen.getByRole("alert")).toHaveTextContent(/cannot be shown again/);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
     test("copying a pre-expiry invitation's link still says it lapses only when used", async () => {
-      setup({ tokens: [{ token: "t", used: false, createdAt: new Date("2025-05-31") }] });
+      setup({ tokens: [{ id: "t", used: false, createdAt: new Date("2025-05-31") }] });
       await settle();
       await userEvent.click(screen.getByRole("button", { name: "Copy link" }));
 

@@ -212,7 +212,7 @@ const PendingInvitationsCard: React.FC<PendingInvitationsCardProps> = ({
 
           return (
             <li
-              key={invitation.token}
+              key={invitation.id}
               className={clsx(ROW_GRID, 'px-4 sm:px-6 py-3 min-h-[3.5rem]')}
             >
               {/* No hue and no letter: there is no-one here yet to derive

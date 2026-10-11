@@ -4,6 +4,7 @@ import {getFirestore} from "firebase-admin/firestore";
 import {ENFORCE_APP_CHECK} from "../shared/appCheck";
 import {rethrowHttpsError} from "../shared/httpsErrors";
 import {registrationTokenProblem} from "../shared/registrationToken";
+import {findInvitation, isInvitationToken} from "../shared/invitationToken";
 import {
   REFUSAL,
   RESERVATIONS,
@@ -37,8 +38,8 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 async function reserveForFounder(founderToken: string, email: string): Promise<void> {
   const db = getFirestore();
-  const invitation = await db.collection(FOUNDER_INVITATIONS).doc(founderToken).get();
-  if (!invitation.exists) {
+  const invitation = await findInvitation(db.collection(FOUNDER_INVITATIONS), founderToken);
+  if (!invitation) {
     throw new functions.HttpsError(
       "not-found",
       "This link to start a group does not exist. Ask for a new one."
@@ -62,10 +63,12 @@ async function reserveForFounder(founderToken: string, email: string): Promise<v
   }
 
   const now = new Date();
-  await db.collection(RESERVATIONS).doc(founderReservationId(founderToken)).set({
+  // Named by the invitation's id, never its token: whoever reads the
+  // reservations holds no working link (T145).
+  await db.collection(RESERVATIONS).doc(founderReservationId(invitation.id)).set({
     email: normalizeEmail(email),
     kind: "founder",
-    token: founderToken,
+    invitationId: invitation.id,
     createdAt: now,
     expiresAt: new Date(now.getTime() + RESERVATION_LIFETIME_MS),
   });
@@ -98,10 +101,10 @@ export const reserveSignUp = functions.onCall(
 
     const founder = founderToken !== undefined;
     const complete = founder ?
-      typeof founderToken === "string" && founderToken !== "" &&
+      isInvitationToken(founderToken) &&
         groupId === undefined && token === undefined :
-      typeof groupId === "string" && groupId !== "" &&
-        typeof token === "string" && token !== "";
+      typeof groupId === "string" && groupId !== "" && !groupId.includes("/") &&
+        isInvitationToken(token);
     if (!complete) {
       throw new functions.HttpsError(
         "invalid-argument",
@@ -133,10 +136,10 @@ export const reserveSignUp = functions.onCall(
 
     try {
       const [tokenDoc, groupDoc] = await Promise.all([
-        db.doc(`groups/${groupId}/registrationTokens/${token}`).get(),
+        findInvitation(db.collection(`groups/${groupId}/registrationTokens`), token as string),
         db.doc(`groups/${groupId}`).get(),
       ]);
-      if (!tokenDoc.exists) {
+      if (!tokenDoc) {
         throw new functions.HttpsError(
           "not-found",
           "This invitation does not exist. Ask for a new link."
@@ -176,11 +179,11 @@ export const reserveSignUp = functions.onCall(
       }
 
       const now = new Date();
-      await db.collection(RESERVATIONS).doc(reservationId(groupId as string, token as string)).set({
+      await db.collection(RESERVATIONS).doc(reservationId(groupId as string, tokenDoc.id)).set({
         email: normalizeEmail(email),
         kind: "group",
         groupId,
-        token,
+        invitationId: tokenDoc.id,
         createdAt: now,
         expiresAt: new Date(now.getTime() + RESERVATION_LIFETIME_MS),
       });

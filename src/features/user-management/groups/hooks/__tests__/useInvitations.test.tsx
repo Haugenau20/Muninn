@@ -25,6 +25,7 @@ const mockReserveSignUp = jest.fn();
 const mockJoinGroupWithToken = jest.fn();
 const mockGetGroupRegistrationTokens = jest.fn();
 const mockDeleteGroupRegistrationToken = jest.fn();
+const mockRevealGroupRegistrationToken = jest.fn();
 
 jest.mock("@/core/services/firebase", () => ({
   __esModule: true,
@@ -40,6 +41,8 @@ jest.mock("@/core/services/firebase", () => ({
         mockGetGroupRegistrationTokens(...args),
       deleteGroupRegistrationToken: (...args: any[]) =>
         mockDeleteGroupRegistrationToken(...args),
+      revealGroupRegistrationToken: (...args: any[]) =>
+        mockRevealGroupRegistrationToken(...args),
     },
   },
 }));
@@ -476,6 +479,51 @@ describe("useInvitations Behavioral Testing", () => {
       });
 
       expect(mockSetError).toHaveBeenCalledWith("Delete token failed");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // T145: an invitation's id is its token's hash, so a link to copy again
+  // needs the token from the server.
+  describe("revealRegistrationToken Behavior", () => {
+    test("should throw when no activeGroupId is set", async () => {
+      mockContextValue = makeContext({ activeGroupId: null });
+      const { result } = renderHook(() => useInvitations());
+
+      await expect(
+        act(async () => {
+          await result.current.revealRegistrationToken("hash-id");
+        })
+      ).rejects.toThrow("No active group selected");
+      expect(mockRevealGroupRegistrationToken).not.toHaveBeenCalled();
+    });
+
+    test("should return the token the service reveals for the active group", async () => {
+      mockRevealGroupRegistrationToken.mockResolvedValue("the-token");
+      mockContextValue = makeContext({ activeGroupId: "g1" });
+      const { result } = renderHook(() => useInvitations());
+
+      let token = "";
+      await act(async () => {
+        token = await result.current.revealRegistrationToken("hash-id");
+      });
+
+      expect(token).toBe("the-token");
+      expect(mockRevealGroupRegistrationToken).toHaveBeenCalledWith("g1", "hash-id");
+    });
+
+    test("should call setError and re-throw on failure", async () => {
+      mockRevealGroupRegistrationToken.mockRejectedValue(new Error("This invitation has been used."));
+      mockContextValue = makeContext({ activeGroupId: "g1" });
+      const { result } = renderHook(() => useInvitations());
+
+      await act(async () => {
+        try {
+          await result.current.revealRegistrationToken("hash-id");
+        } catch (_) {}
+      });
+
+      expect(mockSetError).toHaveBeenCalledWith("This invitation has been used.");
     });
   });
 

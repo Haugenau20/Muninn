@@ -17,6 +17,11 @@ process.env.NODE_ENV = 'test';
 if (typeof globalThis.crypto === 'undefined') {
   (globalThis as any).crypto = {};
 }
+// Web Crypto's digest, which Node has and JSDOM does not expose: invitation
+// tokens are looked up by their SHA-256 (T145).
+if (!globalThis.crypto.subtle) {
+  (globalThis.crypto as any).subtle = require('crypto').webcrypto.subtle;
+}
 if (typeof globalThis.crypto.randomUUID !== 'function') {
   let uuidCounter = 0;
   (globalThis.crypto as any).randomUUID = () => {

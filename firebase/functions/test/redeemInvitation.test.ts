@@ -2,12 +2,15 @@
 import {call, clearProject, expectHttpsError, useEmulatorProject} from "./emulator";
 import {redeemInvitation} from "../src/groupManagement/redeemInvitation";
 import {MAX_GROUP_MEMBERS} from "../src/groupManagement/groupLimits";
+import {HASHED_SCHEME, hashInvitationToken} from "../src/shared/invitationToken";
 
 const PROJECT = "demo-redeem-invitation";
 const db = useEmulatorProject(PROJECT);
 
 const GROUP = "g1";
 const TOKEN = "tok-live";
+/** Where the invitation is stored: under its token's hash (T145). */
+const TOKEN_PATH = `groups/${GROUP}/registrationTokens/${hashInvitationToken(TOKEN)}`;
 const DAY = 24 * 60 * 60 * 1000;
 
 const redeem = (data: object, uid?: string, email?: string) =>
@@ -18,10 +21,10 @@ async function seed(token: object = {used: false}) {
   await db.doc(`groups/${GROUP}`).set({name: "Fellowship", createdBy: "admin"});
   await db.doc(`groups/${GROUP}/users/admin`).set({userId: "admin", username: "Gandalf", role: "admin"});
   await db.doc(`groups/${GROUP}/usernames/gandalf`).set({userId: "admin", originalUsername: "Gandalf"});
-  await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).set({token: TOKEN, ...token});
+  await db.doc(TOKEN_PATH).set({scheme: HASHED_SCHEME, ...token});
 }
 
-const tokenDoc = () => db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).get();
+const tokenDoc = () => db.doc(TOKEN_PATH).get();
 
 beforeEach(() => clearProject(PROJECT));
 
@@ -52,8 +55,18 @@ describe("redeemInvitation", () => {
       expect((await db.doc(`groups/${GROUP}/users/u1`).get()).exists).toBe(false);
     });
 
+    it("an invitation's id presented as its token: whoever reads the collection holds no link (T145)", async () => {
+      await seed();
+      await expectHttpsError(
+        redeem({groupId: GROUP, token: hashInvitationToken(TOKEN), username: "Frodo"}, "u1"),
+        "not-found"
+      );
+      expect((await db.doc(`groups/${GROUP}/users/u1`).get()).exists).toBe(false);
+      expect((await tokenDoc()).data()?.used).toBe(false);
+    });
+
     it("a token for a group that does not exist", async () => {
-      await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).set({used: false});
+      await db.doc(TOKEN_PATH).set({scheme: HASHED_SCHEME, used: false});
       await expectHttpsError(redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1"), "not-found");
     });
 
@@ -148,7 +161,7 @@ describe("redeemInvitation", () => {
     it("lets only one of two joiners racing for the last place in", async () => {
       await seed();
       await fillTo(MAX_GROUP_MEMBERS - 1);
-      await db.doc(`groups/${GROUP}/registrationTokens/tok-2`).set({token: "tok-2", used: false});
+      await db.doc(`groups/${GROUP}/registrationTokens/${hashInvitationToken("tok-2")}`).set({scheme: HASHED_SCHEME, used: false});
 
       const results = await Promise.allSettled([
         redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1"),
@@ -183,6 +196,17 @@ describe("redeemInvitation", () => {
         originalUsername: "Frodo",
       });
       expect((await tokenDoc()).data()).toMatchObject({used: true, usedBy: "u1"});
+    });
+
+    it("accepts an invitation made before T145, stored under its token, and spends it", async () => {
+      await seed();
+      const legacy = db.doc(`groups/${GROUP}/registrationTokens/old-token`);
+      await legacy.set({token: "old-token", used: false, expiresAt: new Date(Date.now() + DAY)});
+
+      await redeem({groupId: GROUP, token: "old-token", username: "Frodo"}, "u1");
+
+      expect((await db.doc(`groups/${GROUP}/users/u1`).get()).exists).toBe(true);
+      expect((await legacy.get()).data()).toMatchObject({used: true, usedBy: "u1"});
     });
 
     it("accepts a token minted before expiry existed", async () => {

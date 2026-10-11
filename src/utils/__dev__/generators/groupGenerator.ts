@@ -2,6 +2,7 @@
 
 import { doc, setDoc } from 'firebase/firestore';
 import { SAMPLE_MEMBERSHIPS, UserData, UserMapping } from './userGenerator';
+import { HASHED_INVITATION_SCHEME, hashInvitationToken } from '../../../core/utils/registration-token';
 
 // Create two groups with actual creator UID
 export const createGroups = async (db: any, userMapping: UserMapping) => {
@@ -95,15 +96,13 @@ const createGroupTokens = async (db: any, groupId: string, users: UserData[], fo
   for (let i = 0; i < tokenUsers.length; i++) {
     const user = tokenUsers[i];
     
-    // `id`, `token` and the document id are deliberately the same string.
-    // Production writes them identically -- `generateGroupRegistrationToken`
-    // uses the token as the document id and stores it in the field too -- so a
-    // fixture where they differ is not representative, and it made every
-    // seeded invite link resolve to a token that does not exist.
-    const tokenId = `token${i+1}-${groupId}`;
+    // Stored under the token's hash, as `createInvitation` stores one (T145).
+    // These are spent, so no sealed copy: nobody needs their links again.
+    const tokenId = await hashInvitationToken(`token${i+1}-${groupId}`);
+    if (!tokenId) throw new Error('Web Crypto is needed to seed invitations');
     const token = {
       id: tokenId,
-      token: tokenId,
+      scheme: HASHED_INVITATION_SCHEME,
       createdAt: formattedDate,
       createdBy: dmUser.id,
       used: true,
@@ -116,11 +115,14 @@ const createGroupTokens = async (db: any, groupId: string, users: UserData[], fo
     console.log(`Created token for ${user.username} in group ${groupId}`);
   }
   
-  // Create one unused token for future members
-  const unusedTokenId = `token-unused-${groupId}`;
+  // Create one unused token for future members. Its link cannot be copied
+  // again: only `createInvitation` can seal a token, and this one is not
+  // sealed, so the admin page says to revoke it and invite again.
+  const unusedTokenId = await hashInvitationToken(`token-unused-${groupId}`);
+  if (!unusedTokenId) throw new Error('Web Crypto is needed to seed invitations');
   const unusedToken = {
     id: unusedTokenId,
-    token: unusedTokenId,
+    scheme: HASHED_INVITATION_SCHEME,
     createdAt: formattedDate,
     createdBy: dmUser.id,
     used: false,

@@ -3,9 +3,8 @@ import {
     collection, 
     doc, 
     getDoc, 
-    getDocs, 
-    setDoc, 
-    updateDoc, 
+    getDocs,
+    updateDoc,
     deleteDoc
   } from 'firebase/firestore';
   import { httpsCallable } from 'firebase/functions';
@@ -13,7 +12,8 @@ import {
   import ServiceRegistry from '../core/ServiceRegistry';
   import type UserService from '../user/UserService';
   import {
-    REGISTRATION_TOKEN_LIFETIME_MS,
+    HASHED_INVITATION_SCHEME,
+    hashInvitationToken,
     isRegistrationTokenRedeemable
   } from '../../../utils/registration-token';
 
@@ -40,42 +40,53 @@ import {
     }
   
     /**
-     * Generate a registration token for a specific group (admin only)
-     * @param groupId ID of the group to generate token for
-     * @param notes Optional notes about the token's purpose
-     * @returns The generated token
+     * Make an invitation into a group (admin only), and return its token.
+     *
+     * Runs in the `createInvitation` Cloud Function (T145), which checks the
+     * caller is an admin, stores the invitation under the token's hash and
+     * seals the token beside it. The browser used to mint and store tokens
+     * itself, each under its own value, so the collection held every unspent
+     * link in the clear.
+     *
+     * @param groupId ID of the group to invite into
+     * @param notes Optional note on who the invitation is for
+     * @returns The token, for the link
      */
     public async generateGroupRegistrationToken(groupId: string, notes: string = ''): Promise<string> {
-      const userId = this.getCurrentUser()?.uid;
-      if (!userId) {
-        throw new Error('Not authenticated');
-      }
-      
-      // Check if user is admin of this group
-      const isAdmin = await this.userService.isUserAdmin(groupId, userId);
-      if (!isAdmin) {
-        throw new Error('Only group admins can generate tokens');
-      }
-      
-      // Generate a unique token
-      const token = this.generateSecureToken();
-      
-      // Store token in the group's registrationTokens collection
-      const createdAt = new Date();
-      await setDoc(doc(this.db, 'groups', groupId, 'registrationTokens', token), {
-        token,
-        createdAt,
-        expiresAt: new Date(createdAt.getTime() + REGISTRATION_TOKEN_LIFETIME_MS),
-        createdBy: userId,
-        notes,
-        used: false
-      });
-      
-      return token;
+      const create = httpsCallable<{ groupId: string; notes: string }, { token: string }>(
+        this.functions,
+        'createInvitation'
+      );
+      const { data } = await create({ groupId, notes });
+      return data.token;
     }
-  
+
+    /**
+     * The token of one of a group's open invitations, to copy its link again
+     * (admin only). Its id is its token's hash, so only `revealInvitation`,
+     * which holds the key to the sealed copy, can say what it is.
+     *
+     * @param groupId ID of the group
+     * @param invitationId The invitation's document id
+     * @returns The token, for the link
+     */
+    public async revealGroupRegistrationToken(groupId: string, invitationId: string): Promise<string> {
+      const reveal = httpsCallable<{ groupId: string; invitationId: string }, { token: string }>(
+        this.functions,
+        'revealInvitation'
+      );
+      const { data } = await reveal({ groupId, invitationId });
+      return data.token;
+    }
+
   /**
    * Validate a registration token and get its associated group ID
+   *
+   * The invitation is stored under the token's hash (T145), or, if it was
+   * made before that, under the token itself and with no `scheme`. Only an
+   * invitation of the first kind is found by its hash, and only one of the
+   * second by its token: a hash presented as a token finds nothing.
+   *
    * @param token The token to validate
    * @returns Object with validation result and group ID
    */
@@ -84,21 +95,32 @@ import {
       // Extract group ID from URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const groupId = urlParams.get('groupId');
-      
+
       // If no groupId provided, token cannot be validated
       if (!groupId) {
         return { isValid: false };
       }
-      
-      // Direct document lookup with groupId and token
-      const docRef = doc(this.db, 'groups', groupId, 'registrationTokens', token);
-      const docSnap = await getDoc(docRef);
-      
-      // Check the token exists, hasn't been used, and hasn't expired
-      if (docSnap.exists() && isRegistrationTokenRedeemable(docSnap.data())) {
+
+      const hash = await hashInvitationToken(token);
+      if (hash === null) {
+        // No Web Crypto here, so no way to find the invitation. This is only a
+        // courtesy check before the call; the server's is the one that counts.
         return { isValid: true, groupId };
       }
-      
+      const [hashed, legacy] = await Promise.all([
+        getDoc(doc(this.db, 'groups', groupId, 'registrationTokens', hash)),
+        getDoc(doc(this.db, 'groups', groupId, 'registrationTokens', token)),
+      ]);
+      const invitation =
+        hashed.exists() && hashed.data()?.scheme === HASHED_INVITATION_SCHEME ? hashed :
+          legacy.exists() && legacy.data()?.scheme === undefined ? legacy :
+            null;
+
+      // Check the token exists, hasn't been used, and hasn't expired
+      if (invitation && isRegistrationTokenRedeemable(invitation.data() ?? {})) {
+        return { isValid: true, groupId };
+      }
+
       return { isValid: false };
     } catch (error) {
       return { isValid: false };
@@ -127,19 +149,16 @@ import {
       const snapshot = await getDocs(tokensCollection);
       
       return snapshot.docs.map(doc => {
-        const data = doc.data();
+        // Neither the `token` an invitation made before T145 stores, nor the
+        // sealed copy one made since carries: a link is built only from what
+        // `revealGroupRegistrationToken` returns.
+        const { token: _token, sealed: _sealed, ...data } = doc.data();
 
         return {
           ...data,
-          // After the spread, not before it. A token is looked up by document
-          // id -- `validateRegistrationToken` does `doc(db, ..., token)` -- and
-          // the document also stores a `token` field. Generation writes the two
-          // identically, but nothing enforces that, and where they diverge the
-          // spread used to overwrite the id with the stored field. The caller
-          // then built a share link around a value no lookup could resolve, so
-          // the invitation appeared valid in the list and was rejected on
-          // arrival. The id is the identity; the stored field is a copy of it.
-          token: doc.id,
+          // After the spread, not before it: the document id is the
+          // invitation's identity, whatever a stored field says.
+          id: doc.id,
           createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
           expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate() : data.expiresAt,
           usedAt: data.usedAt?.toDate ? data.usedAt.toDate() : data.usedAt
@@ -150,9 +169,9 @@ import {
     /**
      * Delete a registration token from a specific group (admin only)
      * @param groupId ID of the group
-     * @param token ID of the token to delete
+     * @param invitationId The invitation's document id
      */
-    public async deleteGroupRegistrationToken(groupId: string, token: string): Promise<void> {
+    public async deleteGroupRegistrationToken(groupId: string, invitationId: string): Promise<void> {
       const userId = this.getCurrentUser()?.uid;
       if (!userId) {
         throw new Error('Not authenticated');
@@ -164,7 +183,7 @@ import {
         throw new Error('Only group admins can delete registration tokens');
       }
       
-      await deleteDoc(doc(this.db, 'groups', groupId, 'registrationTokens', token));
+      await deleteDoc(doc(this.db, 'groups', groupId, 'registrationTokens', invitationId));
     }
 
     /**
@@ -182,12 +201,12 @@ import {
      * `usedBy` and resurrect a spent invitation.
      *
      * @param groupId ID of the group
-     * @param token ID of the token
+     * @param invitationId The invitation's document id
      * @param notes The new note, which may be empty to clear it
      */
     public async updateGroupRegistrationTokenNotes(
       groupId: string,
-      token: string,
+      invitationId: string,
       notes: string
     ): Promise<void> {
       const userId = this.getCurrentUser()?.uid;
@@ -202,7 +221,7 @@ import {
       }
 
       await updateDoc(
-        doc(this.db, 'groups', groupId, 'registrationTokens', token),
+        doc(this.db, 'groups', groupId, 'registrationTokens', invitationId),
         { notes }
       );
     }

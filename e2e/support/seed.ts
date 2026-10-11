@@ -2,6 +2,7 @@
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { createHash } from "crypto";
 import { E2E } from "./env";
 
 // Read by the Admin SDK when Auth and Firestore are first used, below: they
@@ -237,7 +238,10 @@ export async function seed(): Promise<void> {
   });
   batch.set(db.doc(`${campaignPath}/chapters/${movedChapter.id}/body/text`), { content: movedChapter.text });
 
-  batch.set(db.doc(`founderInvitations/${founderLink.token}`), {
+  // Stored under its token's hash, as `issueFounderInvitation` stores one (T145).
+  const founderLinkId = createHash("sha256").update(founderLink.token, "utf8").digest("hex");
+  batch.set(db.doc(`founderInvitations/${founderLinkId}`), {
+    scheme: "sha256",
     used: false,
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),

@@ -17,6 +17,7 @@ import {
   founderReservationId,
   issueFounderInvitation,
 } from "../src/signUp/founderInvitations";
+import {hashInvitationToken} from "../src/shared/invitationToken";
 
 const PROJECT = "demo-founder-invitations";
 const db = useEmulatorProject(PROJECT);
@@ -42,9 +43,15 @@ async function expectRefused(promise: Promise<unknown>, marker: string) {
   expect((caught as HttpsError).message).toContain(marker);
 }
 
-const invitation = (token: string) => db.collection(FOUNDER_INVITATIONS).doc(token);
+/** A founder link's invitation, stored under its token's hash (T145). */
+const invitation = (token: string) => db.collection(FOUNDER_INVITATIONS).doc(hashInvitationToken(token));
 const reservation = (token: string) =>
-  db.collection(RESERVATIONS).doc(founderReservationId(token)).get();
+  db.collection(RESERVATIONS).doc(founderReservationId(hashInvitationToken(token))).get();
+
+/** Every string value in a document, however deeply nested. */
+const stringsIn = (value: unknown): string[] =>
+  typeof value === "string" ? [value] :
+    value && typeof value === "object" ? Object.values(value).flatMap(stringsIn) : [];
 
 beforeEach(() => clearProject(PROJECT));
 
@@ -60,6 +67,15 @@ describe("issueFounderInvitation", () => {
     expect(stored?.used).toBe(false);
     expect(stored?.note).toBe("Bree table");
     expect(stored?.expiresAt.toDate().getTime()).toBe(expiresAt.getTime());
+  });
+
+  it("stores it under the token's hash, and the token nowhere (T145)", async () => {
+    const {token, invitationId} = await issueFounderInvitation(db, {issuedBy: "script"});
+
+    expect(invitationId).toBe(hashInvitationToken(token));
+    const all = await db.collection(FOUNDER_INVITATIONS).get();
+    expect(all.docs.map((doc) => doc.id)).toEqual([invitationId]);
+    expect(stringsIn(all.docs[0].data())).not.toContain(token);
   });
 
   it("issues a different token every time", async () => {
@@ -82,6 +98,15 @@ describe("reserveSignUp with a founder invitation", () => {
     expect(reserved.data()?.email).toBe("bilbo@shire.dev");
     expect(reserved.data()?.kind).toBe("founder");
     expect((await invitation(token).get()).data()?.used).toBe(false);
+    // The reservation names the invitation, never its token (T145).
+    expect([reserved.id, ...stringsIn(reserved.data())].some((value) => value.includes(token))).toBe(false);
+  });
+
+  it("accepts a link issued before T145, stored under its token", async () => {
+    const legacy = "legacy-founder-token-0123456789";
+    await db.collection(FOUNDER_INVITATIONS).doc(legacy).set({used: false, createdAt: new Date(), expiresAt: new Date(Date.now() + DAY)});
+    await reserve({founderToken: legacy, email: "bilbo@shire.dev"});
+    expect((await db.collection(RESERVATIONS).doc(founderReservationId(legacy)).get()).exists).toBe(true);
   });
 
   it("holds one email per invitation: reserving again replaces it", async () => {
@@ -94,6 +119,12 @@ describe("reserveSignUp with a founder invitation", () => {
   });
 
   describe("refuses", () => {
+    it("an invitation's id presented as its token", async () => {
+      const {invitationId} = await issueFounderInvitation(db, {issuedBy: "script"});
+      await expectHttpsError(reserve({founderToken: invitationId, email: "bilbo@shire.dev"}), "not-found");
+      expect((await db.collection(RESERVATIONS).get()).empty).toBe(true);
+    });
+
     it("a founder token that does not exist", async () => {
       await expectHttpsError(reserve({founderToken: "forged", email: "bilbo@shire.dev"}), "not-found");
       expect((await db.collection(RESERVATIONS).get()).empty).toBe(true);

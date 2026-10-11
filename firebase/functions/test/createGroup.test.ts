@@ -2,6 +2,7 @@
 import {call, clearProject, expectHttpsError, useEmulatorProject} from "./emulator";
 import {createGroup} from "../src/groupManagement/createGroup";
 import {FOUNDER_INVITATIONS, issueFounderInvitation} from "../src/signUp/founderInvitations";
+import {hashInvitationToken} from "../src/shared/invitationToken";
 
 const PROJECT = "demo-create-group";
 const db = useEmulatorProject(PROJECT);
@@ -18,7 +19,9 @@ const founderLink = async () => (await issueFounderInvitation(db, {issuedBy: "sc
 const startedEarlier = (groupId: string, uid: string) =>
   db.doc(`groups/${groupId}`).set({name: groupId, createdBy: uid});
 
-const invitation = (token: string) => db.collection(FOUNDER_INVITATIONS).doc(token).get();
+/** A founder link's invitation, stored under its token's hash (T145). */
+const invitation = (token: string) =>
+  db.collection(FOUNDER_INVITATIONS).doc(hashInvitationToken(token)).get();
 
 beforeEach(() => clearProject(PROJECT));
 
@@ -98,6 +101,20 @@ describe("createGroup", () => {
 
       expect((await db.doc(`groups/${groupId}`).get()).exists).toBe(true);
       expect((await invitation(founderToken)).data()).toMatchObject({used: true, usedBy: "gandalf", groupId});
+    });
+
+    it("someone holding a founder link issued before T145, stored under its token", async () => {
+      const founderToken = "legacy-founder-token-0123456789";
+      await db.collection(FOUNDER_INVITATIONS).doc(founderToken).set({used: false, createdAt: new Date(), expiresAt: new Date(Date.now() + DAY)});
+      const {groupId} = await create({name: "Fellowship", username: "Gandalf", founderToken}, "gandalf");
+
+      expect((await db.collection(FOUNDER_INVITATIONS).doc(founderToken).get()).data()).toMatchObject({used: true, groupId});
+    });
+
+    it("not with a founder link's id presented as its token (T145)", async () => {
+      const {invitationId} = await issueFounderInvitation(db, {issuedBy: "script"});
+      await expectHttpsError(create({name: "Fellowship", username: "Gandalf", founderToken: invitationId}, "gandalf"), "not-found");
+      expect((await db.collection("groups").get()).size).toBe(0);
     });
 
     it("not with a founder link that does not exist", async () => {

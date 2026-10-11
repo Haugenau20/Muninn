@@ -49,7 +49,12 @@ export function memberId(member: GroupMember): string | undefined {
  * above it, and no action on it is available -- you cannot un-use one.
  */
 export interface RegistrationToken {
-  token: string;
+  /**
+   * The invitation's document id: its token's hash (T145), or for one made
+   * before that, the token itself. Never put in a link: the link's token
+   * comes from `revealRegistrationToken`.
+   */
+  id: string;
   notes?: string;
   used?: boolean;
   createdAt?: Date | string | number;

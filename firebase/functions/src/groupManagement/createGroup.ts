@@ -5,6 +5,11 @@ import {ENFORCE_APP_CHECK} from "../shared/appCheck";
 import {rethrowHttpsError} from "../shared/httpsErrors";
 import {registrationTokenProblem} from "../shared/registrationToken";
 import {FOUNDER_INVITATIONS} from "../signUp/founderInvitations";
+import {
+  invitationRefs,
+  isInvitationToken,
+  pickInvitation,
+} from "../shared/invitationToken";
 
 interface CreateGroupData {
   name: string;
@@ -105,8 +110,7 @@ export const createGroup = functions.onCall(
           "characters."
       );
     }
-    if (founderToken !== undefined &&
-        (typeof founderToken !== "string" || !founderToken)) {
+    if (founderToken !== undefined && !isInvitationToken(founderToken)) {
       throw new functions.HttpsError(
         "invalid-argument",
         "This link to start a group is incomplete."
@@ -125,21 +129,25 @@ export const createGroup = functions.onCall(
         // same transaction, and reading the profile after writing the group
         // failed every call.
         const userDocRef = getFirestore().collection("users").doc(callerUid);
-        const invitationRef = founderToken ?
-          getFirestore().collection(FOUNDER_INVITATIONS).doc(founderToken) :
+        // Under the token's hash, or, for a link issued before T145, under
+        // the token itself (`shared/invitationToken`).
+        const invitationRefsOf = founderToken ?
+          invitationRefs(getFirestore().collection(FOUNDER_INVITATIONS), founderToken) :
           null;
-        const [userDoc, invitation, started] = await Promise.all([
+        const [userDoc, hashedInvitation, legacyInvitation, started] = await Promise.all([
           transaction.get(userDocRef),
-          invitationRef ? transaction.get(invitationRef) : null,
-          invitationRef ?
+          invitationRefsOf ? transaction.get(invitationRefsOf.hashed) : null,
+          invitationRefsOf ? transaction.get(invitationRefsOf.legacy) : null,
+          invitationRefsOf ?
             null :
             transaction.get(getFirestore().collection("groups")
               .where("createdBy", "==", callerUid)
               .limit(MAX_GROUPS_STARTED)),
         ]);
 
-        if (invitationRef && invitation) {
-          if (!invitation.exists) {
+        if (hashedInvitation && legacyInvitation) {
+          const invitation = pickInvitation(hashedInvitation, legacyInvitation);
+          if (!invitation) {
             throw new functions.HttpsError(
               "not-found",
               "This link to start a group does not exist. Ask for a new one."
@@ -154,7 +162,7 @@ export const createGroup = functions.onCall(
                 "This link to start a group has expired. Ask for a new one."
             );
           }
-          transaction.update(invitationRef, {
+          transaction.update(invitation.ref, {
             used: true,
             usedAt: now,
             usedBy: callerUid,

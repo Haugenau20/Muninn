@@ -37,7 +37,7 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T111 | Is it worth expanding the notes feature? | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
 | low | T143 | The About page's coffee link and photo | S | blocked | Both built and switched off; wait on a link and a picture from the maintainer |
-| low | T145 | Invitation tokens are stored as document ids | M | open | Whoever can read the collection holds working tokens: the console, the operator's runtime, a group's admins |
+| low | T145 | Invitations: the browser's write access, and the old links | S | open | Hashed since T145; left: rules that stop a browser minting one, then retiring links stored under their tokens |
 | low | T149 | Both Hosting sites keep every release | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 | low | T148 | Does the theme belong in Firestore? | S | open | A question for the maintainer; the current design works |
 | nit | T147 | Should `colour-schema.json` leave `docs/design/`? | S | open | A question for the maintainer; nothing is wrong where it is |
@@ -320,27 +320,25 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   alt text today is "Søren".
 - **Source**: maintainer, 2026-10-10, during the Muninn identity work
 
-### T145 — Invitation tokens are stored as document ids
-**Type** debt · **Size** M · **Status** open · **Verified** 2026-10-10
+### T145 — Invitations: the browser's write access, and the old links
+**Type** debt · **Size** S · **Status** open · **Verified** 2026-10-11
 
-A link's token is the id of the document that admits it, so anyone who can
-read the collection can use every unspent link in it.
+Every invitation, into a group or to start one, is now made by a function
+and stored under its token's SHA-256 (`firebase/functions/src/shared/invitationToken.ts`);
+a group invitation keeps its token sealed beside it for its admins to copy
+again (`revealInvitation`, key `INVITATION_LINK_KEY`). Two things are left.
 
-- **Where**: founder links, `founderInvitations/{token}`
-  (`firebase/functions/src/signUp/founderInvitations.ts:99`); group
-  invitations, `groups/{g}/registrationTokens/{token}`, written by the browser
-  (`src/core/services/firebase/group/InvitationService.ts:65`) and listed by the
-  group's admins (`:126`; `firestore.rules.prod:704`, `list` for admins, `get`
-  for anyone who has the token).
-- **Who can read them**: the console, the operator page's runtime account
-  (security architecture, residual risk 4), the functions, and a group's
-  admins for their own group.
-- **Fix**: keep a SHA-256 of the token as the id and hash on redemption; the
-  link still carries the token itself.
-- **Catch**: group invitations are minted in the browser, so the hash must be
-  too, or minting moves into a function; and whatever lists invitations can no
-  longer show a link again once it is only a hash. Existing unspent links need
-  a migration or a cut-over.
+- **The rules** (next, in its own merge, after the frontend that calls
+  `createInvitation` is live): `firestore.rules.prod:704` still lets a group's
+  admins `create` invitations and `update` any field of one. Refuse `create`,
+  and let `update` touch `notes` only.
+- **Links stored under their tokens** (made before T145) are still honoured,
+  and only while they carry no `scheme`: `pickInvitation`, the client's
+  `validateRegistrationToken`, `revealInvitation`'s legacy branch, and the
+  `token` field `findLiveReservation` falls back to. Group links expire 14 days
+  after they were made, except those minted before T013, which never do. Once
+  the last has lapsed, drop those paths and delete what is left under a token
+  (an audit in the shape of `audit-location-ids.js` finds them: no `scheme`).
 - **Source**: the operator page's plan, filed when step 4a was picked up, 2026-10-10
 
 ### T146 — The functions run as an Editor of the whole project

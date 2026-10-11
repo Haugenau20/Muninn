@@ -23,6 +23,7 @@ import {
   revokeFounderLink,
 } from "../../src/operator/founderLinks";
 import {Refusal} from "../../src/shared/refusal";
+import {hashInvitationToken} from "../../src/shared/invitationToken";
 
 const PROJECT = "demo-operator-founder-links";
 const db = useEmulatorProject(PROJECT);
@@ -30,7 +31,10 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const OPERATOR = "operator@muninn.quest";
 
-const invitation = (token: string) => db.collection(FOUNDER_INVITATIONS).doc(token);
+/** An issued link's invitation, stored under its token's hash (T145). */
+const invitation = (token: string) => db.collection(FOUNDER_INVITATIONS).doc(hashInvitationToken(token));
+/** An invitation by its document id, for links stored here directly. */
+const byId = (id: string) => db.collection(FOUNDER_INVITATIONS).doc(id);
 
 /** Asserts `promise` is refused for `reason`, and returns the refusal. */
 async function expectRefusal(promise: Promise<unknown>, reason: string): Promise<Refusal> {
@@ -57,10 +61,11 @@ async function issueMany(count: number, now = new Date()) {
 beforeEach(() => clearProject(PROJECT));
 
 describe("issuing a founder link", () => {
-  it("records who issued it and the trimmed note, and names it by its first six characters", async () => {
+  it("records who issued it and the trimmed note, and names it by its id's first six characters", async () => {
     const {token, ref, expiresAt} = await issueFounderLink(db, {issuedBy: OPERATOR, note: "  Bree table "});
 
-    expect(ref).toBe(token.slice(0, 6));
+    // The id is the token's hash, so the ref says nothing about the token.
+    expect(ref).toBe(hashInvitationToken(token).slice(0, 6));
     const stored = (await invitation(token).get()).data();
     expect(stored?.issuedBy).toBe(OPERATOR);
     expect(stored?.note).toBe("Bree table");
@@ -135,8 +140,8 @@ describe("the daily budget", () => {
 
 describe("listing founder links", () => {
   /** A link stored directly, so a test can hold more than the budget. */
-  async function stored(token: string, createdAt: Date, extra: object = {}) {
-    await invitation(token).set({
+  async function stored(id: string, createdAt: Date, extra: object = {}) {
+    await byId(id).set({
       used: false,
       createdAt,
       expiresAt: new Date(createdAt.getTime() + 14 * DAY),
@@ -257,8 +262,8 @@ describe("revoking a founder link", () => {
   });
 
   it("refuses two links that start alike, rather than guess", async () => {
-    await invitation("sameABxxxxxxxxx1").set({used: false, createdAt: new Date()});
-    await invitation("sameABxxxxxxxxx2").set({used: false, createdAt: new Date()});
+    await byId("sameABxxxxxxxxx1").set({used: false, createdAt: new Date()});
+    await byId("sameABxxxxxxxxx2").set({used: false, createdAt: new Date()});
 
     await expectRefusal(revokeFounderLink(db, {ref: "sameAB", revokedBy: OPERATOR}), "link_ambiguous");
   });
