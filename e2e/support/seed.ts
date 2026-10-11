@@ -122,6 +122,9 @@ export async function seed(): Promise<void> {
     createdBy: player.uid,
   });
   batch.set(db.doc(`${groupPath}/users/${player.uid}`), {
+    // As `redeemInvitation` writes it: the app lists a user's groups by this
+    // field (T136).
+    userId: player.uid,
     username: player.username,
     role: "admin",
     joinedAt: NOW,
