@@ -319,6 +319,25 @@
 // refused here with "permission denied".
 //
 // ---------------------------------------------------------------------------
+// REVISION 2026-10-11 -- T136, one membership document -- READ BEFORE MERGING
+// ---------------------------------------------------------------------------
+// Pinned by the "membership is the group profile" tests, each measured
+// failing against the previous revision first.
+//
+// 17. CHANGED -- `isGroupMember` checks that the group profile
+//     `groups/{g}/users/{uid}` exists, where it read `users/{uid}.groups`.
+//     The profile was already the roster and the role; now it is the one
+//     record of membership (docs/architecture/membership-design.md). A check
+//     no longer reads the global profile, and a write that checks member and
+//     admin reads one document, not two. An account the array lists without
+//     a profile is no longer a member; one with a profile the array does not
+//     list now is. `scripts/audit-membership.js` lists both, and both should
+//     be none before this merges.
+//
+// ⚠️ DEPLOY ORDER MATTERS: the functions and the app that read the profiles
+// (T136 step 2) must be live first.
+//
+// ---------------------------------------------------------------------------
 // KEEPING IT HONEST
 // Change the production rules here, in the same PR as whatever motivated the
 // change, never in the console. Every merge to `main` redeploys this file, so a
@@ -336,12 +355,15 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // A member is someone with a group profile there, the one record of
+    // membership (T136). Only Cloud Functions create or delete one.
     function isGroupMember(groupId) {
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && userDoc != null && userDoc.data.groups != null &&
-             userDoc.data.groups.hasAny([groupId]);
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid));
     }
 
+    // Reads the same document as `isGroupMember`; a request that checks
+    // both is billed one read.
     function isGroupAdmin(groupId) {
       let userProfileDoc = get(/databases/$(database)/documents/groups/$(groupId)/users/$(request.auth.uid));
       return isSignedIn() && userProfileDoc != null && userProfileDoc.data.role == "admin";
@@ -576,7 +598,7 @@ service cloud.firestore {
       // `redeemInvitation` and `createGroup` Cloud Functions.
 
       // Users can update only the fields the client itself writes. Every other
-      // field is server-owned: `groups` is what `isGroupMember` reads, so
+      // field is server-owned: `groups` was what `isGroupMember` read, so
       // writing it was joining any group without an invitation (T052), and
       // `entityExtractionUsage` is what the quota reads, so writing it was
       // unlimited paid AI use (T080). An allowlist, so a field added later is
@@ -653,9 +675,11 @@ service cloud.firestore {
         // Function, which refuses to leave a group with no admin (T034, T035).
 
         // No client delete. Leaving and removal both run in the
-        // `removeUserFromGroup` Cloud Function, which also takes the group off
-        // `users/{uid}.groups`. A raw delete left that array alone, so the
-        // member vanished from the roster and kept their access (T080).
+        // `removeUserFromGroup` Cloud Function, which releases the member's
+        // names and clears their active group with it. A raw delete once left
+        // the member's access behind in `users/{uid}.groups` (T080); since
+        // T136 the profile itself is the membership, and it is still the
+        // function's to delete.
 
         // Personal notes -- PRIVATE TO THEIR AUTHOR.
         // This block is new. Without it these documents fell through to the old

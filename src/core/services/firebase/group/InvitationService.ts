@@ -230,9 +230,9 @@ import {
      * Spend an invitation token on the signed-in user's membership.
      *
      * Runs in the `redeemInvitation` Cloud Function (T052), never as client
-     * writes: membership is `users/{uid}.groups`, which the Firestore rules
-     * trust, so a client allowed to write it could join any group whose id it
-     * knew, token or not. The function checks the token -- exists, unused,
+     * writes: membership is the group profile `groups/{g}/users/{uid}` (T136),
+     * which the Firestore rules trust, so a client allowed to write it could
+     * join any group whose id it knew, token or not. The function checks the token -- exists, unused,
      * unexpired -- and writes the membership, the group profile, the username
      * reservation and the spent token in one transaction.
      *

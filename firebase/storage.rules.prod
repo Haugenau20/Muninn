@@ -54,13 +54,11 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Same source of truth as firestore.rules.prod's isGroupMember:
-    // the `groups` array on users/{uid}.
+    // Same source of truth as firestore.rules.prod's isGroupMember: the
+    // group profile groups/{groupId}/users/{uid} exists (T136).
     function isGroupMember(groupId) {
-      let userPath = /databases/(default)/documents/users/$(request.auth.uid);
       return isSignedIn() &&
-             firestore.exists(userPath) &&
-             firestore.get(userPath).data.groups.hasAny([groupId]);
+             firestore.exists(/databases/(default)/documents/groups/$(groupId)/users/$(request.auth.uid));
     }
 
     // Same source of truth as firestore.rules.prod's isGroupAdmin:

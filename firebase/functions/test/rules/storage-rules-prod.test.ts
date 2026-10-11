@@ -58,6 +58,11 @@ const MEMBERSHIP: Record<string, object> = {
   [`users/${uid("sauron")}`]: inGroup(OTHER),
   [`groups/${G}/users/${uid("gandalf")}`]: {role: {stringValue: "admin"}},
   [`groups/${G}/users/${uid("frodo")}`]: {role: {stringValue: "member"}},
+  // T136: merry has a group profile his array does not list; pippin's array
+  // lists the group and he has no profile there.
+  [`users/${uid("merry")}`]: inGroup(OTHER),
+  [`groups/${G}/users/${uid("merry")}`]: {role: {stringValue: "member"}},
+  [`users/${uid("pippin")}`]: inGroup(G),
 };
 
 let env: RulesTestEnvironment;
@@ -341,5 +346,25 @@ describe("everything else", () => {
 
   it("a member cannot list another group's campaign", async () => {
     await assertFails(as("frodo").ref(`groups/${OTHER}/campaigns/c1/npcs/n1`).listAll());
+  });
+});
+
+// T136: membership is the group profile, as in firestore.rules.prod; the
+// array on the global profile no longer decides it.
+describe("membership is the group profile (T136)", () => {
+  it("a member the array does not list gets a download URL", async () => {
+    await assertSucceeds(as("merry").ref(`${NPC_DIR}/${NAME}`).getDownloadURL());
+  });
+
+  it("a member the array does not list can upload", async () => {
+    await assertSucceeds(as("merry").ref(fresh(NPC_DIR)).put(small(), WEBP).then());
+  });
+
+  it("someone the array lists without a profile gets no download URL", async () => {
+    await assertFails(as("pippin").ref(`${NPC_DIR}/${NAME}`).getDownloadURL());
+  });
+
+  it("someone the array lists without a profile cannot upload", async () => {
+    await assertFails(as("pippin").ref(fresh(NPC_DIR)).put(small(), WEBP).then());
   });
 });

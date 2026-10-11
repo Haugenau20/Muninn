@@ -25,13 +25,13 @@ const USERNAME_MAX = 20;
  * Makes the caller a member of a group, in exchange for a registration token.
  *
  * This is the only way into a group other than creating it, and it has to run
- * server-side (T052). Group membership is the group profile written here
- * (T136), and also `users/{uid}.groups`, which the Firestore rules read to
- * answer `isGroupMember` until they move to the profile -- and while a client
- * could write that array itself, anyone who knew a group's id could make themselves
- * a member of it without ever holding a token. The rules now refuse any client
- * write to `groups`, and this function is where the token is actually checked:
- * it exists, it has not been used, and it has not expired.
+ * server-side (T052). Group membership is the group profile written here,
+ * which the Firestore rules read to answer `isGroupMember` (T136). It used to
+ * be `users/{uid}.groups`, and while a client could write that array, anyone
+ * who knew a group's id could make themselves a member of it without ever
+ * holding a token. No client creates a group profile, and this function is
+ * where the token is actually checked: it exists, it has not been used, and
+ * it has not expired.
  *
  * Serves both join paths. A brand-new account (the client has just created
  * the Auth user) has no global profile yet, so one is created here; an
