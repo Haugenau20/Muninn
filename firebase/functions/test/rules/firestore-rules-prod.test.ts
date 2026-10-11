@@ -415,6 +415,33 @@ describe("what members still do from the client", () => {
   });
 });
 
+// T145: invitations are made by `createInvitation`, under their token's hash
+// with the token sealed beside it. A browser-made one would sit under a
+// token anyone listing the collection could read.
+describe("invitations are made by a function (T145)", () => {
+  it("not even a group admin creates one", async () => {
+    await assertFails(as("gandalf").doc(`groups/${G}/registrationTokens/tok2`).set({token: "tok2", used: false}));
+  });
+
+  it.each<[string, object]>([
+    ["bring a spent one back", {used: false, usedBy: null}],
+    ["spend one", {used: true}],
+    ["change its sealed token", {sealed: "v1.forged"}],
+    ["change its scheme", {scheme: "none"}],
+    ["move its expiry", {expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)}],
+    ["give it a note that is not text", {notes: 42}],
+    ["give it a note over 200 characters", {notes: "x".repeat(201)}],
+  ])("a group admin cannot %s", async (_what, change) => {
+    await assertFails(as("gandalf").doc(`groups/${G}/registrationTokens/tok`).update(change));
+  });
+
+  it("a group admin still names one, lists them and revokes one", async () => {
+    await assertSucceeds(as("gandalf").doc(`groups/${G}/registrationTokens/tok`).update({notes: "x".repeat(200)}));
+    await assertSucceeds(as("gandalf").collection(`groups/${G}/registrationTokens`).get());
+    await assertSucceeds(as("gandalf").doc(`groups/${G}/registrationTokens/tok`).delete());
+  });
+});
+
 describe("reading progress (T073)", () => {
   const progress = (uid: string) => `groups/${G}/users/${uid}/story-progress/c1`;
   const place = {currentChapter: "chapter-02", lastRead: new Date(), chapterProgress: {}};

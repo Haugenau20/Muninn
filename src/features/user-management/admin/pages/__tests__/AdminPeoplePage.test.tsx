@@ -384,6 +384,18 @@ describe("AdminPeoplePage", () => {
       ).toBeInTheDocument();
     });
 
+    test("takes no more of a note than the rules keep, 200 characters (T145)", async () => {
+      setup();
+      await settle();
+      await userEvent.click(
+        screen.getByRole("button", { name: /Edit who this invitation is for/i })
+      );
+      const field = screen.getByLabelText("Who is this invitation for?");
+      await userEvent.clear(field);
+      await userEvent.type(field, "x".repeat(205));
+      expect(field).toHaveValue("x".repeat(200));
+    });
+
     test("saving writes the note and updates the row", async () => {
       setup();
       await settle();

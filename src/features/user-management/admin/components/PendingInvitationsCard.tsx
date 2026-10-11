@@ -98,6 +98,8 @@ const InvitationNote: React.FC<{
         <Input
           autoFocus
           aria-label="Who is this invitation for?"
+          // The rules refuse a longer note (T145, `firestore.rules.prod`).
+          maxLength={200}
           value={draft}
           disabled={saving}
           placeholder="Who is this for?"

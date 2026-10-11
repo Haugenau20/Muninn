@@ -701,19 +701,29 @@ service cloud.firestore {
       }
 
       // Group registration tokens
-      match /registrationTokens/{token} {
-        // Allow token validation for everyone (needed for registration)
+      match /registrationTokens/{invitationId} {
+        // Allow token validation for everyone (needed for registration). The
+        // document id is the token's SHA-256 (T145), so a `get` needs the
+        // link, and a `list` yields no working one.
         allow get: if true;
 
-        // Only group admins can list or create tokens
-        allow list, create: if isGroupAdmin(groupId);
+        // Only group admins can list invitations
+        allow list: if isGroupAdmin(groupId);
+
+        // No client creates one (T145): `createInvitation` stores it under
+        // its token's hash with the token sealed beside it. A browser-made
+        // invitation would sit under a token anyone listing could read.
 
         // No client may mark a token used any more: `redeemInvitation` spends
         // it in the same transaction that grants membership. The rule this
         // replaces never required the token to be unused or unexpired.
 
-        // Group admins can also update tokens
-        allow update: if isGroupAdmin(groupId);
+        // A group admin names an invitation, and changes nothing else: not
+        // `used`, which would bring a spent one back, nor `sealed` or `scheme`.
+        allow update: if isGroupAdmin(groupId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['notes'])
+          && request.resource.data.notes is string
+          && request.resource.data.notes.size() <= 200;
 
         // Only group admins can delete tokens
         allow delete: if isGroupAdmin(groupId);
