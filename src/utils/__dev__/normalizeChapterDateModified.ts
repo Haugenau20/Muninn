@@ -86,7 +86,7 @@ import * as path from "path";
 import * as readline from "readline";
 import * as dotenv from "dotenv";
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, collectionGroup, doc, getDoc, getDocs, query, updateDoc, where, Timestamp, Firestore } from "firebase/firestore";
+import { getFirestore, collection, collectionGroup, doc, getDocs, query, updateDoc, where, Timestamp, Firestore } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { firebaseConfig } from "../../core/services/firebase/config/firebaseConfig";
 
