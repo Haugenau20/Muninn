@@ -55,13 +55,15 @@ export function normalizeEmail(email: string): string {
 /**
  * The reservation's document id. One per invitation, so a single leaked token
  * can hold at most one pending email at a time -- reserving again replaces it.
+ * Named by the invitation's document id, which since T145 is its token's
+ * hash, never by the token.
  *
  * @param {string} groupId The invitation's group
- * @param {string} token The invitation's token
+ * @param {string} invitationId The invitation's document id
  * @return {string} The document id
  */
-export function reservationId(groupId: string, token: string): string {
-  return `${groupId}_${token}`;
+export function reservationId(groupId: string, invitationId: string): string {
+  return `${groupId}_${invitationId}`;
 }
 
 /**
@@ -88,14 +90,16 @@ export async function findLiveReservation(
     .get();
 
   for (const reservation of snapshot.docs) {
-    const {kind, groupId, token, expiresAt} = reservation.data();
+    const {kind, groupId, invitationId, token, expiresAt} = reservation.data();
     const expired =
       !expiresAt || expiresAt.toDate().getTime() <= now.getTime();
-    // A reservation written before T125 has no `kind`: it is a group's.
+    // One written before T145 names its invitation by `token`, which was
+    // then the invitation's id; one before T125 has no `kind`: it is a group's.
+    const id = invitationId ?? token;
     const invitationPath = kind === "founder" ?
-      (typeof token === "string" ? `${FOUNDER_INVITATIONS}/${token}` : null) :
-      (typeof groupId === "string" && typeof token === "string" ?
-        `groups/${groupId}/registrationTokens/${token}` : null);
+      (typeof id === "string" ? `${FOUNDER_INVITATIONS}/${id}` : null) :
+      (typeof groupId === "string" && typeof id === "string" ?
+        `groups/${groupId}/registrationTokens/${id}` : null);
     const tokenDoc = expired || invitationPath === null ?
       null :
       await db.doc(invitationPath).get();

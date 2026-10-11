@@ -40,6 +40,10 @@ async function freshPage(browser: Browser, errors: string[]): Promise<Page> {
 // T127, the onboarding plan's step 3: a founder link leads, without the
 // maintainer, from the link to a group with a campaign and a second player.
 test("a founder starts a group from a founder link, and a player joins it", async ({ page, browser }) => {
+  // Two sign-ups, each through the sign-up gate's blocking function, and
+  // five callables: in a full run against cold emulators it outlasts the
+  // default 30 seconds, so it gets three times that.
+  test.slow();
   // The link, opened by someone with no account.
   await page.goto(`/join?founder=${FIXTURES.founderLink.token}`);
   await expect(page.getByRole("heading", { name: "First, your account" })).toBeVisible();
@@ -67,6 +71,16 @@ test("a founder starts a group from a founder link, and a player joins it", asyn
   await page.getByRole("button", { name: "Invite someone" }).click();
   const invite = await page.getByRole("dialog").getByText(/\/join\?token=/).textContent();
   expect(invite).toBeTruthy();
+
+  // Copied again from the pending list, it is the same link: the invitation
+  // is stored under its token's hash, and the server reveals the token (T145).
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toBeHidden();
+  // The analytics question sits over the list until it is answered.
+  await page.getByRole("region", { name: "Privacy" }).getByRole("button", { name: "No thanks" }).click();
+  await page.getByRole("region", { name: "Pending invitations" }).getByRole("button", { name: "Copy link" }).click();
+  await expect(page.getByRole("dialog").getByText(/\/join\?token=/)).toHaveText(invite!);
+  await page.keyboard.press("Escape");
 
   // The link is spent: opened again, it is refused.
   await page.goto(`/join?founder=${FIXTURES.founderLink.token}`);

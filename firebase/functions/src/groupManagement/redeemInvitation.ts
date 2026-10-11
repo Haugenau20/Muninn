@@ -4,6 +4,11 @@ import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {ENFORCE_APP_CHECK} from "../shared/appCheck";
 import {rethrowHttpsError} from "../shared/httpsErrors";
 import {registrationTokenProblem} from "../shared/registrationToken";
+import {
+  invitationRefs,
+  isInvitationToken,
+  pickInvitation,
+} from "../shared/invitationToken";
 import {GROUP_FULL_MESSAGE, MAX_GROUP_MEMBERS} from "./groupLimits";
 
 interface RedeemInvitationData {
@@ -58,7 +63,7 @@ export const redeemInvitation = functions.onCall(
         "";
 
     if (typeof groupId !== "string" || !groupId ||
-        typeof token !== "string" || !token) {
+        !isInvitationToken(token)) {
       throw new functions.HttpsError(
         "invalid-argument",
         "This invitation link is incomplete."
@@ -75,7 +80,9 @@ export const redeemInvitation = functions.onCall(
     const uid = request.auth.uid;
     const db = getFirestore();
     const groupRef = db.collection("groups").doc(groupId);
-    const tokenRef = groupRef.collection("registrationTokens").doc(token);
+    // Under the token's hash, or, for an invitation made before T145, under
+    // the token itself (`shared/invitationToken`).
+    const tokenRefs = invitationRefs(groupRef.collection("registrationTokens"), token);
     const usernameRef = groupRef
       .collection("usernames")
       .doc(username.toLowerCase());
@@ -84,9 +91,10 @@ export const redeemInvitation = functions.onCall(
 
     try {
       await db.runTransaction(async (transaction) => {
-        const [tokenDoc, groupDoc, userDoc, groupUserDoc, usernameDoc, members] =
+        const [hashedDoc, legacyDoc, groupDoc, userDoc, groupUserDoc, usernameDoc, members] =
           await Promise.all([
-            transaction.get(tokenRef),
+            transaction.get(tokenRefs.hashed),
+            transaction.get(tokenRefs.legacy),
             transaction.get(groupRef),
             transaction.get(userRef),
             transaction.get(groupUserRef),
@@ -94,7 +102,8 @@ export const redeemInvitation = functions.onCall(
             transaction.get(groupRef.collection("users").limit(MAX_GROUP_MEMBERS)),
           ]);
 
-        if (!tokenDoc.exists || !groupDoc.exists) {
+        const tokenDoc = pickInvitation(hashedDoc, legacyDoc);
+        if (!tokenDoc || !groupDoc.exists) {
           throw new functions.HttpsError(
             "not-found",
             "This invitation does not exist. Ask for a new link."
@@ -179,7 +188,7 @@ export const redeemInvitation = functions.onCall(
           createdAt: now,
         });
 
-        transaction.update(tokenRef, {
+        transaction.update(tokenDoc.ref, {
           used: true,
           usedAt: now,
           usedBy: uid,

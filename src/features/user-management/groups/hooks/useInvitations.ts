@@ -109,9 +109,27 @@ export function useInvitations() {
     }
   }, [activeGroupId, setError]);
 
+  // The token of an open invitation, to copy its link again (T145)
+  const revealRegistrationToken = useCallback(async (
+    invitationId: string
+  ): Promise<string> => {
+    try {
+      setError(null);
+
+      if (!activeGroupId) {
+        throw new Error('No active group selected');
+      }
+
+      return await firebaseServices.invitation.revealGroupRegistrationToken(activeGroupId, invitationId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to copy the invitation');
+      throw err;
+    }
+  }, [activeGroupId, setError]);
+
   // Delete registration token
   const deleteRegistrationToken = useCallback(async (
-    token: string
+    invitationId: string
   ): Promise<void> => {
     try {
       setError(null);
@@ -120,7 +138,7 @@ export function useInvitations() {
         throw new Error('No active group selected');
       }
       
-      await firebaseServices.invitation.deleteGroupRegistrationToken(activeGroupId, token);
+      await firebaseServices.invitation.deleteGroupRegistrationToken(activeGroupId, invitationId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete registration token');
       throw err;
@@ -129,7 +147,7 @@ export function useInvitations() {
 
   // Set the note on an existing token
   const updateRegistrationTokenNotes = useCallback(async (
-    token: string,
+    invitationId: string,
     notes: string
   ): Promise<void> => {
     try {
@@ -141,7 +159,7 @@ export function useInvitations() {
 
       await firebaseServices.invitation.updateGroupRegistrationTokenNotes(
         activeGroupId,
-        token,
+        invitationId,
         notes
       );
     } catch (err) {
@@ -157,6 +175,7 @@ export function useInvitations() {
     reserveFounderSignUp,
     joinGroupWithToken,
     getRegistrationTokens,
+    revealRegistrationToken,
     deleteRegistrationToken,
     updateRegistrationTokenNotes
   };

@@ -32,6 +32,7 @@ const AdminPeoplePage: React.FC = () => {
   const {
     generateRegistrationToken,
     getRegistrationTokens,
+    revealRegistrationToken,
     deleteRegistrationToken,
     updateRegistrationTokenNotes,
   } = useInvitations();
@@ -108,17 +109,28 @@ const AdminPeoplePage: React.FC = () => {
     }
   };
 
-  const handleCopyLink = (invitation: RegistrationToken) => {
-    setInviteDialog({
-      open: true,
-      link: buildInviteLink(
-        window.location.origin,
-        invitation.token,
-        activeGroupId
-      ),
-      note: invitation.notes,
-      expiresAt: invitation.expiresAt,
-    });
+  /**
+   * Show an open invitation's link again.
+   *
+   * The list holds only each invitation's id, its token's hash (T145), from
+   * which no link can be built; the token comes from the server, which keeps
+   * a sealed copy for the group's admins.
+   */
+  const handleCopyLink = async (invitation: RegistrationToken) => {
+    setError(null);
+    try {
+      const token = await revealRegistrationToken(invitation.id);
+      setInviteDialog({
+        open: true,
+        link: buildInviteLink(window.location.origin, token, activeGroupId),
+        note: invitation.notes,
+        expiresAt: invitation.expiresAt,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to copy the invitation'
+      );
+    }
   };
 
   /**
@@ -134,10 +146,10 @@ const AdminPeoplePage: React.FC = () => {
   ) => {
     setError(null);
     try {
-      await updateRegistrationTokenNotes(invitation.token, notes);
+      await updateRegistrationTokenNotes(invitation.id, notes);
       setInvitations((previous) =>
         previous.map((item) =>
-          item.token === invitation.token ? { ...item, notes } : item
+          item.id === invitation.id ? { ...item, notes } : item
         )
       );
     } catch (err) {
@@ -151,9 +163,9 @@ const AdminPeoplePage: React.FC = () => {
     if (!pendingRevoke) return;
     setError(null);
     try {
-      await deleteRegistrationToken(pendingRevoke.token);
+      await deleteRegistrationToken(pendingRevoke.id);
       setInvitations((previous) =>
-        previous.filter((item) => item.token !== pendingRevoke.token)
+        previous.filter((item) => item.id !== pendingRevoke.id)
       );
       setPendingRevoke(null);
     } catch (err) {

@@ -2,8 +2,10 @@
 //
 // The operator page's founder links (T137): issue one, list them, revoke one.
 // A link's token is the whole secret, so outside the response that issues it
-// a link is named by its first characters only (its `ref`): in lists, in
-// forms, in URLs and in the audit log.
+// a link is named by the first characters of its document id (its `ref`): in
+// lists, in forms, in URLs and in the audit log. Since T145 that id is the
+// token's SHA-256, so a ref says nothing about the token; a link issued before
+// is stored under its token, and its ref is the token's first characters.
 
 import {
   DocumentData,
@@ -52,13 +54,13 @@ export interface FounderLinkPage {
 }
 
 /**
- * The ref of a token: its first characters.
+ * The ref of a link: the first characters of its document id.
  *
- * @param {string} token A founder link's token
+ * @param {string} invitationId A founder link's document id
  * @return {string} Its ref
  */
-export function refOf(token: string): string {
-  return token.slice(0, LOGGED_LINK_LENGTH);
+export function refOf(invitationId: string): string {
+  return invitationId.slice(0, LOGGED_LINK_LENGTH);
 }
 
 /**
@@ -81,12 +83,12 @@ export async function issueFounderLink(
       `A note can be at most ${FOUNDER_LINK_NOTE_MAX} characters.`
     );
   }
-  const {token, expiresAt} = await issueFounderInvitation(db, {
+  const {token, invitationId, expiresAt} = await issueFounderInvitation(db, {
     issuedBy,
     ...(trimmed ? {note: trimmed} : {}),
     now,
   });
-  return {token, ref: refOf(token), expiresAt};
+  return {token, ref: refOf(invitationId), expiresAt};
 }
 
 /**
@@ -121,8 +123,8 @@ function cursorOf(row: FounderLinkRow): string {
  *
  * The cursor names the last row shown by when it was issued and by its ref,
  * never by its token, since it travels in a URL. A link issued in the same
- * millisecond as the cursor's, whose token also starts with the same six
- * characters (one chance in 2^36), would fall between two pages.
+ * millisecond as the cursor's, whose id also starts with the same six
+ * characters (one chance in 2^24), would fall between two pages.
  *
  * @param {Firestore} db Firestore
  * @param {object} request The cursor from the page before, and the moment
@@ -184,8 +186,8 @@ export async function revokeFounderLink(
   if (!REF_PATTERN.test(ref)) {
     throw new Refusal("invalid_input", "That is not a founder link.");
   }
-  // Every token character sorts below "~", so this range is the links whose
-  // token starts with `ref`.
+  // Every id character sorts below "~", so this range is the links whose
+  // id starts with `ref`.
   const named = db.collection(FOUNDER_INVITATIONS)
     .where(FieldPath.documentId(), ">=", ref)
     .where(FieldPath.documentId(), "<", `${ref}~`)

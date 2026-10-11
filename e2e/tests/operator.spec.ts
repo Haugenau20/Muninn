@@ -1,4 +1,5 @@
 // e2e/tests/operator.spec.ts
+import { createHash } from "crypto";
 import { test, expect } from "../support/test";
 import { E2E } from "../support/env";
 import { FIXTURES } from "../support/seed";
@@ -15,7 +16,11 @@ test("the operator issues a founder link, sees it listed, and revokes it", async
   await expect(page.getByRole("heading", { name: "Founder link issued" })).toBeVisible();
   const link = (await page.getByText(/\/join\?founder=/).textContent())?.trim() ?? "";
   expect(link.startsWith(`${E2E.appUrl}/join?founder=`)).toBe(true);
-  const ref = new URL(link).searchParams.get("founder")!.slice(0, 6);
+  // A link is named by its invitation's id, the token's SHA-256 (T145), so
+  // the ref says nothing about the token.
+  const token = new URL(link).searchParams.get("founder")!;
+  const ref = createHash("sha256").update(token, "utf8").digest("hex").slice(0, 6);
+  expect(token.startsWith(ref)).toBe(false);
 
   await page.getByRole("link", { name: "Back to the founder links" }).click();
   const row = page.getByRole("listitem").filter({ hasText: "Bree table" });

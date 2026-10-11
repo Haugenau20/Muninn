@@ -7,13 +7,22 @@ import {admitAccount} from "../src/signUp/gateAccountCreation";
 import {MAX_ACCOUNTS, RESERVATIONS, reservationId} from "../src/signUp/signUpGate";
 import {ACCOUNT_COUNT} from "../src/signUp/accountCount";
 import {MAX_GROUP_MEMBERS} from "../src/groupManagement/groupLimits";
+import {HASHED_SCHEME, hashInvitationToken} from "../src/shared/invitationToken";
 
 const PROJECT = "demo-sign-up-gate";
 const db = useEmulatorProject(PROJECT);
 
 const GROUP = "g1";
 const TOKEN = "tok-live";
+/** The invitation's id: its token's hash (T145). */
+const TOKEN_ID = hashInvitationToken(TOKEN);
+const TOKEN_PATH = `groups/${GROUP}/registrationTokens/${TOKEN_ID}`;
 const DAY = 24 * 60 * 60 * 1000;
+
+/** Every string value in a document, however deeply nested. */
+const stringsIn = (value: unknown): string[] =>
+  typeof value === "string" ? [value] :
+    value && typeof value === "object" ? Object.values(value).flatMap(stringsIn) : [];
 
 const reserve = (data: object) => call(reserveSignUp, data);
 
@@ -39,7 +48,7 @@ async function expectRefused(promise: Promise<unknown>, code: string, marker: st
 
 async function seedToken(token: object = {used: false}) {
   await db.doc(`groups/${GROUP}`).set({name: "Fellowship"});
-  await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).set({token: TOKEN, ...token});
+  await db.doc(TOKEN_PATH).set({scheme: HASHED_SCHEME, ...token});
 }
 
 async function fillAccounts(count: number) {
@@ -48,7 +57,7 @@ async function fillAccounts(count: number) {
   }
 }
 
-const reservationDoc = () => db.collection(RESERVATIONS).doc(reservationId(GROUP, TOKEN)).get();
+const reservationDoc = () => db.collection(RESERVATIONS).doc(reservationId(GROUP, TOKEN_ID)).get();
 
 beforeEach(() => clearProject(PROJECT));
 
@@ -64,7 +73,22 @@ describe("reserveSignUp", () => {
   it("spends nothing -- the invitation stays unused", async () => {
     await seedToken();
     await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
-    expect((await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).get()).data()?.used).toBe(false);
+    expect((await db.doc(TOKEN_PATH).get()).data()?.used).toBe(false);
+  });
+
+  it("names the invitation by its id, and keeps its token nowhere (T145)", async () => {
+    await seedToken();
+    await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
+    const [reservation] = (await db.collection(RESERVATIONS).get()).docs;
+    expect(reservation.data().invitationId).toBe(TOKEN_ID);
+    expect([reservation.id, ...stringsIn(reservation.data())].some((value) => value.includes(TOKEN))).toBe(false);
+  });
+
+  it("accepts an invitation made before T145, stored under its token", async () => {
+    await db.doc(`groups/${GROUP}`).set({name: "Fellowship"});
+    await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).set({token: TOKEN, used: false});
+    await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
+    await expect(creating("frodo@shire.dev")).resolves.toBeUndefined();
   });
 
   it("holds one email per invitation: reserving again replaces it", async () => {
@@ -90,6 +114,12 @@ describe("reserveSignUp", () => {
     it("a token that does not exist", async () => {
       await seedToken();
       await expectHttpsError(reserve({groupId: GROUP, token: "forged", email: "frodo@shire.dev"}), "not-found");
+      expect((await db.collection(RESERVATIONS).get()).empty).toBe(true);
+    });
+
+    it("an invitation's id presented as its token: whoever reads the collection holds no link (T145)", async () => {
+      await seedToken();
+      await expectHttpsError(reserve({groupId: GROUP, token: TOKEN_ID, email: "frodo@shire.dev"}), "not-found");
       expect((await db.collection(RESERVATIONS).get()).empty).toBe(true);
     });
 
@@ -180,7 +210,7 @@ describe("admitAccount (beforeUserCreated)", () => {
 
   it("lets only one of two sign-ups racing for the last account in", async () => {
     await seedToken();
-    await db.doc(`groups/${GROUP}/registrationTokens/tok-2`).set({token: "tok-2", used: false});
+    await db.doc(`groups/${GROUP}/registrationTokens/${hashInvitationToken("tok-2")}`).set({scheme: HASHED_SCHEME, used: false});
     await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
     await reserve({groupId: GROUP, token: "tok-2", email: "sam@shire.dev"});
     await db.doc(ACCOUNT_COUNT).set({count: MAX_ACCOUNTS - 1});
@@ -216,8 +246,8 @@ describe("admitAccount (beforeUserCreated)", () => {
 
     it("a reservation past its own expiry, and deletes it", async () => {
       await seedToken();
-      await db.collection(RESERVATIONS).doc(reservationId(GROUP, TOKEN)).set({
-        email: "frodo@shire.dev", groupId: GROUP, token: TOKEN,
+      await db.collection(RESERVATIONS).doc(reservationId(GROUP, TOKEN_ID)).set({
+        email: "frodo@shire.dev", groupId: GROUP, invitationId: TOKEN_ID,
         expiresAt: new Date(Date.now() - 1000),
       });
       await expectRefused(creating("frodo@shire.dev"), "permission-denied", "INVITE_REQUIRED");
@@ -227,14 +257,14 @@ describe("admitAccount (beforeUserCreated)", () => {
     it("a reservation whose invitation was used since", async () => {
       await seedToken();
       await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
-      await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).update({used: true});
+      await db.doc(TOKEN_PATH).update({used: true});
       await expectRefused(creating("frodo@shire.dev"), "permission-denied", "INVITE_REQUIRED");
     });
 
     it("a reservation whose invitation was deleted since", async () => {
       await seedToken();
       await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
-      await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).delete();
+      await db.doc(TOKEN_PATH).delete();
       await expectRefused(creating("frodo@shire.dev"), "permission-denied", "INVITE_REQUIRED");
     });
 

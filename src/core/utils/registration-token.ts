@@ -15,6 +15,30 @@
 export const REGISTRATION_TOKEN_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
+ * The `scheme` an invitation stored under its token's hash carries (T145).
+ * Mirrors `HASHED_SCHEME` in `firebase/functions/src/shared/invitationToken.ts`,
+ * the copy that is enforced.
+ */
+export const HASHED_INVITATION_SCHEME = "sha256";
+
+/**
+ * The id an invitation is stored under: its token's SHA-256, in hex (T145).
+ * Whoever can read the collection then holds no working link; whoever holds
+ * the link can still find its invitation. Mirrors `hashInvitationToken` in the
+ * functions.
+ *
+ * @param token The token from the link
+ * @returns The invitation's document id, or `null` where the browser offers
+ *   no Web Crypto (a page served over plain http from another machine)
+ */
+export async function hashInvitationToken(token: string): Promise<string | null> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return null;
+  const digest = await subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/**
  * A stored date as a `Date`. Firestore hands back a `Timestamp` for what was
  * written as a `Date`, and the sample-data generator writes strings.
  *

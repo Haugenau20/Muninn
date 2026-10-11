@@ -9,6 +9,8 @@
  * does with that is pinned by `firebase/functions/test/redeemInvitation.test.ts`.
  */
 
+import { hashInvitationToken } from '@/core/utils/registration-token';
+
 // ─── Shared mock fns ─────────────────────────────────────────────────────────
 
 const mockGetDoc = jest.fn();
@@ -100,6 +102,18 @@ function makeDocSnapshot(exists: boolean, data: Record<string, any> = {}) {
   return { exists: () => exists, data: () => data, id: 'doc-id' };
 }
 
+/** Serve `docs`, by path, to every `getDoc`; any other document does not exist. */
+function serveDocs(docs: Record<string, Record<string, any>>) {
+  mockGetDoc.mockImplementation(async (ref: { path: string }) =>
+    ref.path in docs ? makeDocSnapshot(true, docs[ref.path]) : makeDocSnapshot(false)
+  );
+}
+
+/** Store an invitation in group g1 the way `createInvitation` does: under its token's hash (T145). */
+async function serveInvitation(token: string, data: Record<string, any>) {
+  serveDocs({ [`groups/g1/registrationTokens/${await hashInvitationToken(token)}`]: data });
+}
+
 function makeQuerySnapshot(docs: ReturnType<typeof makeDocSnapshot>[]) {
   return { docs };
 }
@@ -187,87 +201,43 @@ describe('InvitationService', () => {
   // ─── generateGroupRegistrationToken ──────────────────────────────────────
 
   describe('generateGroupRegistrationToken', () => {
-    test('should throw when user is not admin', async () => {
-      mockIsUserAdmin.mockResolvedValueOnce(false);
+    // T145: the invitation is made by `createInvitation`, which checks the
+    // caller is an admin and stores it under its token's hash; the browser
+    // writes nothing. What the function stores is pinned by
+    // `firebase/functions/test/invitations.test.ts`.
+    test('should make the invitation through the Cloud Function and return its token, writing nothing itself', async () => {
+      mockCallable.mockResolvedValueOnce({ data: { token: 'fresh-token', invitationId: 'abc', expiresAt: 0 } });
       const svc = InvitationService.getInstance();
-      await expect(svc.generateGroupRegistrationToken('g1')).rejects.toThrow(
-        'Only group admins can generate tokens'
-      );
+
+      const token = await svc.generateGroupRegistrationToken('g1', 'for Sam');
+
+      expect(token).toBe('fresh-token');
+      expect(mockCallable).toHaveBeenCalledWith('createInvitation', { groupId: 'g1', notes: 'for Sam' });
+      expect(mockSetDoc).not.toHaveBeenCalled();
     });
 
-    test('should store the token and return it when user is admin', async () => {
-      mockIsUserAdmin.mockResolvedValueOnce(true);
-      mockSetDoc.mockResolvedValueOnce(undefined);
+    test("should surface the function's refusal", async () => {
+      mockCallable.mockRejectedValueOnce(new Error("Only the group's admins can invite someone."));
       const svc = InvitationService.getInstance();
-      const token = await svc.generateGroupRegistrationToken('g1', 'test token');
-      expect(typeof token).toBe('string');
-      expect(token.length).toBeGreaterThan(0);
-      expect(mockSetDoc).toHaveBeenCalledTimes(1);
+      await expect(svc.generateGroupRegistrationToken('g1')).rejects.toThrow("Only the group's admins");
+    });
+  });
+
+  // ─── revealGroupRegistrationToken ─────────────────────────────────────────
+
+  describe('revealGroupRegistrationToken', () => {
+    test("should ask the Cloud Function for an invitation's token by its id", async () => {
+      mockCallable.mockResolvedValueOnce({ data: { token: 'the-token' } });
+      const svc = InvitationService.getInstance();
+
+      expect(await svc.revealGroupRegistrationToken('g1', 'hash-id')).toBe('the-token');
+      expect(mockCallable).toHaveBeenCalledWith('revealInvitation', { groupId: 'g1', invitationId: 'hash-id' });
     });
 
-    // T013: a token lapses 14 days after it is minted.
-    test('should write an expiry 14 days after creation', async () => {
-      mockIsUserAdmin.mockResolvedValueOnce(true);
-      mockSetDoc.mockResolvedValueOnce(undefined);
+    test("should surface the function's refusal", async () => {
+      mockCallable.mockRejectedValueOnce(new Error('This invitation has been used.'));
       const svc = InvitationService.getInstance();
-      await svc.generateGroupRegistrationToken('g1');
-      const written = mockSetDoc.mock.calls[0][1];
-      expect(written.expiresAt).toBeInstanceOf(Date);
-      expect(written.expiresAt.getTime() - written.createdAt.getTime()).toBe(
-        14 * 24 * 60 * 60 * 1000
-      );
-    });
-
-    test('should throw when user is not authenticated', async () => {
-      jest.resetModules();
-      jest.doMock('firebase/auth', () => ({
-        getAuth: jest.fn(() => ({ currentUser: null })),
-        connectAuthEmulator: jest.fn(),
-      }));
-      jest.doMock('firebase/firestore', () => ({
-        serverTimestamp: () => 'SERVER_TIMESTAMP',
-        getFirestore: jest.fn(() => ({})),
-        initializeFirestore: jest.fn(() => ({})),
-        memoryLocalCache: jest.fn(),
-        clearIndexedDbPersistence: jest.fn(() => Promise.resolve()),
-        persistentLocalCache: jest.fn(),
-        persistentMultipleTabManager: jest.fn(),
-        connectFirestoreEmulator: jest.fn(),
-        collection: function() { return (mockCollection as Function).apply(null, arguments); },
-        doc: function() { return (mockDoc as Function).apply(null, arguments); },
-        getDoc: function() { return (mockGetDoc as Function).apply(null, arguments); },
-        getDocs: function() { return (mockGetDocs as Function).apply(null, arguments); },
-        setDoc: function() { return (mockSetDoc as Function).apply(null, arguments); },
-        updateDoc: function() { return (mockUpdateDoc as Function).apply(null, arguments); },
-        deleteDoc: function() { return (mockDeleteDoc as Function).apply(null, arguments); },
-        query: jest.fn(), where: jest.fn(), limit: jest.fn(), collectionGroup: jest.fn(),
-      }));
-      jest.doMock('firebase/app', () => ({ initializeApp: jest.fn(() => ({})) }));
-      jest.doMock('firebase/analytics', () => ({ getAnalytics: jest.fn(() => ({})) }));
-      jest.doMock('firebase/functions', () => ({
-        getFunctions: jest.fn(() => ({})),
-        connectFunctionsEmulator: jest.fn(),
-      }));
-      jest.doMock('@/core/services/firebase/config/firebaseConfig', () => ({
-        firebaseConfig: { apiKey: 'test', projectId: 'test' },
-        useEmulators: false, emulatorHost: 'localhost',
-        emulatorPorts: { auth: '9099', firestore: '8080', functions: '5001' },
-      }));
-      const reg = new Map<string, any>([
-        ['userService', mockUserServiceInstance],
-      ]);
-      jest.doMock('@/core/services/firebase/core/ServiceRegistry', () => ({
-        __esModule: true,
-        default: { getInstance: jest.fn(() => ({
-          get: (n: string) => { if (!reg.has(n)) throw new Error(`Service '${n}' not found`); return reg.get(n); },
-          register: (n: string, s: any) => reg.set(n, s),
-          has: (n: string) => reg.has(n),
-        })) },
-      }));
-      const IS = require('../InvitationService').default;
-      await expect(IS.getInstance().generateGroupRegistrationToken('g1')).rejects.toThrow(
-        'Not authenticated'
-      );
+      await expect(svc.revealGroupRegistrationToken('g1', 'hash-id')).rejects.toThrow('has been used');
     });
   });
 
@@ -290,7 +260,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: false }));
+      await serveInvitation('valid-token', { scheme: 'sha256', used: false });
       const svc = InvitationService.getInstance();
       const result = await svc.validateRegistrationToken('valid-token');
       expect(result.isValid).toBe(true);
@@ -302,7 +272,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: true }));
+      await serveInvitation('used-token', { scheme: 'sha256', used: true });
       const svc = InvitationService.getInstance();
       const result = await svc.validateRegistrationToken('used-token');
       expect(result.isValid).toBe(false);
@@ -313,9 +283,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(
-        makeDocSnapshot(true, { used: false, expiresAt: new Date(Date.now() - 1000) })
-      );
+      await serveInvitation('expired-token', { scheme: 'sha256', used: false, expiresAt: new Date(Date.now() - 1000) });
       const svc = InvitationService.getInstance();
       const result = await svc.validateRegistrationToken('expired-token');
       expect(result.isValid).toBe(false);
@@ -327,7 +295,7 @@ describe('InvitationService', () => {
         value: { search: '?groupId=g1' },
       });
       const expired = { toDate: () => new Date(Date.now() - 1000) };
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: false, expiresAt: expired }));
+      await serveInvitation('expired-token', { scheme: 'sha256', used: false, expiresAt: expired });
       const svc = InvitationService.getInstance();
       expect((await svc.validateRegistrationToken('expired-token')).isValid).toBe(false);
     });
@@ -337,11 +305,30 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(
-        makeDocSnapshot(true, { used: false, expiresAt: new Date(Date.now() + 60_000) })
-      );
+      await serveInvitation('live-token', { scheme: 'sha256', used: false, expiresAt: new Date(Date.now() + 60_000) });
       const svc = InvitationService.getInstance();
       expect((await svc.validateRegistrationToken('live-token')).isValid).toBe(true);
+    });
+
+    test('should accept an invitation made before T145, stored under its token with no scheme', async () => {
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { search: '?groupId=g1' },
+      });
+      serveDocs({ 'groups/g1/registrationTokens/old-token': { token: 'old-token', used: false } });
+      const svc = InvitationService.getInstance();
+      expect((await svc.validateRegistrationToken('old-token')).isValid).toBe(true);
+    });
+
+    test("should refuse an invitation's id presented as its token (T145)", async () => {
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { search: '?groupId=g1' },
+      });
+      await serveInvitation('the-token', { scheme: 'sha256', used: false });
+      const id = (await hashInvitationToken('the-token')) as string;
+      const svc = InvitationService.getInstance();
+      expect((await svc.validateRegistrationToken(id)).isValid).toBe(false);
     });
 
     test('should return isValid=false when token document does not exist', async () => {
@@ -349,7 +336,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(false));
+      serveDocs({});
       const svc = InvitationService.getInstance();
       const result = await svc.validateRegistrationToken('nonexistent-token');
       expect(result.isValid).toBe(false);
@@ -388,7 +375,7 @@ describe('InvitationService', () => {
       const svc = InvitationService.getInstance();
       const tokens = await svc.getGroupRegistrationTokens('g1');
       expect(tokens).toHaveLength(1);
-      expect(tokens[0].token).toBe('t1');
+      expect(tokens[0].id).toBe('t1');
     });
 
     test('should convert a stored expiry Timestamp to a Date', async () => {
@@ -404,26 +391,25 @@ describe('InvitationService', () => {
       expect(tokens[0].expiresAt).toBe(expiry);
     });
 
-    // `validateRegistrationToken` looks a token up as a **document id**, so the
-    // value handed out here has to be that id. The document also stores a
-    // `token` field; generation writes the two identically, but nothing
-    // enforces it -- and where they diverge, spreading the document data over
-    // `token: doc.id` silently hands out a value no lookup can ever resolve.
-    // A share link built from it points at an invitation that does not exist.
-    test('should return the document id even when a stored token field disagrees', async () => {
+    // The document id is the invitation's identity (since T145, its token's
+    // hash). Neither a stored `token` field, from before T145, nor the sealed
+    // copy is handed on: a link is built only from what the server reveals.
+    test('should name each invitation by its document id, and pass on no token or sealed copy', async () => {
       mockIsUserAdmin.mockResolvedValueOnce(true);
       mockGetDocs.mockResolvedValueOnce(
         makeQuerySnapshot([
           {
             exists: () => true,
-            data: () => ({ token: 'stale-value', used: false, createdAt: null, usedAt: null }),
+            data: () => ({ token: 'stale-value', sealed: 'v1.x.y.z', used: false, createdAt: null, usedAt: null }),
             id: 'the-real-doc-id',
           },
         ])
       );
       const svc = InvitationService.getInstance();
       const tokens = await svc.getGroupRegistrationTokens('g1');
-      expect(tokens[0].token).toBe('the-real-doc-id');
+      expect(tokens[0].id).toBe('the-real-doc-id');
+      expect(tokens[0]).not.toHaveProperty('token');
+      expect(tokens[0]).not.toHaveProperty('sealed');
     });
   });
 
@@ -508,7 +494,7 @@ describe('InvitationService', () => {
         value: { search: '?groupId=g1' },
       });
       // validateRegistrationToken → valid
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: false }));
+      await serveInvitation('valid-token', { scheme: 'sha256', used: false });
       mockCallable.mockResolvedValueOnce({ data: { success: true, groupId: 'g1' } });
 
       const svc = InvitationService.getInstance();
@@ -529,7 +515,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: false }));
+      await serveInvitation('valid-token', { scheme: 'sha256', used: false });
       mockCallable.mockRejectedValueOnce(new Error('This invitation has already been used. Ask for a new link.'));
 
       const svc = InvitationService.getInstance();
@@ -545,9 +531,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(
-        makeDocSnapshot(true, { used: false, expiresAt: new Date(Date.now() - 1000) })
-      );
+      await serveInvitation('expired-token', { scheme: 'sha256', used: false, expiresAt: new Date(Date.now() - 1000) });
       const svc = InvitationService.getInstance();
       await expect(svc.joinGroupWithToken('expired-token', 'User')).rejects.toThrow(
         'Invalid or expired invitation token'
@@ -579,7 +563,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: false }));
+      await serveInvitation('valid-token', { scheme: 'sha256', used: false });
       mockCallable.mockResolvedValueOnce({ data: { success: true } });
 
       const svc = InvitationService.getInstance();
@@ -599,7 +583,7 @@ describe('InvitationService', () => {
         writable: true,
         value: { search: '?groupId=g1' },
       });
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { used: false }));
+      await serveInvitation('valid-token', { scheme: 'sha256', used: false });
       mockCallable.mockRejectedValueOnce(new Error('ACCOUNTS_FULL: This site is not taking new accounts right now.'));
 
       const svc = InvitationService.getInstance();

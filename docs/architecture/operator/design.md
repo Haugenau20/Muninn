@@ -154,8 +154,8 @@ dependency is one more thing running with the runtime account's access to Firest
 
 **The lifecycle today** (T125, T126):
 
-1. **Issued:** `founderInvitations/{token}` with `used: false` and a 14-day `expiresAt`.
-2. **Reserved:** `reserveSignUp` writes `reservations/founder_{token}` with the founder's email.
+1. **Issued:** `founderInvitations/{sha256(token)}` (T145) with `used: false` and a 14-day `expiresAt`.
+2. **Reserved:** `reserveSignUp` writes `reservations/founder_{invitationId}` with the founder's email.
 3. **Admitted:** the sign-up gate creates the account only while that reservation is live
    (`findLiveReservation`, `signUpGate.ts:97`).
 4. **Spent:** `createGroup` sets `used`, `usedAt`, `usedBy` and `groupId` (`createGroup.ts:157`).

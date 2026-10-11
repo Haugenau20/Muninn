@@ -15,9 +15,11 @@ export {
 export { sweepOrphanedImagesDaily } from "./imageMaintenance";
 export {
   createGroup,
+  createInvitation,
   deleteGroup,
   redeemInvitation,
   resumeGroupDeletionsDaily,
+  revealInvitation,
   setMemberRole,
 } from "./groupManagement";
 export { gateAccountCreation, recountAccountsDaily, reserveSignUp } from "./signUp";

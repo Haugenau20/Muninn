@@ -7,9 +7,13 @@
 // `scripts/issue-founder-invitation.js`, through the Admin SDK: the app grants
 // nobody the power to issue them (the onboarding plan, D6).
 
-import {randomBytes} from "crypto";
 import {Firestore} from "firebase-admin/firestore";
 import {Refusal} from "../shared/refusal";
+import {
+  HASHED_SCHEME,
+  hashInvitationToken,
+  newInvitationToken,
+} from "../shared/invitationToken";
 
 /** Where founder invitations live. No client can read or write it (catch-all deny). */
 export const FOUNDER_INVITATIONS = "founderInvitations";
@@ -20,13 +24,13 @@ export const FOUNDER_INVITATION_LIFETIME_MS = 14 * 24 * 60 * 60 * 1000;
 /**
  * The reservation id for a founder invitation. One per invitation, as for an
  * invitation into a group, so reserving again replaces the email; the prefix
- * keeps it apart from a group's `${groupId}_${token}`.
+ * keeps it apart from a group's `${groupId}_${invitationId}`.
  *
- * @param {string} token The founder invitation's token
+ * @param {string} invitationId The founder invitation's document id
  * @return {string} The reservation's document id
  */
-export function founderReservationId(token: string): string {
-  return `founder_${token}`;
+export function founderReservationId(invitationId: string): string {
+  return `founder_${invitationId}`;
 }
 
 /**
@@ -69,19 +73,21 @@ export interface FounderInvitationOptions {
  * spent the budget. Counting and issuing are one transaction, so two issues
  * racing for the last slot cannot both have it.
  *
- * The token is the document id and the whole secret: 32 random bytes,
- * base64url, so it cannot be guessed and travels in a link unescaped.
+ * The token is the whole secret. It is returned once and stored nowhere: the
+ * invitation's id is its SHA-256 (T145, `shared/invitationToken`), so whoever
+ * can read the collection holds no working link.
  *
  * @param {Firestore} db Firestore
  * @param {FounderInvitationOptions} options The issuer, a note, the moment
- * @return {Promise<{token: string, expiresAt: Date}>} The token and its expiry
+ * @return {Promise<object>} The token, the invitation's id, and its expiry
  * @throws {Refusal} `budget_spent` when the budget is spent
  */
 export async function issueFounderInvitation(
   db: Firestore,
   {issuedBy, note, now = new Date()}: FounderInvitationOptions
-): Promise<{token: string; expiresAt: Date}> {
-  const token = randomBytes(32).toString("base64url");
+): Promise<{token: string; invitationId: string; expiresAt: Date}> {
+  const token = newInvitationToken();
+  const invitationId = hashInvitationToken(token);
   const expiresAt = new Date(now.getTime() + FOUNDER_INVITATION_LIFETIME_MS);
   const invitations = db.collection(FOUNDER_INVITATIONS);
 
@@ -96,7 +102,8 @@ export async function issueFounderInvitation(
           "the last 24 hours, the most there may be. Try again later."
       );
     }
-    transaction.create(invitations.doc(token), {
+    transaction.create(invitations.doc(invitationId), {
+      scheme: HASHED_SCHEME,
       used: false,
       createdAt: now,
       expiresAt,
@@ -104,5 +111,5 @@ export async function issueFounderInvitation(
       ...(note ? {note} : {}),
     });
   });
-  return {token, expiresAt};
+  return {token, invitationId, expiresAt};
 }

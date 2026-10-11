@@ -303,9 +303,9 @@ Accepted, and named so they are not forgotten:
    over that account is a way to the passkey; the super admin's hardware keys sync nowhere.
 3. **An hour.** A session taken from the device works until re-authentication. The email per action
    makes it visible; every action it can take can be undone.
-4. **Founder tokens are document ids.** Anyone who can read Firestore (the console, the runtime
-   account) can read them. Storing only a hash would close it, for invitations into groups too:
-   T145.
+4. **Founder tokens were document ids.** Anyone who could read Firestore (the console, the runtime
+   account) could read them. Since T145 a link is stored under its token's SHA-256, for invitations
+   into groups too; links issued before that keep their old id until they expire.
 5. **The functions run as the default compute account.** No function sets `serviceAccount`
    (`firebase/functions/src`), and that account holds the project-wide Editor role (read
    2026-10-10), so the functions' deploy key (T139) reaches far beyond Firestore: T146.

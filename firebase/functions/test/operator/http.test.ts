@@ -16,6 +16,7 @@ import {ROUTES, createOperatorServer} from "../../src/operator/http/server";
 import {csrfToken} from "../../src/operator/http/csrf";
 import {readConfig} from "../../src/operator/config";
 import {FOUNDER_INVITATIONS} from "../../src/signUp/founderInvitations";
+import {hashInvitationToken} from "../../src/shared/invitationToken";
 
 const PROJECT = "demo-operator-http";
 const db = useEmulatorProject(PROJECT);
@@ -241,7 +242,9 @@ describe("founder links", () => {
 
     expect(response.status).toBe(200);
     const [doc] = (await db.collection(FOUNDER_INVITATIONS).get()).docs;
-    expect(page).toContain(`${SITE}/join?founder=${doc.id}`);
+    const shown = page.split(`${SITE}/join?founder=`)[1]?.match(/^[A-Za-z0-9_-]+/)?.[0] ?? "";
+    // The link carries the token; the invitation is stored under its hash (T145).
+    expect(hashInvitationToken(shown)).toBe(doc.id);
     expect(doc.data()).toMatchObject({issuedBy: OPERATOR.email, note: "Bree table", used: false});
     expect(auditLines).toEqual([expect.objectContaining({
       action: "founder_link.issue",
@@ -249,6 +252,7 @@ describe("founder links", () => {
       target: {link: doc.id.slice(0, 6)},
     })]);
     expect(JSON.stringify(auditLines)).not.toContain(doc.id);
+    expect(JSON.stringify(auditLines)).not.toContain(shown);
   });
 
   it("lists links by their first characters, never their tokens", async () => {
