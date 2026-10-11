@@ -324,8 +324,9 @@
 // change, never in the console. Every merge to `main` redeploys this file, so a
 // console edit lasts only until then.
 //
-// Note the rules are path-scoped, so a `collectionGroup` query has no matching
-// rule and WILL be denied.
+// Note the rules are path-scoped, so a `collectionGroup` query is denied
+// unless a recursive match (`/{path=**}/...`) allows it. One does: a user's
+// own group profiles, for the list of their groups (T136).
 
 rules_version = '2';
 service cloud.firestore {
