@@ -134,7 +134,9 @@ jobs:
           cp -r build/* firebase/build/
 
       # Deploy to Firebase Hosting. No `target`, so every site in firebase.json:
-      # `muninn-quest` (muninn.quest) and the default `dnd-campaign-companion`.
+      # `muninn-quest` (muninn.quest), which serves the build, and the default
+      # `dnd-campaign-companion`, which only redirects and uploads
+      # `firebase/redirect-site/` (T149).
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
