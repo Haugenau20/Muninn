@@ -7,4 +7,4 @@ Run `/todo` to drain this file: each entry is checked against the code, located,
 sized and filed into TODO.md, then removed from here. `/todo <idea>` files a
 single item directly without going through this file.
 
-Last drained: 2026-10-08
+Last drained: 2026-10-10

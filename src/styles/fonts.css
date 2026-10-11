@@ -1,0 +1,33 @@
+/* src/styles/fonts.css */
+/*
+  The site's fonts, served from the site itself (T144). They used to come from
+  fonts.googleapis.com, so every visit handed the visitor's address to Google
+  before anyone had been asked; now the build carries the files, from the
+  pinned @fontsource packages, and no font request leaves muninn.quest.
+
+  The two families the colour schema names, and only those. Zilla Slab is
+  --font-heading (the campaign's voice: titles, entity names, running chapter
+  text), Archivo is --font-primary and --font-secondary (the application's
+  voice). Italic serif is reserved for in-world voice, so Zilla Slab loads one
+  italic weight and Archivo loads none. Both load 700: headings compute to
+  bold, and a missing face is synthesised rather than drawn.
+
+  Each weight's stylesheet declares one face per script with a unicode-range,
+  so a browser downloads only the scripts a page actually draws (Latin, here).
+*/
+@import "@fontsource/archivo/400.css";
+@import "@fontsource/archivo/500.css";
+@import "@fontsource/archivo/600.css";
+@import "@fontsource/archivo/700.css";
+@import "@fontsource/zilla-slab/400.css";
+@import "@fontsource/zilla-slab/500.css";
+@import "@fontsource/zilla-slab/600.css";
+@import "@fontsource/zilla-slab/700.css";
+@import "@fontsource/zilla-slab/400-italic.css";
+
+/*
+  The rune ᛗ (U+16D7), the mark of the name: the Runic block only (about
+  6 KB), not the family's Latin faces, so `.rune-mark` (RuneMark) draws the
+  rune in it and anything else in the --font-primary it falls back to.
+*/
+@import "@fontsource/noto-sans-runic/runic-400.css";

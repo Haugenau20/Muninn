@@ -29,24 +29,6 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>Muninn</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- The two families the colour schema names, and only those. Zilla Slab is
-         --font-heading (the campaign's voice: titles, entity names, running
-         chapter text), Archivo is --font-primary and --font-secondary (the
-         application's voice). Italic serif is reserved for in-world voice, so
-         Zilla Slab loads one italic weight and Archivo loads none. Both load 700:
-         headings compute to bold, and a missing face is synthesised rather than
-         drawn -- which the stack this replaced had been doing unnoticed.
-         Inter and Newsreader left with 12-1, which stopped authoring font
-         values and took them from the schema instead. MedievalSharp went with
-         the medieval theme (D102) and Crimson Text and Gentium Book Basic were
-         referenced nowhere in src -- the same leftover shape as R47. -->
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Zilla+Slab:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <!-- The rune ᛗ (U+16D7), the mark of the name, and nothing else: `text=`
-         has Google serve a font holding that one character, under 3 KB.
-         Only `.rune-mark` (RuneMark) sets this family. -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Runic&text=%E1%9B%97&display=swap" rel="stylesheet">
     <script>
       // Redirect script for client-side routing
       (function() {
