@@ -9,6 +9,7 @@ import {
   stepDownAsAdmin,
   strandsGroup,
 } from "../shared/groupAdmins";
+import {memberGroupIds} from "../shared/memberGroups";
 import {releaseUsernames} from "../shared/usernameReservations";
 import {releaseAccountSlot} from "../signUp/accountCount";
 
@@ -85,7 +86,7 @@ export async function planAccountDeletion(uid: string): Promise<AccountDeletionP
     signInOf(uid),
     db.collection("users").doc(uid).get(),
   ]);
-  const groupIds: string[] = profile.exists ? profile.data()?.groups ?? [] : [];
+  const groupIds = await memberGroupIds(uid, profile);
 
   const groups = await Promise.all(groupIds.map(async (groupId) => {
     const group = db.collection("groups").doc(groupId);
@@ -128,20 +129,20 @@ export async function planAccountDeletion(uid: string): Promise<AccountDeletionP
  */
 export async function deleteAccount(uid: string): Promise<void> {
   const userDoc = await getFirestore().collection("users").doc(uid).get();
+  const groups = await memberGroupIds(uid, userDoc);
 
-  if (!userDoc.exists) {
+  if (!userDoc.exists && groups.length === 0) {
     // The global profile is the last Firestore record this deletes -- it
-    // lists the groups to clean up, so it goes only once they are gone -- and
-    // the Auth account goes after it. A missing profile with an Auth account
-    // still standing is therefore an earlier run that failed at its last
-    // step: finish it, rather than refuse the only retry there is (AUTH-002).
+    // goes only once the group profiles are gone -- and the Auth account goes
+    // after it. A missing profile with an Auth account still standing is
+    // therefore an earlier run that failed at its last step: finish it,
+    // rather than refuse the only retry there is (AUTH-002). Group profiles
+    // outliving it are still deleted below: they are the membership (T136).
     if (!(await deleteSignIn(uid))) {
       throw new functions.HttpsError("not-found", "User profile not found.");
     }
     return;
   }
-
-  const groups: string[] = userDoc.data()?.groups || [];
 
   // Deleting an account is the third door out of a group, after leaving and
   // demotion, and needs the same guard (T035). Checked before anything is
@@ -162,7 +163,7 @@ export async function deleteAccount(uid: string): Promise<void> {
     await releaseUsernames(batch, groupId, uid);
   }
 
-  batch.delete(userDoc.ref);
+  if (userDoc.exists) batch.delete(userDoc.ref);
 
   // The group profile is deleted apart from the batch: it owns the `notes`
   // and `story-progress` subcollections, and a batched delete would orphan

@@ -105,9 +105,20 @@ describe("redeemInvitation", () => {
       expect((await tokenDoc()).data()?.used).toBe(false);
     });
 
+    // A member is someone with a group profile there, the one record of
+    // membership (T136).
     it("an existing member, without spending the token", async () => {
       await seed();
       await db.doc("users/u1").set({id: "u1", groups: [GROUP]});
+      await db.doc(`groups/${GROUP}/users/u1`).set({userId: "u1", username: "Frodo", role: "member"});
+      await expectHttpsError(redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1"), "already-exists");
+      expect((await tokenDoc()).data()?.used).toBe(false);
+    });
+
+    it("an existing member the array does not list, without spending the token", async () => {
+      await seed();
+      await db.doc("users/u1").set({id: "u1", groups: []});
+      await db.doc(`groups/${GROUP}/users/u1`).set({userId: "u1", username: "Frodo", role: "member"});
       await expectHttpsError(redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1"), "already-exists");
       expect((await tokenDoc()).data()?.used).toBe(false);
     });
@@ -232,6 +243,19 @@ describe("redeemInvitation", () => {
         role: "member",
         preferences: {theme: "default"},
       });
+    });
+
+    // The array listing a group is not membership (T136): someone it lists
+    // with no profile there joins, and gains the profile they lacked.
+    it("admits someone the array lists without a profile, and gives them one", async () => {
+      await seed();
+      await db.doc("users/u1").set({id: "u1", groups: [GROUP], activeGroupId: GROUP});
+
+      await redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1");
+
+      expect((await db.doc("users/u1").get()).get("groups")).toEqual([GROUP]);
+      expect((await db.doc(`groups/${GROUP}/users/u1`).get()).data()).toMatchObject({userId: "u1", role: "member"});
+      expect((await tokenDoc()).data()?.used).toBe(true);
     });
   });
 });

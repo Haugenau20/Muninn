@@ -23,6 +23,9 @@ const mockGetFunctions = jest.fn((...args: any[]) =>
   args[1] === 'europe-west1' ? REGIONED_FUNCTIONS_INSTANCE : { __label: 'bare-functions' }
 );
 const mockCollection = jest.fn((_db: any, ...segs: string[]) => ({ path: segs.join('/') }));
+const mockCollectionGroup = jest.fn((_db: any, id: string) => ({ collectionGroup: id }));
+const mockQuery = jest.fn((source: any, ...constraints: any[]) => ({ source, constraints }));
+const mockWhere = jest.fn((field: string, op: string, value: unknown) => ({ field, op, value }));
 const mockDoc = jest.fn((_db_or_ref: any, ...segs: string[]) => ({
   path: segs.join('/'),
   id: segs[segs.length - 1] || 'generated-id',
@@ -104,6 +107,18 @@ function makeQuerySnapshot(docs: ReturnType<typeof makeDocSnapshot>[]) {
   return { docs };
 }
 
+/** The current user's group profile in `groupId`, as the collection-group query returns it. */
+function makeGroupProfile(groupId: string, joinedAt: unknown) {
+  return {
+    id: 'current-user',
+    ref: { parent: { parent: { id: groupId } } },
+    data: () => ({ userId: 'current-user', joinedAt }),
+  };
+}
+
+/** A Firestore Timestamp, as far as `getGroups` reads one. */
+const at = (millis: number) => ({ toMillis: () => millis });
+
 // ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe('GroupService', () => {
@@ -142,8 +157,9 @@ describe('GroupService', () => {
       getDocs: function() { return (mockGetDocs as Function).apply(null, arguments); },
       runTransaction: function() { return (mockRunTransaction as Function).apply(null, arguments); },
       updateDoc: function() { return (mockUpdateDoc as Function).apply(null, arguments); },
-      query: jest.fn(),
-      where: jest.fn(),
+      collectionGroup: function() { return (mockCollectionGroup as Function).apply(null, arguments); },
+      query: function() { return (mockQuery as Function).apply(null, arguments); },
+      where: function() { return (mockWhere as Function).apply(null, arguments); },
     }));
     jest.doMock('firebase/app', () => ({ initializeApp: jest.fn(() => ({})) }));
     jest.doMock('firebase/auth', () => ({
@@ -166,6 +182,7 @@ describe('GroupService', () => {
     [mockGetDoc, mockGetDocs, mockRunTransaction, mockIsUsernameAvailableInGroup,
      mockHttpsCallable, mockUpdateDoc, mockIsUserAdmin].forEach(m => m.mockReset());
     mockGetFunctions.mockClear();
+    [mockCollectionGroup, mockQuery, mockWhere].forEach(m => m.mockClear());
     (mockUserServiceInstance.getGroupUserProfile as jest.Mock).mockReset();
 
     GroupService = require('../GroupService').default;
@@ -403,69 +420,83 @@ describe('GroupService', () => {
       expect(groups).toEqual([]);
     });
 
-    test('should return empty array when user document does not exist', async () => {
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(false));
-      const svc = GroupService.getInstance();
-      const groups = await svc.getGroups();
+    test('returns no groups when the user has no group profile', async () => {
+      mockGetDocs.mockResolvedValueOnce(makeQuerySnapshot([]));
+      const groups = await GroupService.getInstance().getGroups();
       expect(groups).toEqual([]);
+      expect(mockGetDoc).not.toHaveBeenCalled();
     });
 
-    test('should return groups for the user', async () => {
-      // First getDoc: user profile
-      mockGetDoc.mockResolvedValueOnce(
-        makeDocSnapshot(true, { groups: ['g1', 'g2'] })
-      );
-      // Second getDoc: group g1
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { name: 'Group 1' }, 'g1'));
-      // Third getDoc: group g2
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { name: 'Group 2' }, 'g2'));
-
-      const svc = GroupService.getInstance();
-      const groups = await svc.getGroups();
-      expect(groups).toHaveLength(2);
-      expect(groups[0].id).toBe('g1');
-    });
-
-    test('should skip groups whose document does not exist', async () => {
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { groups: ['g1', 'g-missing'] }));
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { name: 'Group 1' }, 'g1'));
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(false)); // g-missing not found
-
-      const svc = GroupService.getInstance();
-      const groups = await svc.getGroups();
-      expect(groups).toHaveLength(1);
-    });
-
-    // PERF-02: the auth restore already holds the global profile, and used to
-    // read it a second time here before fetching a single group.
-    test('reads only the named groups when given their ids, never the user profile', async () => {
+    // T136: the group profile is the one record of membership; the global
+    // profile's `groups` array is no longer read.
+    test('lists the groups holding a group profile of the user, never reading the global profile', async () => {
+      mockGetDocs.mockResolvedValueOnce(makeQuerySnapshot([
+        makeGroupProfile('g1', at(1)) as any,
+        makeGroupProfile('g2', at(2)) as any,
+      ]));
       mockGetDoc.mockImplementation((ref: { path: string; id: string }) =>
         Promise.resolve(makeDocSnapshot(true, { name: ref.path }, ref.id))
       );
 
-      const groups = await GroupService.getInstance().getGroups(['g1', 'g2']);
+      const groups = await GroupService.getInstance().getGroups();
 
+      expect(mockCollectionGroup).toHaveBeenCalledWith(expect.anything(), 'users');
+      expect(mockWhere).toHaveBeenCalledWith('userId', '==', AUTH_UID);
       expect(groups.map((g: any) => g.id)).toEqual(['g1', 'g2']);
       expect(mockGetDoc.mock.calls.map(([ref]) => ref.path)).toEqual(['groups/g1', 'groups/g2']);
     });
 
+    test('should skip groups whose document does not exist', async () => {
+      mockGetDocs.mockResolvedValueOnce(makeQuerySnapshot([
+        makeGroupProfile('g1', at(1)) as any,
+        makeGroupProfile('g-missing', at(2)) as any,
+      ]));
+      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { name: 'Group 1' }, 'g1'));
+      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(false)); // g-missing not found
+
+      const groups = await GroupService.getInstance().getGroups();
+      expect(groups.map((g: any) => g.id)).toEqual(['g1']);
+    });
+
+    // The array kept the order groups were joined in; the profiles keep it
+    // in `joinedAt`, a Timestamp from the functions or a date string from
+    // the dev sample data.
+    test('orders the groups by when they were joined, not by how the query returns them', async () => {
+      mockGetDocs.mockResolvedValueOnce(makeQuerySnapshot([
+        makeGroupProfile('g-a', at(Date.parse('2026-03-01'))) as any,
+        makeGroupProfile('g-b', '2026-01-01T00:00:00.000Z') as any,
+        makeGroupProfile('g-c', undefined) as any,
+        makeGroupProfile('g-d', at(Date.parse('2026-02-01'))) as any,
+      ]));
+      mockGetDoc.mockImplementation((ref: { id: string }) => Promise.resolve(makeDocSnapshot(true, {}, ref.id)));
+
+      const groups = await GroupService.getInstance().getGroups();
+      expect(groups.map((g: any) => g.id)).toEqual(['g-b', 'g-d', 'g-a', 'g-c']);
+    });
+
     // PERF-02: one round trip per group, one after another, on every sign-in.
     test('requests every group document before any of them has answered', async () => {
+      mockGetDocs.mockResolvedValueOnce(makeQuerySnapshot(
+        ['g1', 'g2', 'g3'].map((id, i) => makeGroupProfile(id, at(i)) as any)
+      ));
       const answers: Array<() => void> = [];
       mockGetDoc.mockImplementation((ref: { id: string }) =>
         new Promise(resolve => answers.push(() => resolve(makeDocSnapshot(true, {}, ref.id))))
       );
 
-      const result = GroupService.getInstance().getGroups(['g1', 'g2', 'g3']);
-      await Promise.resolve();
+      const result = GroupService.getInstance().getGroups();
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(answers).toHaveLength(3);
       answers.forEach(answer => answer());
       await expect(result).resolves.toHaveLength(3);
     });
 
-    test('keeps membership order when the group documents answer out of order', async () => {
-      mockGetDoc.mockResolvedValueOnce(makeDocSnapshot(true, { groups: ['g1', 'g2'] }));
+    test('keeps join order when the group documents answer out of order', async () => {
+      mockGetDocs.mockResolvedValueOnce(makeQuerySnapshot([
+        makeGroupProfile('g1', at(1)) as any,
+        makeGroupProfile('g2', at(2)) as any,
+      ]));
       const answers: Array<() => void> = [];
       mockGetDoc.mockImplementation((ref: { id: string }) =>
         new Promise(resolve => answers.push(() => resolve(makeDocSnapshot(true, {}, ref.id))))

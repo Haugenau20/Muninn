@@ -333,15 +333,18 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Load groups with proper active group selection
   const loadGroups = async (userId: string, profile: UserProfile, currentUser: User) => {
     try {
-      // The profile already lists the group ids; passing them saves reading
-      // the same `users/{uid}` document a second time (PERF-02).
-      const userGroups = await firebaseServices.group.getGroups(profile.groups);
+      // The groups come from the user's group profiles, the one record of
+      // membership (T136), not from the global profile.
+      const userGroups = await firebaseServices.group.getGroups();
       if (isStale(userId)) throw new StaleAuthError();
       setGroups(userGroups);
 
       if (userGroups.length > 0) {
-        // Set active group from the provided profile or default to first group
-        const targetGroupId = profile.activeGroupId || userGroups[0].id;
+        // The profile's active group, while they are still in it; else the
+        // first they joined.
+        const targetGroupId = userGroups.some(group => group.id === profile.activeGroupId)
+          ? profile.activeGroupId as string
+          : userGroups[0].id;
         await setActiveGroupContext(targetGroupId, currentUser);
       } else {
         console.warn(`No groups found for user ${userId}`);

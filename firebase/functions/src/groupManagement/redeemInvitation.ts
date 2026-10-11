@@ -25,9 +25,10 @@ const USERNAME_MAX = 20;
  * Makes the caller a member of a group, in exchange for a registration token.
  *
  * This is the only way into a group other than creating it, and it has to run
- * server-side (T052). Group membership is `users/{uid}.groups`, which the
- * Firestore rules read to answer `isGroupMember` -- and while a client could
- * write that array itself, anyone who knew a group's id could make themselves
+ * server-side (T052). Group membership is the group profile written here
+ * (T136), and also `users/{uid}.groups`, which the Firestore rules read to
+ * answer `isGroupMember` until they move to the profile -- and while a client
+ * could write that array itself, anyone who knew a group's id could make themselves
  * a member of it without ever holding a token. The rules now refuse any client
  * write to `groups`, and this function is where the token is actually checked:
  * it exists, it has not been used, and it has not expired.
@@ -133,8 +134,10 @@ export const redeemInvitation = functions.onCall(
           );
         }
 
-        const groups: string[] = userDoc.data()?.groups ?? [];
-        if (groups.includes(groupId) || groupUserDoc.exists) {
+        // The group profile is the one record of membership (T136). Someone
+        // the array lists without one is not a member, and joining gives
+        // them the profile they lacked.
+        if (groupUserDoc.exists) {
           throw new functions.HttpsError(
             "already-exists",
             "You are already a member of this group."

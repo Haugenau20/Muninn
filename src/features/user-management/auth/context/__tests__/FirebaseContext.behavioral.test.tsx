@@ -642,6 +642,26 @@ describe("FirebaseContext Behavioral Testing", () => {
       expect(mockSetActiveGroup).toHaveBeenCalledWith("only-group");
     });
 
+    // A stored active group the user is no longer in falls back to the
+    // first group they are in.
+    test("selects the first group when the stored active group is not one of theirs", async () => {
+      mockGetUserProfile.mockResolvedValue(
+        makeUserProfile({ id: "u-1", activeGroupId: "group-gone" })
+      );
+      mockGetGroups.mockResolvedValue([makeGroup("group-A"), makeGroup("group-B")]);
+      mockGetGroupUserProfile.mockResolvedValue(null);
+      mockGetCampaigns.mockResolvedValue([]);
+
+      renderHook(() => useFirebaseContext(), { wrapper });
+
+      await act(async () => {
+        await capturedAuthCallback!(makeUser("u-1"));
+      });
+
+      expect(mockSetActiveGroup).toHaveBeenCalledWith("group-A");
+      expect(mockSetActiveGroup).not.toHaveBeenCalledWith("group-gone");
+    });
+
     test("should call setActiveGroup on firebaseServices.auth when setting active group", async () => {
       const fakeUser = makeUser("u-1");
       mockGetUserProfile.mockResolvedValue(
@@ -758,19 +778,23 @@ describe("FirebaseContext Behavioral Testing", () => {
   // that read the global profile twice and asked for campaigns only after
   // the group profile had answered.
   describe("Restore without the serial waterfall (PERF-02)", () => {
-    test("hands getGroups the group ids from the profile it already loaded", async () => {
+    // T136: the groups come from the user's group profiles, the one record
+    // of membership; the global profile's array is not handed on, and
+    // getGroups does not read the global profile again.
+    test("asks getGroups for the groups without handing it the global profile's array", async () => {
       mockGetUserProfile.mockResolvedValue(
-        makeUserProfile({ id: "u-1", groups: ["g-1", "g-2"], activeGroupId: "g-1" })
+        makeUserProfile({ id: "u-1", groups: ["g-stale"], activeGroupId: "g-1" })
       );
       mockGetGroups.mockResolvedValue([makeGroup("g-1"), makeGroup("g-2")]);
 
-      renderHook(() => useFirebaseContext(), { wrapper });
+      const { result } = renderHook(() => useFirebaseContext(), { wrapper });
 
       await act(async () => {
         await capturedAuthCallback!(makeUser("u-1"));
       });
 
-      expect(mockGetGroups).toHaveBeenCalledWith(["g-1", "g-2"]);
+      expect(mockGetGroups).toHaveBeenCalledWith();
+      expect(result.current.groups.map((group) => group.id)).toEqual(["g-1", "g-2"]);
     });
 
     test("asks for the campaigns before the group profile has answered", async () => {

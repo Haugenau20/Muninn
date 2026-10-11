@@ -224,6 +224,24 @@ describe("a deletion that fails partway", () => {
     expect(await fileExists(FILES.crest)).toBe(false);
   });
 
+  // T136: the member profile is the record of membership, so it goes before
+  // anything beneath it: a failure there leaves no member, only their
+  // leftovers, which a retry takes.
+  it("ends membership before emptying the profiles, and a retry finishes", async () => {
+    jest.spyOn(Firestore.prototype, "recursiveDelete")
+      .mockRejectedValueOnce(new Error("injected: backend unavailable"));
+
+    await expectHttpsError(remove("gandalf"), "internal");
+    expect(await isThere(`groups/${GROUP}/users/gandalf`)).toBe(false);
+    expect(await isThere(`groups/${GROUP}/users/frodo`)).toBe(false);
+    expect(await isThere(`groups/${GROUP}/users/frodo/notes/note1`)).toBe(true);
+    expect(await isThere("groups/g2/users/frodo")).toBe(true);
+
+    await remove("gandalf");
+    expect(await isThere(`groups/${GROUP}/users/frodo/notes/note1`)).toBe(false);
+    expect(await isThere(record.path)).toBe(false);
+  });
+
   it("finishes on retry after the pictures could not be deleted", async () => {
     const bucketProto = Object.getPrototypeOf(imageBucket());
     jest.spyOn(bucketProto, "deleteFiles")

@@ -1,11 +1,14 @@
 // src/core/services/firebase/group/GroupService.ts
 import { 
     collection, 
+    collectionGroup,
     doc, 
     getDoc, 
     getDocs, 
     onSnapshot,
+    query,
     updateDoc,
+    where,
     type Unsubscribe
   } from 'firebase/firestore';
 import BaseFirebaseService from '../core/BaseFirebaseService';
@@ -16,6 +19,22 @@ import { StoredImage } from '../../../types/storedImage';
 import { assertTextFits } from '../data/TextTooLongError';
 import { NAMED_DOCUMENT_TEXT_LIMITS } from '../../../constants/textLimits';
 import { httpsCallable } from 'firebase/functions';
+
+  /**
+   * When a group profile says its member joined, in milliseconds, for putting
+   * groups in the order they were joined. The functions store a Timestamp, the
+   * dev sample data a date string; anything else sorts last.
+   *
+   * @param value The profile's `joinedAt`
+   * @returns Its time, or Infinity
+   */
+  function joinedAt(value: unknown): number {
+    if (value && typeof (value as { toMillis?: unknown }).toMillis === 'function') {
+      return (value as { toMillis: () => number }).toMillis();
+    }
+    const time = typeof value === 'string' || value instanceof Date ? new Date(value).getTime() : NaN;
+    return Number.isNaN(time) ? Infinity : time;
+  }
 
   /**
    * GroupService manages group operations
@@ -82,26 +101,30 @@ import { httpsCallable } from 'firebase/functions';
     /**
      * Get all groups the current user is a member of.
      *
-     * The group documents are fetched concurrently: they are independent, and
-     * fetching them one at a time cost a full network round trip per group on
-     * every sign-in and reload (PERF-02).
+     * A user is a member of a group exactly when their group profile,
+     * `groups/{g}/users/{uid}`, exists (T136). The profiles are found by the
+     * `userId` each carries, across groups, which needs the `users.userId`
+     * collection-group index in production; the rules let a user list only
+     * their own.
      *
-     * @param groupIds The user's group ids, when the caller already holds the
-     *   global profile they come from. Passing them saves re-reading that
-     *   profile -- the auth restore used to read `users/{uid}` twice in a row.
-     * @returns Array of group objects with IDs, in membership order
+     * The group documents are then fetched concurrently: they are independent,
+     * and fetching them one at a time cost a full network round trip per group
+     * on every sign-in and reload (PERF-02).
+     *
+     * @returns Array of group objects with IDs, in the order they were joined
      */
-    public async getGroups(groupIds?: string[]): Promise<Group[]> {
+    public async getGroups(): Promise<Group[]> {
       const userId = this.getCurrentUser()?.uid;
       if (!userId) return [];
 
-      let ids = groupIds;
-      if (!ids) {
-        // Get user's global profile to find group memberships
-        const userDoc = await getDoc(doc(this.db, 'users', userId));
-        if (!userDoc.exists()) return [];
-        ids = (userDoc.data().groups || []) as string[];
-      }
+      const profiles = await getDocs(
+        query(collectionGroup(this.db, 'users'), where('userId', '==', userId))
+      );
+      const ids = profiles.docs
+        .map(profile => ({ groupId: profile.ref.parent.parent?.id, joined: joinedAt(profile.data().joinedAt) }))
+        .filter((entry): entry is { groupId: string; joined: number } => Boolean(entry.groupId))
+        .sort((a, b) => (a.joined - b.joined) || 0)
+        .map(entry => entry.groupId);
 
       // Fetch each group's metadata
       const groupDocs = await Promise.all(
@@ -112,7 +135,7 @@ import { httpsCallable } from 'firebase/functions';
       groupDocs.forEach((groupDoc, index) => {
         if (groupDoc.exists()) {
           groups.push({
-            id: ids![index],
+            id: ids[index],
             ...groupDoc.data()
           } as Group);
         }
