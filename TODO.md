@@ -31,7 +31,6 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T118 | Finish the move to `muninn.quest` | S | open | Everything runs on `muninn.quest`; left: Google's branding check, and two cosmetic leftovers |
 | low | T134 | The saga in sections | M | blocked | The saga is one document that will hit 1 MiB; how a sectioned saga is edited is the maintainer's call |
 | low | T135 | The index file matches production | S | blocked | Waits on the maintainer reading production's indexes; cheap once they have |
-| low | T136 | One membership document | S | blocked | Done in code; the retired array still sits on production's accounts until the maintainer runs the removal |
 | low | T116 | `firebase-admin` 13 → 14 in the functions | M | blocked | 14 would not clear the last advisory (`uuid`, via Storage), and the functions' jest cannot load its ES-module dependencies |
 | low | T111 | Is it worth expanding the notes feature? | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
@@ -425,7 +424,7 @@ anyway. What is left:
 - **Source**: todo.txt, 2026-10-06; the site, sign-in, mail, redirect and repo
   moved 2026-10-07
 
-### Restructuring Firestore before the site scales (T134 to T136)
+### Restructuring Firestore before the site scales (T134, T135)
 
 Decided by the maintainer on 2026-10-08: **R2**, Firestore restructured; the
 site stays on Firebase. Why, and the routes set aside, are in
@@ -473,21 +472,6 @@ unknown; unused indexes cost storage and write time (F8).
   exactly what is needed (probably nothing until paging brings `orderBy`), and
   whether the deploy includes it is decided.
 - **Source**: `data-model-review.md` change 6 (F8)
-
-### T136 — One membership document
-**Type** debt · **Size** S · **Status** blocked · **Verified** 2026-10-11
-
-Membership is the group profile `groups/{g}/users/{uid}` alone: the rules check
-that it exists, the app lists a user's groups by the profiles' `userId`, and
-nothing reads or writes `users/{uid}.groups` any more
-([`docs/architecture/membership-design.md`](docs/architecture/membership-design.md)).
-The array still sits on production's accounts.
-
-- **Blocked on the maintainer**: `node scripts/audit-membership.js --project
-  dnd-campaign-companion --remove-array`, then again with `--apply
-  --revert-file <path outside the repo>`, from `firebase/functions`. Then
-  delete this entry.
-- **Source**: `data-model-review.md` change 7 (F7)
 
 ### T139 — CI signs in to Google Cloud with long-lived keys
 **Type** debt · **Size** M · **Status** open · **Verified** 2026-10-08
