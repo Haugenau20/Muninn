@@ -82,10 +82,10 @@ import {
   /**
    * Validate a registration token and get its associated group ID
    *
-   * The invitation is stored under the token's hash (T145), or, if it was
-   * made before that, under the token itself and with no `scheme`. Only an
-   * invitation of the first kind is found by its hash, and only one of the
-   * second by its token: a hash presented as a token finds nothing.
+   * The invitation is stored under the token's hash (T145), and carries a
+   * `scheme`. A document stored before T145, under the token itself and with
+   * no `scheme`, is no invitation any more; nor is a hash presented as a
+   * token.
    *
    * @param token The token to validate
    * @returns Object with validation result and group ID
@@ -107,14 +107,9 @@ import {
         // courtesy check before the call; the server's is the one that counts.
         return { isValid: true, groupId };
       }
-      const [hashed, legacy] = await Promise.all([
-        getDoc(doc(this.db, 'groups', groupId, 'registrationTokens', hash)),
-        getDoc(doc(this.db, 'groups', groupId, 'registrationTokens', token)),
-      ]);
+      const stored = await getDoc(doc(this.db, 'groups', groupId, 'registrationTokens', hash));
       const invitation =
-        hashed.exists() && hashed.data()?.scheme === HASHED_INVITATION_SCHEME ? hashed :
-          legacy.exists() && legacy.data()?.scheme === undefined ? legacy :
-            null;
+        stored.exists() && stored.data()?.scheme === HASHED_INVITATION_SCHEME ? stored : null;
 
       // Check the token exists, hasn't been used, and hasn't expired
       if (invitation && isRegistrationTokenRedeemable(invitation.data() ?? {})) {

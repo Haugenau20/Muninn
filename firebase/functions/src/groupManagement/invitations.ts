@@ -163,8 +163,9 @@ interface RevealInvitationData {
  * The token of one of a group's open invitations, for one of its admins to
  * copy the link again.
  *
- * An invitation stored before T145 is its own token, so its id is returned.
  * A used or expired one is not revealed: its link would be refused anyway.
+ * Nor is a document stored before T145, under its token with no `scheme`:
+ * its link no longer works, and its id is that link.
  */
 export const revealInvitation = functions.onCall(
   {
@@ -198,7 +199,7 @@ export const revealInvitation = functions.onCall(
         await requireAdmin(transaction, groupId, uid, "copy an invitation");
         return transaction.get(invitationRef);
       });
-      if (!invitation.exists) {
+      if (!invitation.exists || invitation.get("scheme") !== HASHED_SCHEME) {
         throw new functions.HttpsError("not-found", "There is no such invitation.");
       }
       const problem = registrationTokenProblem(invitation.data() ?? {});
@@ -209,9 +210,6 @@ export const revealInvitation = functions.onCall(
             "This invitation has been used." :
             "This invitation has expired. Revoke it and invite them again."
         );
-      }
-      if (invitation.get("scheme") === undefined) {
-        return {token: invitation.id};
       }
       const sealed = invitation.get("sealed");
       if (typeof sealed !== "string") {

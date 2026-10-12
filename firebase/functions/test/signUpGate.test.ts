@@ -84,11 +84,11 @@ describe("reserveSignUp", () => {
     expect([reservation.id, ...stringsIn(reservation.data())].some((value) => value.includes(TOKEN))).toBe(false);
   });
 
-  it("accepts an invitation made before T145, stored under its token", async () => {
+  it("refuses an invitation made before T145, stored under its token", async () => {
     await db.doc(`groups/${GROUP}`).set({name: "Fellowship"});
     await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).set({token: TOKEN, used: false});
-    await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
-    await expect(creating("frodo@shire.dev")).resolves.toBeUndefined();
+    await expectHttpsError(reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"}), "not-found");
+    expect((await db.collection(RESERVATIONS).get()).size).toBe(0);
   });
 
   it("holds one email per invitation: reserving again replaces it", async () => {
@@ -259,6 +259,24 @@ describe("admitAccount (beforeUserCreated)", () => {
       await reserve({groupId: GROUP, token: TOKEN, email: "frodo@shire.dev"});
       await db.doc(TOKEN_PATH).update({used: true});
       await expectRefused(creating("frodo@shire.dev"), "permission-denied", "INVITE_REQUIRED");
+    });
+
+    it("a reservation made before T145, naming its invitation by its token, and deletes it", async () => {
+      await db.doc(`groups/${GROUP}/registrationTokens/${TOKEN}`).set({token: TOKEN, used: false});
+      const old = db.collection(RESERVATIONS).doc(`${GROUP}_${TOKEN}`);
+      await old.set({email: "frodo@shire.dev", groupId: GROUP, token: TOKEN, expiresAt: new Date(Date.now() + DAY)});
+      await expectRefused(creating("frodo@shire.dev"), "permission-denied", "INVITE_REQUIRED");
+      expect((await old.get()).exists).toBe(false);
+    });
+
+    it("a reservation whose invitation carries no scheme", async () => {
+      await db.doc(TOKEN_PATH).set({used: false});
+      await db.collection(RESERVATIONS).doc(reservationId(GROUP, TOKEN_ID)).set({
+        email: "frodo@shire.dev", groupId: GROUP, invitationId: TOKEN_ID,
+        expiresAt: new Date(Date.now() + DAY),
+      });
+      await expectRefused(creating("frodo@shire.dev"), "permission-denied", "INVITE_REQUIRED");
+      expect((await reservationDoc()).exists).toBe(false);
     });
 
     it("a reservation whose invitation was deleted since", async () => {

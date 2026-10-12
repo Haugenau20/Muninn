@@ -35,7 +35,6 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T111 | Is it worth expanding the notes feature? | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
 | low | T143 | The About page's coffee link and photo | S | blocked | Both built and switched off; wait on a link and a picture from the maintainer |
-| low | T145 | Retire invitation links stored under their tokens | S | open | Nothing to wait for: no founder links exist and the one old group invitation may stop working (maintainer, 2026-10-11); only removes code |
 | low | T149 | Both Hosting sites keep every release | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 | low | T148 | Does the theme belong in Firestore? | S | open | A question for the maintainer; the current design works |
 | nit | T147 | Should `colour-schema.json` leave `docs/design/`? | S | open | A question for the maintainer; nothing is wrong where it is |
@@ -317,27 +316,6 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   to name. A photo of the table needs the other players' say-so. The photo's
   alt text today is "Søren".
 - **Source**: maintainer, 2026-10-10, during the Muninn identity work
-
-### T145 — Retire invitation links stored under their tokens
-**Type** debt · **Size** S · **Status** open · **Verified** 2026-10-11
-
-Every invitation is now made by a function and stored under its token's
-SHA-256 (`firebase/functions/src/shared/invitationToken.ts`), and the rules
-let no browser create one. Links made before that sit under the token itself,
-carry no `scheme`, and are still honoured.
-
-- **The legacy paths**: `pickInvitation`'s second branch, the client's
-  `validateRegistrationToken`, `revealInvitation`'s branch for an invitation
-  with no `scheme`, and the `token` field `findLiveReservation` falls back to.
-- **What is left** (maintainer, 2026-10-11): no founder link was ever
-  issued, so `founderInvitations` holds none. One group invitation made before
-  T145 is still out, and the maintainer does not mind it stopping working. No
-  audit script is needed.
-- **Fix**: the maintainer revokes that invitation (Admin → People → Revoke)
-  before the change merges, so no document without a `scheme` is left behind;
-  then drop the four paths, each with a test that an old-format link is now
-  refused.
-- **Source**: the operator page's plan, filed when step 4a was picked up, 2026-10-10
 
 ### T146 — The functions run as an Editor of the whole project
 **Type** debt · **Size** M · **Status** open · **Verified** 2026-10-10

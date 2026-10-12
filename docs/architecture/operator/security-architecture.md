@@ -305,7 +305,7 @@ Accepted, and named so they are not forgotten:
    makes it visible; every action it can take can be undone.
 4. **Founder tokens were document ids.** Anyone who could read Firestore (the console, the runtime
    account) could read them. Since T145 a link is stored under its token's SHA-256, for invitations
-   into groups too; links issued before that keep their old id until they expire.
+   into groups too, and a link stored the old way is refused.
 5. **The functions run as the default compute account.** No function sets `serviceAccount`
    (`firebase/functions/src`), and that account holds the project-wide Editor role (read
    2026-10-10), so the functions' deploy key (T139) reaches far beyond Firestore: T146.

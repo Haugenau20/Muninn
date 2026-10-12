@@ -7,10 +7,9 @@
 // page's runtime, a group's admins) holds no working link. The link still
 // carries the token; whoever presents it is looked up by its hash.
 //
-// Invitations stored before T145 sit under the token itself and carry no
-// `scheme`. They are still honoured until they expire, and only while they
-// carry no `scheme`: otherwise a hash, which anyone who can read the
-// collection sees, would redeem its own invitation through the old lookup.
+// Only a document carrying the `scheme` is an invitation. Those stored before
+// T145 sit under the token itself, with no `scheme`, and are refused: their
+// links no longer work.
 
 import {createHash, randomBytes} from "crypto";
 import type {
@@ -23,10 +22,8 @@ import type {
 export const HASHED_SCHEME = "sha256";
 
 /**
- * What a token may look like before it is used as a document id: new ones
- * are 43 base64url characters, the browser's old ones 32 hex characters, and
- * a test's anything shorter. Anything else -- a slash above all -- is no
- * invitation.
+ * What a token may look like: ours are 43 base64url characters, a test's
+ * anything shorter. Anything else is no invitation, and is not even hashed.
  */
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -61,38 +58,31 @@ export function isInvitationToken(token: unknown): token is string {
 }
 
 /**
- * The two places a token's invitation can be: under its hash, and, for an
- * invitation stored before T145, under the token itself.
+ * Where the token's invitation is stored: under the token's hash.
  *
  * @param {CollectionReference} collection The invitations' collection
  * @param {string} token The token from the link
- * @return {object} Both references
+ * @return {DocumentReference} The invitation's reference
  */
-export function invitationRefs(
+export function invitationRef(
   collection: CollectionReference,
   token: string
-): {hashed: DocumentReference; legacy: DocumentReference} {
-  return {
-    hashed: collection.doc(hashInvitationToken(token)),
-    legacy: collection.doc(token),
-  };
+): DocumentReference {
+  return collection.doc(hashInvitationToken(token));
 }
 
 /**
- * The token's invitation, from the two reads of {@link invitationRefs}, or
- * `null` when there is none.
+ * The read of {@link invitationRef} as an invitation, or `null` when there is
+ * none. A document without the `scheme` was stored before T145, under its
+ * token, and is no invitation any more.
  *
- * @param {DocumentSnapshot} hashed The read under the token's hash
- * @param {DocumentSnapshot} legacy The read under the token itself
+ * @param {DocumentSnapshot} snapshot The read under the token's hash
  * @return {DocumentSnapshot | null} The invitation
  */
-export function pickInvitation(
-  hashed: DocumentSnapshot,
-  legacy: DocumentSnapshot
-): DocumentSnapshot | null {
-  if (hashed.exists && hashed.get("scheme") === HASHED_SCHEME) return hashed;
-  if (legacy.exists && legacy.get("scheme") === undefined) return legacy;
-  return null;
+export function asInvitation(snapshot: DocumentSnapshot): DocumentSnapshot | null {
+  return snapshot.exists && snapshot.get("scheme") === HASHED_SCHEME ?
+    snapshot :
+    null;
 }
 
 /**
@@ -107,7 +97,5 @@ export async function findInvitation(
   token: string
 ): Promise<DocumentSnapshot | null> {
   if (!isInvitationToken(token)) return null;
-  const {hashed, legacy} = invitationRefs(collection, token);
-  const [hashedDoc, legacyDoc] = await Promise.all([hashed.get(), legacy.get()]);
-  return pickInvitation(hashedDoc, legacyDoc);
+  return asInvitation(await invitationRef(collection, token).get());
 }

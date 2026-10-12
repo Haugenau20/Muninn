@@ -12,6 +12,7 @@
 // function then admits exactly the emails that hold one.
 
 import {DocumentReference, Firestore} from "firebase-admin/firestore";
+import {HASHED_SCHEME} from "../shared/invitationToken";
 import {registrationTokenProblem} from "../shared/registrationToken";
 import {FOUNDER_INVITATIONS} from "./founderInvitations";
 
@@ -71,8 +72,8 @@ export function reservationId(groupId: string, invitationId: string): string {
  *
  * Live means unexpired, *and* its invitation -- into a group, or a founder
  * invitation -- is still redeemable: a reservation outlives nothing it was
- * made from. Expired or dead ones found on
- * the way are deleted.
+ * made from. An invitation stored before T145, with no `scheme`, is not
+ * redeemable at all. Expired or dead ones found on the way are deleted.
  *
  * @param {Firestore} db Firestore
  * @param {string} email The address about to get an account
@@ -90,21 +91,21 @@ export async function findLiveReservation(
     .get();
 
   for (const reservation of snapshot.docs) {
-    const {kind, groupId, invitationId, token, expiresAt} = reservation.data();
+    const {kind, groupId, invitationId, expiresAt} = reservation.data();
     const expired =
       !expiresAt || expiresAt.toDate().getTime() <= now.getTime();
-    // One written before T145 names its invitation by `token`, which was
-    // then the invitation's id; one before T125 has no `kind`: it is a group's.
-    const id = invitationId ?? token;
+    // One written before T125 has no `kind`: it is a group's.
     const invitationPath = kind === "founder" ?
-      (typeof id === "string" ? `${FOUNDER_INVITATIONS}/${id}` : null) :
-      (typeof groupId === "string" && typeof id === "string" ?
-        `groups/${groupId}/registrationTokens/${id}` : null);
+      (typeof invitationId === "string" ?
+        `${FOUNDER_INVITATIONS}/${invitationId}` : null) :
+      (typeof groupId === "string" && typeof invitationId === "string" ?
+        `groups/${groupId}/registrationTokens/${invitationId}` : null);
     const tokenDoc = expired || invitationPath === null ?
       null :
       await db.doc(invitationPath).get();
 
     if (tokenDoc?.exists &&
+        tokenDoc.get("scheme") === HASHED_SCHEME &&
         registrationTokenProblem(tokenDoc.data() ?? {}, now) === null) {
       return reservation.ref;
     }
