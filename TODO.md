@@ -21,7 +21,7 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 |---|---|---|---|---|---|
 | medium | T139 | CI signs in to Google Cloud with long-lived keys | M | open | A leaked key deploys code that reads every group, and a PR's dependencies run beside the Hosting key |
 | medium | T141 | The site's contact address is a Gmail account | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
-| medium | T146 | The functions run as an Editor of the whole project | M | open | Any code deployed as a function, by CI's key (T139) or a poisoned dependency, reaches every resource in the project |
+| medium | T146 | The functions run as an Editor of the whole project | M | open | Any code deployed as a function, by CI's key (T139) or a poisoned dependency, reaches every resource in the project and can act as every service account in it; the roles it needs are measured |
 | low | T123 | Lord of the Rings screenshots in the README? | M | open | A question for the maintainer; the public home page's *Sunless Citadel* example raises the same question |
 | low | T137 | An operator page: founder links, extraction limits, metrics | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 1 to 4a done; 4b waits on step 0 |
 | low | T075 | The header is crowded | M | needs scoping | Waits on the maintainer: which truncation was meant, and how much room the header gets back |
@@ -318,29 +318,62 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
 - **Source**: maintainer, 2026-10-10, during the Muninn identity work
 
 ### T146 — The functions run as an Editor of the whole project
-**Type** debt · **Size** M · **Status** open · **Verified** 2026-10-10
+**Type** debt · **Size** M · **Status** open · **Verified** 2026-10-12
 
 No function sets `serviceAccount` (`firebase/functions/src`), so all of them
-run as the default compute account, and that account holds `roles/editor` on
-the project, as does the App Engine default account (read from the project's
-IAM policy, 2026-10-10). Whatever code runs as a function can therefore change
-almost anything in the project, not only the Firestore and Auth the functions
-need.
+run as the default compute account, `878883683429-compute@developer.gserviceaccount.com`.
+Read from the live project (read-only, 2026-10-12), that one account is four
+things at once:
+
+- **the functions' runtime**: every function in `europe-west1`;
+- **their build account**: `gcloud builds get-default-service-account` names it;
+- **the identity Cloud Scheduler calls the five daily functions with** (each
+  `firebase-schedule-*` job's OIDC token), holding `roles/run.invoker` on each;
+- **a project-wide `roles/editor` and `roles/iam.serviceAccountTokenCreator`.**
+  The second lets code running as a function mint tokens for *every* service
+  account in the project, the operator page's included. Device sign-in needs it
+  only on the account itself. The App Engine default account holds Editor too.
+
+**What the functions use** (read from `firebase/functions/src`, 2026-10-12;
+the operator page is its own service with its own account and is left out):
+
+| Need | Where | Role, and where it is granted |
+|---|---|---|
+| Firestore, read and write | almost every function | `roles/datastore.user`, project |
+| Auth: `getUser`, `deleteUser`, `listUsers` | `claimDeviceSignIn`, `accountDeletion`, `accountCount` | `roles/firebaseauth.admin`, project |
+| `createCustomToken` signs as the runtime account | `claimDeviceSignIn` | `roles/iam.serviceAccountTokenCreator` **on the runtime account itself** |
+| Storage: list and delete objects | `imageMaintenance` (the sweeps) | `roles/storage.objectUser` on `dnd-campaign-companion.firebasestorage.app` only |
+| Secrets `CONTACT_EMAIL`, `CONTACT_PASSWORD`, `OPENAI_API_KEY`, `INVITATION_LINK_KEY` | `contact`, `entityExtraction`, `invitations` | `roles/secretmanager.secretAccessor` on each secret; today granted per secret to the compute account, not through Editor |
+| Logs | all | `roles/logging.logWriter`, project (as the operator page's runtime has) |
+
+Not needed: no function is triggered by Firestore or Storage events (no
+Eventarc), App Check tokens are checked against Google's public keys, and
+OpenAI and Gmail are outside Google Cloud.
 
 - **Why it matters**: the functions' deploy key (T139) and any poisoned
   dependency in `firebase/functions` reach that far. The operator page's
   security architecture names it as residual risk 5.
-- **Fix**: a service account of their own, with the roles the functions use
-  (Firestore, Auth admin for sign-up and account deletion, Storage for the
-  image sweeps, Secret Manager for the contact form and OpenAI keys, token
-  creation for device sign-in), set through `setGlobalOptions`; then take
-  Editor from the default accounts.
-- **Catch**: the exact list must come from the code and a deploy to a test, not
-  from memory; a missing role fails a function only when it is called. The
-  device sign-in grant (CLAUDE.md, Service Account Token Creator) moves with
-  it. Removing Editor from the defaults may touch other Google services that
-  rely on it; check before.
-- **Source**: the operator page's plan, filed when step 4a was picked up, 2026-10-10
+- **Fix, in this order**:
+  1. A runtime account of the functions' own with the roles above, and
+     `roles/iam.serviceAccountUser` on it for the deploy account
+     (`FIREBASE_FUNCTIONS_DEPLOY_SA`), which must act as it to deploy. A setup
+     script in the shape of `operator/infra/setup.sh`, with a read-only
+     `--check`, would make this repeatable.
+  2. Then, in its own PR, `setGlobalOptions({serviceAccount: …})` in
+     `src/index.ts`. Whether the deploy also moves the scheduler jobs' OIDC
+     identity to it and grants that `run.invoker` is **unverified**: read the
+     jobs after the first deploy, and run one by hand
+     (`gcloud scheduler jobs run`).
+  3. A build account of its own (`roles/cloudbuild.builds.builder`), or the
+     compute account kept for building with only that role.
+  4. Only then take Editor and the project-wide Token Creator from the compute
+     account. Editor on the App Engine default account goes last, once it is
+     known what still runs as it.
+- **Catch**: a missing role fails a function only when it is called, and no
+  emulator enforces IAM, so no test catches it. After step 2, call each
+  callable once and run each scheduled job.
+- **Source**: the operator page's plan, filed when step 4a was picked up,
+  2026-10-10; measured 2026-10-12
 
 ---
 

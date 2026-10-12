@@ -308,7 +308,9 @@ Accepted, and named so they are not forgotten:
    into groups too, and a link stored the old way is refused.
 5. **The functions run as the default compute account.** No function sets `serviceAccount`
    (`firebase/functions/src`), and that account holds the project-wide Editor role (read
-   2026-10-10), so the functions' deploy key (T139) reaches far beyond Firestore: T146.
+   2026-10-10) and a project-wide Token Creator (read 2026-10-12), which lets it act as every
+   service account here, `operator-runtime@` included. The functions' deploy key (T139)
+   reaches that far: T146.
 6. **Google is a dependency.** If IAP fails, it fails closed: the page is down, and break-glass
    applies.
 
