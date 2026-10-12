@@ -1,9 +1,27 @@
 import { SIGNED_OUT_EXAMPLE } from "../signed-out-example";
+import { EXAMPLE_CAMPAIGN } from "shared/example-campaign/example-campaign";
 
 describe("SIGNED_OUT_EXAMPLE", () => {
   it("names the campaign and its progress", () => {
-    expect(SIGNED_OUT_EXAMPLE.campaignTitle).toBe("The Sunless Citadel");
+    expect(SIGNED_OUT_EXAMPLE.campaignTitle.length).toBeGreaterThan(0);
     expect(SIGNED_OUT_EXAMPLE.subtitle.length).toBeGreaterThan(0);
+  });
+
+  // T123: no published adventure on the public pages. Home's example is the
+  // same invented campaign the signed-out list pages show (T150), so the
+  // public pages show one setting.
+  it("is the example campaign the signed-out list pages show, not a published adventure", () => {
+    expect(SIGNED_OUT_EXAMPLE.campaignTitle).not.toMatch(/sunless citadel/i);
+    const places = EXAMPLE_CAMPAIGN.locations.map((place) => place.name);
+    expect(places).toContain(SIGNED_OUT_EXAMPLE.campaignTitle);
+
+    const named = {
+      quest: EXAMPLE_CAMPAIGN.quests.map((quest) => quest.title),
+      npc: EXAMPLE_CAMPAIGN.npcs.map((npc) => npc.name),
+    };
+    SIGNED_OUT_EXAMPLE.updates
+      .filter((update) => update.kind !== "chapter")
+      .forEach((update) => expect(named[update.kind as "quest" | "npc"]).toContain(update.title));
   });
 
   it("has a four-cell stat strip", () => {
