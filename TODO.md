@@ -31,7 +31,6 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T118 | Finish the move to `muninn.quest` | S | open | Everything runs on `muninn.quest`; left: Google's branding check, and two cosmetic leftovers |
 | low | T134 | The saga in sections | M | blocked | The saga is one document that will hit 1 MiB; how a sectioned saga is edited is the maintainer's call |
 | low | T135 | The index file matches production | S | blocked | Waits on the maintainer reading production's indexes; cheap once they have |
-| low | T116 | `firebase-admin` 13 → 14 in the functions | M | blocked | 14 would not clear the last advisory (`uuid`, via Storage), and the functions' jest cannot load its ES-module dependencies |
 | low | T111 | Is it worth expanding the notes feature? | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
 | low | T143 | The About page's coffee link and photo | S | blocked | Both built and switched off; wait on a link and a picture from the maintainer |
@@ -367,28 +366,6 @@ need.
 ---
 
 ## Tech debt and platform
-
-### T116 — `firebase-admin` 13 → 14 in the functions
-**Type** debt · **Size** M · **Status** blocked · **Verified** 2026-10-06
-
-The functions run `firebase-functions` 7 on `firebase-admin` 13, through the
-modular API only, so the code itself is ready for 14. Two things hold the bump.
-
-- **It clears nothing yet.** The one advisory left, `uuid` below 11.1.1
-  (bounds check in v3/v5/v6 with a buffer; nothing here calls those), stays on
-  14: it arrives through `@google-cloud/storage` 8.2.0 → `gaxios` 6.7.1, which
-  pins `uuid` ^9, and 8.2.0 was the latest on 2026-10-06. Wait for a Storage
-  release on `gaxios` 7.
-- **The functions' jest cannot load 14's dependencies** (tried 2026-10-06; Node
-  22 itself loads them fine). `jwks-rsa` 4 `require()`s `jose` 6, which is ES
-  modules only: every suite that imports Auth fails to run, and transpiling
-  `jose` through ts-jest fixes that. But `teeny-request` (under Storage) loads
-  `node-fetch` 3 with a dynamic `import()`, which jest allows only under
-  `--experimental-vm-modules` -- and with that flag jest treats `jose` as ESM
-  again, so the 91 tests that touch Storage fail one way or the other. The way
-  through is a jest that loads real ES modules, or transpiling that whole chain.
-- **Source**: todo.txt (`npm ci` warnings), 2026-10-06; `firebase-functions` 7,
-  `firebase-admin` 13 and the modular API landed first
 
 ### T118 — Finish the move to `muninn.quest`
 **Type** debt · **Size** S · **Status** open · **Verified** 2026-10-07

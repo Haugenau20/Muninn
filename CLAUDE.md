@@ -221,8 +221,13 @@ a Firestore TTL policy on `expiresAt` is the intended sweep.
 **The functions use only the modular `firebase-admin` API** (`getFirestore()`, `getAuth()`,
 `FieldValue` from `firebase-admin/firestore`, ...); keep it that way. Inside the Functions emulator
 the namespaced `admin.firestore` is a stand-in without `FieldValue`, `FieldPath` or `Timestamp`, so
-code using it passed every jest test and failed every call in the dev app. `firebase-admin` 14
-removes the namespace altogether.
+code using it passed every jest test and failed every call in the dev app. The functions run
+`firebase-admin` 14, which has no namespace at all.
+
+**`firebase-admin` 14 brings ES-module-only dependencies** (`jose`, `node-fetch` 3). Node loads
+them; jest's CommonJS runtime does not, so `firebase/functions/jest.config.js` transpiles exactly
+those packages (`ESM_PACKAGES`). A suite failing with "Cannot use import statement outside a
+module" or a dynamic-import error after a dependency bump wants its package added there.
 
 **Rules are deployed from the repo** (T105): every merge to `main` deploys `firestore.rules.prod`
 and `storage.rules.prod`, so a change to either is live once merged, and a console edit lasts only
