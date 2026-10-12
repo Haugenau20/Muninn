@@ -6,9 +6,9 @@ import {rethrowHttpsError} from "../shared/httpsErrors";
 import {registrationTokenProblem} from "../shared/registrationToken";
 import {FOUNDER_INVITATIONS} from "../signUp/founderInvitations";
 import {
-  invitationRefs,
+  asInvitation,
+  invitationRef,
   isInvitationToken,
-  pickInvitation,
 } from "../shared/invitationToken";
 
 interface CreateGroupData {
@@ -129,24 +129,22 @@ export const createGroup = functions.onCall(
         // same transaction, and reading the profile after writing the group
         // failed every call.
         const userDocRef = getFirestore().collection("users").doc(callerUid);
-        // Under the token's hash, or, for a link issued before T145, under
-        // the token itself (`shared/invitationToken`).
-        const invitationRefsOf = founderToken ?
-          invitationRefs(getFirestore().collection(FOUNDER_INVITATIONS), founderToken) :
+        // Under the token's hash (`shared/invitationToken`).
+        const founderInvitationRef = founderToken ?
+          invitationRef(getFirestore().collection(FOUNDER_INVITATIONS), founderToken) :
           null;
-        const [userDoc, hashedInvitation, legacyInvitation, started] = await Promise.all([
+        const [userDoc, founderInvitation, started] = await Promise.all([
           transaction.get(userDocRef),
-          invitationRefsOf ? transaction.get(invitationRefsOf.hashed) : null,
-          invitationRefsOf ? transaction.get(invitationRefsOf.legacy) : null,
-          invitationRefsOf ?
+          founderInvitationRef ? transaction.get(founderInvitationRef) : null,
+          founderInvitationRef ?
             null :
             transaction.get(getFirestore().collection("groups")
               .where("createdBy", "==", callerUid)
               .limit(MAX_GROUPS_STARTED)),
         ]);
 
-        if (hashedInvitation && legacyInvitation) {
-          const invitation = pickInvitation(hashedInvitation, legacyInvitation);
+        if (founderInvitation) {
+          const invitation = asInvitation(founderInvitation);
           if (!invitation) {
             throw new functions.HttpsError(
               "not-found",

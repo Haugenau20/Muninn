@@ -103,18 +103,19 @@ describe("createGroup", () => {
       expect((await invitation(founderToken)).data()).toMatchObject({used: true, usedBy: "gandalf", groupId});
     });
 
-    it("someone holding a founder link issued before T145, stored under its token", async () => {
-      const founderToken = "legacy-founder-token-0123456789";
-      await db.collection(FOUNDER_INVITATIONS).doc(founderToken).set({used: false, createdAt: new Date(), expiresAt: new Date(Date.now() + DAY)});
-      const {groupId} = await create({name: "Fellowship", username: "Gandalf", founderToken}, "gandalf");
-
-      expect((await db.collection(FOUNDER_INVITATIONS).doc(founderToken).get()).data()).toMatchObject({used: true, groupId});
-    });
-
     it("not with a founder link's id presented as its token (T145)", async () => {
       const {invitationId} = await issueFounderInvitation(db, {issuedBy: "script"});
       await expectHttpsError(create({name: "Fellowship", username: "Gandalf", founderToken: invitationId}, "gandalf"), "not-found");
       expect((await db.collection("groups").get()).size).toBe(0);
+    });
+
+    it("not with a founder link issued before T145, stored under its token", async () => {
+      const founderToken = "legacy-founder-token-0123456789";
+      await db.collection(FOUNDER_INVITATIONS).doc(founderToken).set({used: false, createdAt: new Date(), expiresAt: new Date(Date.now() + DAY)});
+      await expectHttpsError(create({name: "Fellowship", username: "Gandalf", founderToken}, "gandalf"), "not-found");
+
+      expect((await db.collection("groups").get()).size).toBe(0);
+      expect((await db.collection(FOUNDER_INVITATIONS).doc(founderToken).get()).get("used")).toBe(false);
     });
 
     it("not with a founder link that does not exist", async () => {

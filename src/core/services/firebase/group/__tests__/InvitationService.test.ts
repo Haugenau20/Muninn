@@ -310,14 +310,24 @@ describe('InvitationService', () => {
       expect((await svc.validateRegistrationToken('live-token')).isValid).toBe(true);
     });
 
-    test('should accept an invitation made before T145, stored under its token with no scheme', async () => {
+    test('should refuse an invitation made before T145, stored under its token with no scheme', async () => {
       Object.defineProperty(window, 'location', {
         writable: true,
         value: { search: '?groupId=g1' },
       });
       serveDocs({ 'groups/g1/registrationTokens/old-token': { token: 'old-token', used: false } });
       const svc = InvitationService.getInstance();
-      expect((await svc.validateRegistrationToken('old-token')).isValid).toBe(true);
+      expect((await svc.validateRegistrationToken('old-token')).isValid).toBe(false);
+    });
+
+    test('should refuse a document under the hash that carries no scheme', async () => {
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { search: '?groupId=g1' },
+      });
+      await serveInvitation('the-token', { used: false });
+      const svc = InvitationService.getInstance();
+      expect((await svc.validateRegistrationToken('the-token')).isValid).toBe(false);
     });
 
     test("should refuse an invitation's id presented as its token (T145)", async () => {

@@ -65,6 +65,17 @@ describe("redeemInvitation", () => {
       expect((await tokenDoc()).data()?.used).toBe(false);
     });
 
+    it("an invitation made before T145, stored under its token, and grants nothing", async () => {
+      await seed();
+      const legacy = db.doc(`groups/${GROUP}/registrationTokens/old-token`);
+      await legacy.set({token: "old-token", used: false, expiresAt: new Date(Date.now() + DAY)});
+
+      await expectHttpsError(redeem({groupId: GROUP, token: "old-token", username: "Frodo"}, "u1"), "not-found");
+
+      expect((await db.doc(`groups/${GROUP}/users/u1`).get()).exists).toBe(false);
+      expect((await legacy.get()).get("used")).toBe(false);
+    });
+
     it("a token for a group that does not exist", async () => {
       await db.doc(TOKEN_PATH).set({scheme: HASHED_SCHEME, used: false});
       await expectHttpsError(redeem({groupId: GROUP, token: TOKEN, username: "Frodo"}, "u1"), "not-found");
@@ -209,17 +220,6 @@ describe("redeemInvitation", () => {
         originalUsername: "Frodo",
       });
       expect((await tokenDoc()).data()).toMatchObject({used: true, usedBy: "u1"});
-    });
-
-    it("accepts an invitation made before T145, stored under its token, and spends it", async () => {
-      await seed();
-      const legacy = db.doc(`groups/${GROUP}/registrationTokens/old-token`);
-      await legacy.set({token: "old-token", used: false, expiresAt: new Date(Date.now() + DAY)});
-
-      await redeem({groupId: GROUP, token: "old-token", username: "Frodo"}, "u1");
-
-      expect((await db.doc(`groups/${GROUP}/users/u1`).get()).exists).toBe(true);
-      expect((await legacy.get()).data()).toMatchObject({used: true, usedBy: "u1"});
     });
 
     it("accepts a token minted before expiry existed", async () => {

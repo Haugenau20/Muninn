@@ -4,8 +4,7 @@
 // A link's token is the whole secret, so outside the response that issues it
 // a link is named by the first characters of its document id (its `ref`): in
 // lists, in forms, in URLs and in the audit log. Since T145 that id is the
-// token's SHA-256, so a ref says nothing about the token; a link issued before
-// is stored under its token, and its ref is the token's first characters.
+// token's SHA-256, so a ref says nothing about the token.
 
 import {
   DocumentData,

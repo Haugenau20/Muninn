@@ -102,11 +102,11 @@ describe("reserveSignUp with a founder invitation", () => {
     expect([reserved.id, ...stringsIn(reserved.data())].some((value) => value.includes(token))).toBe(false);
   });
 
-  it("accepts a link issued before T145, stored under its token", async () => {
+  it("refuses a link issued before T145, stored under its token", async () => {
     const legacy = "legacy-founder-token-0123456789";
     await db.collection(FOUNDER_INVITATIONS).doc(legacy).set({used: false, createdAt: new Date(), expiresAt: new Date(Date.now() + DAY)});
-    await reserve({founderToken: legacy, email: "bilbo@shire.dev"});
-    expect((await db.collection(RESERVATIONS).doc(founderReservationId(legacy)).get()).exists).toBe(true);
+    await expectHttpsError(reserve({founderToken: legacy, email: "bilbo@shire.dev"}), "not-found");
+    expect((await db.collection(RESERVATIONS).get()).size).toBe(0);
   });
 
   it("holds one email per invitation: reserving again replaces it", async () => {

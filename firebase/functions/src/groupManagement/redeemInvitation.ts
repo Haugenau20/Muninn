@@ -5,9 +5,9 @@ import {ENFORCE_APP_CHECK} from "../shared/appCheck";
 import {rethrowHttpsError} from "../shared/httpsErrors";
 import {registrationTokenProblem} from "../shared/registrationToken";
 import {
-  invitationRefs,
+  asInvitation,
+  invitationRef,
   isInvitationToken,
-  pickInvitation,
 } from "../shared/invitationToken";
 import {GROUP_FULL_MESSAGE, MAX_GROUP_MEMBERS} from "./groupLimits";
 
@@ -81,9 +81,8 @@ export const redeemInvitation = functions.onCall(
     const uid = request.auth.uid;
     const db = getFirestore();
     const groupRef = db.collection("groups").doc(groupId);
-    // Under the token's hash, or, for an invitation made before T145, under
-    // the token itself (`shared/invitationToken`).
-    const tokenRefs = invitationRefs(groupRef.collection("registrationTokens"), token);
+    // Under the token's hash (`shared/invitationToken`).
+    const tokenRef = invitationRef(groupRef.collection("registrationTokens"), token);
     const usernameRef = groupRef
       .collection("usernames")
       .doc(username.toLowerCase());
@@ -92,10 +91,9 @@ export const redeemInvitation = functions.onCall(
 
     try {
       await db.runTransaction(async (transaction) => {
-        const [hashedDoc, legacyDoc, groupDoc, userDoc, groupUserDoc, usernameDoc, members] =
+        const [invitationDoc, groupDoc, userDoc, groupUserDoc, usernameDoc, members] =
           await Promise.all([
-            transaction.get(tokenRefs.hashed),
-            transaction.get(tokenRefs.legacy),
+            transaction.get(tokenRef),
             transaction.get(groupRef),
             transaction.get(userRef),
             transaction.get(groupUserRef),
@@ -103,7 +101,7 @@ export const redeemInvitation = functions.onCall(
             transaction.get(groupRef.collection("users").limit(MAX_GROUP_MEMBERS)),
           ]);
 
-        const tokenDoc = pickInvitation(hashedDoc, legacyDoc);
+        const tokenDoc = asInvitation(invitationDoc);
         if (!tokenDoc || !groupDoc.exists) {
           throw new functions.HttpsError(
             "not-found",

@@ -158,12 +158,6 @@ describe("revealInvitation", () => {
     expect(await reveal({groupId: GROUP, invitationId}, "gandalf")).toEqual({token});
   });
 
-  it("shows an invitation made before T145 by its id, which is its token", async () => {
-    await seedGroup();
-    await invitations().doc("old-token").set({token: "old-token", used: false});
-    expect(await reveal({groupId: GROUP, invitationId: "old-token"}, "gandalf")).toEqual({token: "old-token"});
-  });
-
   describe("refuses", () => {
     it("an anonymous caller", async () => {
       await seedGroup();
@@ -189,6 +183,12 @@ describe("revealInvitation", () => {
     it("an invitation that does not exist", async () => {
       await seedGroup();
       await expectHttpsError(reveal({groupId: GROUP, invitationId: "nosuch"}, "gandalf"), "not-found");
+    });
+
+    it("an invitation made before T145, stored under its token: its link no longer works", async () => {
+      await seedGroup();
+      await invitations().doc("old-token").set({token: "old-token", used: false});
+      await expectHttpsError(reveal({groupId: GROUP, invitationId: "old-token"}, "gandalf"), "not-found");
     });
 
     it("a used invitation", async () => {
