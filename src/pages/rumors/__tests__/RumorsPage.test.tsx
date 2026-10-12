@@ -1,7 +1,8 @@
 // src/pages/rumors/__tests__/RumorsPage.test.tsx
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { EXAMPLE_CAMPAIGN } from "shared/example-campaign/example-campaign";
 import RumorsPage from "../RumorsPage";
 
 // ---------------------------------------------------------------------------
@@ -78,6 +79,8 @@ let mockRumorContext: RumorContextMock = {
 //   - The "Select Rumors" button -- a real `<Button>`, role "button", name
 //     "Select Rumors" exactly as guessed.
 jest.mock("features/campaign-entities", () => ({
+  // The real example: what it draws is what the signed-out tests are about.
+  RumorExample: jest.requireActual("features/campaign-entities/rumors/components/RumorExample").default,
   useRumors: () => mockRumorContext,
   RumorDirectory: (props: any) => (
     <div data-testid="rumor-directory">
@@ -140,6 +143,23 @@ describe("RumorsPage", () => {
   // Gated states
   // -------------------------------------------------------------------------
   describe("gated states", () => {
+    it("shows a signed-out visitor the example campaign's rumours under the panel, as rows that do nothing", () => {
+      mockUser = null;
+      renderPage();
+      const example = screen.getByTestId("roster-example");
+      EXAMPLE_CAMPAIGN.rumours.forEach((row) =>
+        expect(within(example).getByText(row.title)).toBeInTheDocument()
+      );
+      expect(within(example).queryAllByRole("button", { hidden: true })).toHaveLength(0);
+      const signIn = screen.getByRole("link", { name: "Sign in" });
+      expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("shows a signed-in member no example", () => {
+      renderPage();
+      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+    });
+
     it("renders the page title and subtitle while signed out", () => {
       mockUser = null;
       renderPage();

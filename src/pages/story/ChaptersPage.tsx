@@ -165,26 +165,22 @@ const ChaptersPage: React.FC = () => {
         </>
       }
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<ChapterExample />}>
         <ResumeBar summary={summary} onResume={handleResume} />
 
         {chapters.length === 0 ? (
-          <>
-            <RosterEmpty
-              title="Muninn hasn't heard the story yet"
-              message="Each session becomes a chapter here — what happened, who you met, and what it cost. The party reads them back between games."
-              mark
-              action={
-                gate.canAct ? (
-                  <Button startIcon={<Plus className="w-4 h-4" />} onClick={handleCreateChapter}>
-                    Write the first chapter
-                  </Button>
-                ) : undefined
-              }
-            />
-            {/* What the story will hold, while it holds nothing (T150). */}
-            <ChapterExample />
-          </>
+          <RosterEmpty
+            title="Muninn hasn't heard the story yet"
+            message="Each session becomes a chapter here — what happened, who you met, and what it cost. The party reads them back between games."
+            mark
+            action={
+              gate.canAct ? (
+                <Button startIcon={<Plus className="w-4 h-4" />} onClick={handleCreateChapter}>
+                  Write the first chapter
+                </Button>
+              ) : undefined
+            }
+          />
         ) : (
           <>
             {/* Search + filter + view toggle row */}

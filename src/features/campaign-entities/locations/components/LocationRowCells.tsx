@@ -45,8 +45,8 @@ export interface LocationRowCellsProps {
  * The cells of a collapsed location row: name and type, knowledge step, what
  * it holds. Laid out on {@link LOCATION_ROW_GRID}.
  *
- * A component of its own so the tree and the example under an empty one
- * (`LocationExample`, T150) draw the same row.
+ * A component of its own so the tree and the example a signed-out visitor
+ * sees (`LocationExample`, T150) draw the same row.
  */
 const LocationRowCells: React.FC<LocationRowCellsProps> = ({ location, path, inside }) => (
   <>

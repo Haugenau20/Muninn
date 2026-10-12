@@ -5,7 +5,6 @@ import { render, screen, fireEvent, within, waitFor } from '@testing-library/rea
 import RumorDirectory from '../RumorDirectory';
 import { Rumor, RumorStatus, SourceType } from '../../types';
 import { resolveRecordChange } from '@/test-utils/update-after-reading';
-import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 
 // ---------------------------------------------------------------------------
 // Mock Dialog to render inline — RumorBatchActions mounts CombineRumorsDialog
@@ -219,6 +218,11 @@ describe('RumorDirectory', () => {
   // Empty state
   // -------------------------------------------------------------------------
   describe('empty state', () => {
+    test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
+      render(<RumorDirectory rumors={[]} />);
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+    });
+
     test('says what the collection is for, and leaves the composer to fill it', () => {
       render(<RumorDirectory rumors={[]} />);
       expect(screen.getByText(/muninn hasn't heard any rumours yet/i)).toBeInTheDocument();
@@ -234,35 +238,6 @@ describe('RumorDirectory', () => {
       expect(
         screen.getByLabelText('Heard something? Write it down here')
       ).toBeInTheDocument();
-    });
-
-    test("shows the example campaign's rumours under it, as rows that do nothing", () => {
-      render(<RumorDirectory rumors={[]} />);
-      const example = screen.getByTestId('roster-example');
-      EXAMPLE_CAMPAIGN.rumours.forEach((rumour) => {
-        expect(within(example).getByText(rumour.title)).toBeInTheDocument();
-        expect(within(example).getByText(rumour.sourceName)).toBeInTheDocument();
-      });
-      // The real row's cells: a false rumour is struck, and the source type is a word.
-      expect(within(example).getByText('Confirmed')).toBeInTheDocument();
-      expect(within(example).getByText('False')).toBeInTheDocument();
-      expect(within(example).getByText('Tavern')).toBeInTheDocument();
-      expect(within(example).queryAllByRole('button', { hidden: true })).toHaveLength(0);
-      // The composer stays above everything.
-      const composer = screen.getByLabelText('Heard something? Write it down here');
-      expect(composer.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    });
-
-    test('a campaign with one rumour shows no example', () => {
-      render(<RumorDirectory rumors={[r1]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
-    });
-
-    test('a list emptied by a filter shows no example', () => {
-      render(<RumorDirectory rumors={[r1]} />);
-      fireEvent.change(searchInput(), { target: { value: 'nothing like this' } });
-      expect(screen.getByText(/no rumours match these filters/i)).toBeInTheDocument();
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
     });
   });
 

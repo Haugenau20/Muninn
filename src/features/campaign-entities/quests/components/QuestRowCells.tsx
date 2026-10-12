@@ -51,8 +51,8 @@ export interface QuestRowFacts {
  * The cells of a collapsed quest row: title and place, state, objective
  * progress. Laid out on {@link QUEST_ROW_GRID}.
  *
- * A component of its own so the directory and the example under an empty one
- * (`QuestExample`, T150) draw the same row.
+ * A component of its own so the directory and the example a signed-out
+ * visitor sees (`QuestExample`, T150) draw the same row.
  */
 const QuestRowCells: React.FC<{ quest: QuestRowFacts }> = ({ quest }) => {
   const { objectivesDone, objectivesTotal } = quest;

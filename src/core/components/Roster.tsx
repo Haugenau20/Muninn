@@ -712,7 +712,7 @@ export interface RosterRowProps {
   nested?: React.ReactNode;
   /**
    * A picture of a row rather than a row: no button, no chevron, never
-   * expanded. For the example under an empty collection ({@link RosterExample}),
+   * expanded. For the example a signed-out visitor sees ({@link RosterExample}),
    * whose rows must look exactly like real ones and do nothing (T150).
    */
   inert?: boolean;
@@ -1002,14 +1002,15 @@ export interface RosterExampleProps {
 }
 
 /**
- * What a collection looks like once it holds something, shown under its
- * {@link RosterEmpty} while it holds nothing (T150).
+ * What a collection looks like, shown to a signed-out visitor under the
+ * page's sign-in panel (T150, through `GatedContent`'s `signedOutExample`).
+ * Members never see it: a member's empty list keeps its own empty state.
  *
  * The chip is the whole caption, as on signed-out Home: "Example" already says
  * this is not the reader's campaign. Hidden from assistive technology because
- * the empty state's sentence says what the page is for, and a screen-reader
- * user should not have to walk rows that are not theirs; nothing inside can
- * take focus, so a keyboard cannot reach it either.
+ * the panel's sentence says what the page is for, and a screen-reader user
+ * should not have to walk rows that are not theirs; nothing inside can take
+ * focus, so a keyboard cannot reach it either.
  *
  * It came after a recorded "no sample data outside Home" (the gated-pages
  * spec, 2026-09-03). That rule's objections are answered by what the rows

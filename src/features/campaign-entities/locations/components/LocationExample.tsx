@@ -13,10 +13,10 @@ const depthOf = (id: string | undefined): number => {
 };
 
 /**
- * The example campaign's places, under the location list's empty state
- * (T150): the rows the tree draws, inert, so a new campaign can see what this
- * page will hold -- a town indented inside its region included. The fixture
- * lists each parent before what is inside it.
+ * The example campaign's places, under the location page's sign-in panel
+ * (T150): the rows the tree draws, inert, so a stranger can see what this page
+ * holds -- a town indented inside its region included. The fixture lists each
+ * parent before what is inside it.
  */
 const LocationExample: React.FC = () => (
   <RosterExample>

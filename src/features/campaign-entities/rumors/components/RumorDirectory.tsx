@@ -9,7 +9,6 @@ import Button from '../../../../core/components/Button';
 import RumorBatchActions from './RumorBatchActions';
 import RumorComposer from './RumorComposer';
 import RumorRowCells, { RUMOR_ROW_GRID } from './RumorRowCells';
-import RumorExample from './RumorExample';
 import RumorRowEditor, {
   draftFromRumor,
   isDraftDirty,
@@ -641,15 +640,11 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
           `/rumors/create` would send someone away from the control they are
           looking at (item 1, and the empty-campaign gate).
         */
-        <>
-          <RosterEmpty
-            mark
-            title="Muninn hasn't heard any rumours yet"
-            message="Overheard in a tavern, posted on a notice board, told by someone who may be lying — title it above and mark it confirmed when you find out."
-          />
-          {/* What the page will hold, while it holds nothing (T150). */}
-          <RumorExample />
-        </>
+        <RosterEmpty
+          mark
+          title="Muninn hasn't heard any rumours yet"
+          message="Overheard in a tavern, posted on a notice board, told by someone who may be lying — title it above and mark it confirmed when you find out."
+        />
       )}
     </div>
   );

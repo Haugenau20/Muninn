@@ -7,9 +7,9 @@ import QuestRowCells, { QUEST_ROW_GRID } from './QuestRowCells';
 const PLACE_NAME = new Map(EXAMPLE_CAMPAIGN.locations.map((place) => [place.id, place.name]));
 
 /**
- * The example campaign's quests, under the quest list's empty state (T150):
- * the rows the directory draws, inert, so a new campaign can see what this
- * page will hold.
+ * The example campaign's quests, under the quest page's sign-in panel (T150):
+ * the rows the directory draws, inert, so a stranger can see what this page
+ * holds.
  */
 const QuestExample: React.FC = () => (
   <RosterExample>

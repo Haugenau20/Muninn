@@ -15,7 +15,6 @@ import DeleteConfirmationDialog from 'shared/components/DeleteConfirmationDialog
 import EntityBatchActions, { type BatchStatusOption } from '../../shared/EntityBatchActions';
 import NPCRowNotes from './NPCRowNotes';
 import NPCRowCells, { NPC_ROW_GRID } from './NPCRowCells';
-import NPCExample from './NPCExample';
 import {
   RosterStatusBar,
   RosterFilterBar,
@@ -434,23 +433,19 @@ const NPCDirectory: React.FC<NPCDirectoryProps> = ({
           message="Try a different search term, or clear the filters to see everyone you have met."
         />
       ) : (
-        <>
-          <RosterEmpty
-            mark
-            title="Muninn hasn't met anyone yet"
-            message="Every person the party meets can live here — name, standing, where you found them, and what they told you."
-            action={
-              <Button
-                onClick={() => navigateToPage('/npcs/create')}
-                startIcon={<Plus className="w-4 h-4" />}
-              >
-                Add the first NPC
-              </Button>
-            }
-          />
-          {/* What the page will hold, while it holds nothing (T150). */}
-          <NPCExample />
-        </>
+        <RosterEmpty
+          mark
+          title="Muninn hasn't met anyone yet"
+          message="Every person the party meets can live here — name, standing, where you found them, and what they told you."
+          action={
+            <Button
+              onClick={() => navigateToPage('/npcs/create')}
+              startIcon={<Plus className="w-4 h-4" />}
+            >
+              Add the first NPC
+            </Button>
+          }
+        />
       )}
 
       {roster.shown < roster.total && (

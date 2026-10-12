@@ -4,9 +4,9 @@ import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 import RumorRowCells, { RUMOR_ROW_GRID } from './RumorRowCells';
 
 /**
- * The example campaign's rumours, under the rumour list's empty state (T150):
- * the rows the directory draws, inert, so a new campaign can see what this
- * page will hold. The composer above stays the way to add one.
+ * The example campaign's rumours, under the rumour page's sign-in panel
+ * (T150): the rows the directory draws, inert, so a stranger can see what this
+ * page holds.
  */
 const RumorExample: React.FC = () => (
   <RosterExample>

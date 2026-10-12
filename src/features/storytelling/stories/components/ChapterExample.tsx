@@ -5,10 +5,10 @@ import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 import { ChapterRowView } from './ChapterList';
 
 /**
- * The example campaign's chronicle, under the chapter list's empty state
- * (T150): the rows the list draws, inert, so a new campaign can see what the
- * story will hold -- a chapter read, and the one the reader is in, promoted.
- * List rows, because an empty chronicle offers no shelf to switch to.
+ * The example campaign's chronicle, under the chapters page's sign-in panel
+ * (T150): the rows the list draws, inert, so a stranger can see what the story
+ * holds -- a chapter read, and the one the reader is in, promoted. List rows,
+ * because a signed-out visitor has no list/shelf toggle to follow.
  */
 const ChapterExample: React.FC = () => (
   <RosterExample>

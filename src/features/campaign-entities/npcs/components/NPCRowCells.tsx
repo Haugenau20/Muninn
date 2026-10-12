@@ -56,8 +56,8 @@ export type NPCRowFacts = Pick<NPC, 'name' | 'title' | 'status' | 'relationship'
  * The cells of a collapsed NPC row: name and title, presence, stance,
  * occupation. Laid out on {@link NPC_ROW_GRID}.
  *
- * A component of its own so the directory and the example under an empty one
- * (`NPCExample`, T150) draw the same row; an example that copied this markup
+ * A component of its own so the directory and the example a signed-out
+ * visitor sees (`NPCExample`, T150) draw the same row; an example that copied this markup
  * would drift from it with the first redesign.
  */
 const NPCRowCells: React.FC<{ npc: NPCRowFacts }> = ({ npc }) => (

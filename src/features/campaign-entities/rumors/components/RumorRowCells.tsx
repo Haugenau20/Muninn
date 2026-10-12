@@ -32,8 +32,8 @@ export interface RumorRowFacts {
  * The cells of a collapsed rumour row: title and source, status, source type,
  * whether it became a quest. Laid out on {@link RUMOR_ROW_GRID}.
  *
- * A component of its own so the directory and the example under an empty one
- * (`RumorExample`, T150) draw the same row.
+ * A component of its own so the directory and the example a signed-out
+ * visitor sees (`RumorExample`, T150) draw the same row.
  */
 const RumorRowCells: React.FC<{ rumor: RumorRowFacts }> = ({ rumor }) => (
   <>

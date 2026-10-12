@@ -96,8 +96,8 @@ export const ChapterRowView: React.FC<{
   isAdmin?: boolean;
   selection?: ChapterSelection;
   /**
-   * A picture of a row: no click, no hover, no actions. For the example under
-   * an empty chronicle (`ChapterExample`, T150).
+   * A picture of a row: no click, no hover, no actions. For the example a
+   * signed-out visitor sees (`ChapterExample`, T150).
    */
   inert?: boolean;
 }> = ({ item, onChapterSelect, onEditChapter, isAdmin, selection, inert = false }) => {

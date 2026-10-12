@@ -146,9 +146,8 @@ const HomePage: React.FC = () => {
   
   const gate = usePageGate('home', { loading: layoutData.loading });
 
-  // Home is the one page that shows a stranger an example, and it is a
-  // different layout from the shared panel -- the h1 there is the product's
-  // headline, not a page title. See `SignedOutHome`.
+  // Signed-out Home is a different layout from the shared panel -- the h1
+  // there is the product's headline, not a page title. See `SignedOutHome`.
   if (gate.state === 'signed-out') {
     return <SignedOutHome />;
   }

@@ -21,7 +21,6 @@ import {
 } from 'core/components/Roster';
 import LocationTreeRow from './LocationTreeRow';
 import LocationRowSummary from './LocationRowSummary';
-import LocationExample from './LocationExample';
 import {
   ancestorIdsIn,
   buildLocationIndex,
@@ -440,23 +439,19 @@ const LocationDirectory: React.FC<LocationDirectoryProps> = ({
             message="Try a different search term, or clear the filters to see everywhere you have charted."
           />
         ) : (
-          <>
-            <RosterEmpty
-              mark
-              title="Muninn hasn't been anywhere yet"
-              message="Regions, cities, dungeons and the rooms inside them — each one can hold the notes, NPCs and quests you found there."
-              action={
-                <Button
-                  onClick={() => navigateToPage('/locations/create')}
-                  startIcon={<Plus className="w-4 h-4" />}
-                >
-                  Add the first location
-                </Button>
-              }
-            />
-            {/* What the page will hold, while it holds nothing (T150). */}
-            <LocationExample />
-          </>
+          <RosterEmpty
+            mark
+            title="Muninn hasn't been anywhere yet"
+            message="Regions, cities, dungeons and the rooms inside them — each one can hold the notes, NPCs and quests you found there."
+            action={
+              <Button
+                onClick={() => navigateToPage('/locations/create')}
+                startIcon={<Plus className="w-4 h-4" />}
+              >
+                Add the first location
+              </Button>
+            }
+          />
         )
       ) : (
         <>

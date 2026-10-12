@@ -72,8 +72,9 @@ const frozen = <T extends object>(rows: T[]): readonly T[] =>
   Object.freeze(rows.map((row) => Object.freeze(row)));
 
 /**
- * The rows shown under an empty collection's empty state, on the NPC, quest,
- * location, rumour and chapter pages, while the campaign has none of them.
+ * The rows a signed-out visitor sees under the sign-in panel on the NPC,
+ * quest, location, rumour and chapter pages (T150), so a stranger can see
+ * what each page holds. Members never see them.
  *
  * Invented, and one setting throughout: the quests happen in the example's
  * places, the rumours come from its people, and the chronicle tells the same

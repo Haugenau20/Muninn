@@ -4,7 +4,6 @@ import React from 'react';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import NPCDirectory from '../NPCDirectory';
 import { NPC, NPCStatus, NPCRelationship } from 'features/campaign-entities/npcs/types';
-import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 
 // ---------------------------------------------------------------------------
 // Mock all context dependencies used by NPCDirectory and the roster rows it renders
@@ -244,33 +243,8 @@ describe('NPCDirectory', () => {
       ).toBeInTheDocument();
     });
 
-    test("shows the example campaign's people under it, as rows that do nothing", () => {
+    test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       render(<NPCDirectory npcs={[]} />);
-      const example = screen.getByTestId('roster-example');
-      EXAMPLE_CAMPAIGN.npcs.forEach((npc) => {
-        expect(within(example).getByText(npc.name)).toBeInTheDocument();
-        expect(within(example).getByText(npc.title!)).toBeInTheDocument();
-      });
-      // The real row's cells, not a copy of them: stance and occupation too.
-      expect(within(example).getByText('Hostile')).toBeInTheDocument();
-      expect(within(example).getByText('Ferrywoman')).toBeInTheDocument();
-      expect(within(example).queryAllByRole('button', { hidden: true })).toHaveLength(0);
-      // Below the empty state, whose action stays the first thing to press.
-      const action = screen.getByRole('button', { name: /add the first npc/i });
-      expect(action.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    });
-
-    test('a campaign with one NPC shows no example', () => {
-      render(<NPCDirectory npcs={[makeNPC({ name: 'Aldric' })]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
-    });
-
-    test('a list emptied by a filter shows no example', () => {
-      render(<NPCDirectory npcs={[makeNPC({ name: 'Aldric' })]} />);
-      fireEvent.change(screen.getByPlaceholderText(/search name, title or description/i), {
-        target: { value: 'nobody by this name' },
-      });
-      expect(screen.getByText(/no npcs match these filters/i)).toBeInTheDocument();
       expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
     });
 

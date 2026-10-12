@@ -3,6 +3,7 @@ export { NPCProvider, useNPCs } from './npcs/context/NPCContext';
 export { useNPCData } from './npcs/hooks/useNPCData';
 // Components consumed by pages/npcs/* and other external consumers
 export { default as NPCDirectory } from './npcs/components/NPCDirectory';
+export { default as NPCExample } from './npcs/components/NPCExample';
 // NPC types
 export type { NPC, NPCStatus, NPCRelationship, NPCNote, NPCConnections, NPCContextState, NPCContextValue } from './npcs/types';
 
@@ -24,6 +25,7 @@ export { QuestProvider, useQuests } from './quests/context/QuestContext';
 export { useQuestData } from './quests/hooks/useQuestData';
 // Components consumed by pages/quests/* and other external consumers
 export { default as QuestDirectory } from './quests/components/QuestDirectory';
+export { default as QuestExample } from './quests/components/QuestExample';
 export { default as QuestObjectives } from './quests/components/QuestObjectives';
 export { default as DeleteQuestDialog } from './quests/components/DeleteQuestDialog';
 // How a quest says what it is, shared by the row and the page.
@@ -46,6 +48,7 @@ export { LocationProvider, useLocations } from './locations/context/LocationCont
 export { useLocationData } from './locations/hooks/useLocationData';
 // Components consumed by pages/locations/* and other external consumers
 export { default as LocationDirectory } from './locations/components/LocationDirectory';
+export { default as LocationExample } from './locations/components/LocationExample';
 export { default as WhereThisSits } from './locations/components/WhereThisSits';
 export { default as DeleteLocationDialog } from './locations/components/DeleteLocationDialog';
 // Location types
@@ -83,6 +86,7 @@ export { useRumorData } from './rumors/hooks/useRumorData';
 export { useCreateRumor } from './rumors/hooks/useCreateRumor';
 // Components consumed by pages/rumors/* and other external consumers
 export { default as RumorDirectory } from './rumors/components/RumorDirectory';
+export { default as RumorExample } from './rumors/components/RumorExample';
 export { default as RumorBatchActions } from './rumors/components/RumorBatchActions';
 export { default as CombineRumorsDialog } from './rumors/components/CombineRumorsDialog';
 export { default as ConvertToQuestDialog } from './rumors/components/ConvertToQuestDialog';

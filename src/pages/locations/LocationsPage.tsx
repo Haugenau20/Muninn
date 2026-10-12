@@ -1,7 +1,7 @@
 // src/pages/locations/LocationsPage.tsx
 import React from "react";
 import Button from "core/components/Button";
-import { useLocations, LocationDirectory } from "features/campaign-entities";
+import { useLocations, LocationDirectory, LocationExample } from "features/campaign-entities";
 import { usePageGate, GatedContent } from "shared/components/gated";
 import PageShell from "shared/components/page-shell/PageShell";
 import { useNavigation } from "shared/context/NavigationContext";
@@ -35,7 +35,7 @@ const LocationsPage: React.FC = () => {
         )
       }
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<LocationExample />}>
         <LocationDirectory locations={locations} isLoading={false} />
       </GatedContent>
     </PageShell>

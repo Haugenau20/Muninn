@@ -323,8 +323,14 @@ describe("ChaptersPage", () => {
       ).toBeInTheDocument();
     });
 
-    it("shows the example campaign's chronicle under the empty state, as rows that do nothing", () => {
+    it("an empty campaign shows its own empty state and no example: the example is for signed-out visitors", () => {
       mockStoryContext = { ...mockStoryContext, chapters: [] };
+      renderPage();
+      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+    });
+
+    it("shows a signed-out visitor the example campaign's chronicle under the panel, as rows that do nothing", () => {
+      mockUser = null;
       renderPage();
       const example = screen.getByTestId("roster-example");
       EXAMPLE_CAMPAIGN.chapters.forEach((chapter) => {
@@ -335,13 +341,9 @@ describe("ChaptersPage", () => {
       expect(within(example).getByText("Read")).toBeInTheDocument();
       expect(within(example).getByText("40% through")).toBeInTheDocument();
       expect(within(example).queryAllByRole("button", { hidden: true })).toHaveLength(0);
-      const action = screen.getByRole("button", { name: /write the first chapter/i });
-      expect(action.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    });
-
-    it("a campaign with chapters shows no example", () => {
-      renderPage();
-      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+      // Under the panel, whose sign-in stays the first thing to press.
+      const signIn = screen.getByRole("link", { name: "Sign in" });
+      expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("does not render the search/filter row when there are no chapters", () => {
@@ -527,7 +529,6 @@ describe("ChaptersPage", () => {
         screen.getByRole("heading", { name: "No chapters match this view" })
       ).toBeInTheDocument();
       expect(screen.queryByText("ᛗ")).not.toBeInTheDocument();
-      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
       // Not /new chapter/i: the header's "New Chapter" button is present
       // whenever the visitor can act, so that matcher would fail for the wrong
       // reason. What must be absent is the empty state's own action.

@@ -13,7 +13,6 @@ import useSelection from 'shared/hooks/useSelection';
 import EntityBatchActions, { type BatchStatusOption } from '../../shared/EntityBatchActions';
 import QuestRowSummary from './QuestRowSummary';
 import QuestRowCells, { QUEST_ROW_GRID } from './QuestRowCells';
-import QuestExample from './QuestExample';
 import { Plus } from 'lucide-react';
 import {
   RosterStatusBar,
@@ -375,22 +374,18 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
           message="Try a different search term, or clear the filters to see everything the party has taken on."
         />
       ) : (
-        <>
-          <RosterEmpty
-            title="Nothing taken on yet"
-            message="What the party agreed to do, who asked, and how far along it is — with the objectives ticked off as you go."
-            action={
-              <Button
-                onClick={() => navigateToPage('/quests/create')}
-                startIcon={<Plus className="w-4 h-4" />}
-              >
-                Add the first quest
-              </Button>
-            }
-          />
-          {/* What the page will hold, while it holds nothing (T150). */}
-          <QuestExample />
-        </>
+        <RosterEmpty
+          title="Nothing taken on yet"
+          message="What the party agreed to do, who asked, and how far along it is — with the objectives ticked off as you go."
+          action={
+            <Button
+              onClick={() => navigateToPage('/quests/create')}
+              startIcon={<Plus className="w-4 h-4" />}
+            >
+              Add the first quest
+            </Button>
+          }
+        />
       )}
     </div>
   );

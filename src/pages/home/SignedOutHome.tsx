@@ -14,12 +14,11 @@ const PRODUCT_LINES = [
 /**
  * What a stranger sees at `/`.
  *
- * Home is the one page a stranger is shown an example on: it answers "what is
- * this?". The other gated pages keep a single honest sentence for a stranger.
- * A member whose campaign is still empty gets example rows under each list's
- * empty state instead (`RosterExample`, T150), drawn by the lists' own cells;
- * neither example credits anyone, because inventing authors would undermine
- * the attribution the product's credibility rests on.
+ * Home answers "what is this?" with a whole example campaign. The list pages
+ * show a stranger example rows under their sign-in panel instead
+ * (`RosterExample`, T150), drawn by the lists' own cells. Neither example
+ * credits anyone, because inventing authors would undermine the attribution
+ * the product's credibility rests on.
  *
  * Rendered instead of `PageShell` + `GatedContent`, not inside them: the `h1`
  * here is the product's headline, not a page title, and the two-column layout
