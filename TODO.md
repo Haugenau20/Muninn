@@ -36,7 +36,6 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | low | T143 | The About page's coffee link and photo | S | blocked | Both built and switched off; wait on a link and a picture from the maintainer |
 | low | T149 | Both Hosting sites keep every release | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 | low | T148 | Does the theme belong in Firestore? | S | open | A question for the maintainer; the current design works |
-| low | T150 | Example data on the entity, story and notes pages | M | needs scoping | Reverses the "no sample data outside Home" decision; the maintainer's call, and tied to T123 |
 | nit | T147 | Should `colour-schema.json` leave `docs/design/`? | S | open | A question for the maintainer; nothing is wrong where it is |
 
 The dormant `theme-contract` questions at the bottom are unranked on purpose.
@@ -375,28 +374,6 @@ OpenAI and Gmail are outside Google Cloud.
 - **Source**: the operator page's plan, filed when step 4a was picked up,
   2026-10-10; measured 2026-10-12
 
-### T150 — Example data on the entity, story and notes pages
-**Type** feature · **Size** M · **Status** needs scoping · **Verified** 2026-10-12
-
-Show a static, unclickable example on each entity page, and maybe on story and
-notes, the way signed-out Home shows *The Sunless Citadel*, so a reader sees
-what the page will hold before it holds anything.
-
-- **Where**: Home's example is `pages/home/signed-out-example.ts:45`, drawn in
-  `SignedOutHome.tsx:96`. The other pages show one sentence instead: signed out,
-  `GATED_COPY` (`shared/components/gated/gated-page-copy.ts:96`), drawn by
-  `GatedPageState.tsx:166`; signed in with an empty campaign, each page's
-  `RosterEmpty` (e.g. `NPCDirectory.tsx:515`, `ChaptersPage.tsx:171`).
-- **Catch**: this reverses a recorded decision. The gated-pages spec's §4 ("No
-  sample data outside Home", 2026-09-03; deleted with T113, read from
-  `ab298447~1`) refused it: invented rows with invented authors undermine the
-  attribution the product sells, and fake rows in a list invite clicks. The
-  comment at `SignedOutHome.tsx:17` still says so.
-- **To decide**: which state gets the example (signed out, an empty campaign,
-  or both); whether entity examples, like Home's, carry no author; and whose
-  fiction it is, since T123 asks whether *The Sunless Citadel* may stay.
-- **Source**: todo.txt, 2026-10-12
-
 ---
 
 ## Tech debt and platform
@@ -600,7 +577,7 @@ risk for a public repo and site? A question for the maintainer, not settled here
   from was **not** traced.
 - **Same question, on the live site**: the public signed-out home shows Wizards
   of the Coast's published adventure *The Sunless Citadel*, with its NPC and places
-  (`pages/home/signed-out-example.ts:46`). T075's 2026-10-03 decision covered
+  (`pages/home/signed-out-example.ts:48`). T075's 2026-10-03 decision covered
   only the words "D&D".
 - **If the answer is yes**: invented sample data, new screenshots, and a new
   example on the home page. That is the M.
