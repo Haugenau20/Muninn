@@ -1,21 +1,8 @@
 // src/features/campaign-entities/locations/components/LocationTreeRow.tsx
 import React from 'react';
-import Typography from 'core/components/Typography';
-import { RosterName, RosterRow, RosterStatus } from 'core/components/Roster';
+import { RosterRow } from 'core/components/Roster';
 import { Location } from '../types';
-import {
-  formatLocationStatus,
-  formatLocationType,
-  STATUS_TONE,
-} from '../utils/location-presentation';
-
-/**
- * Every column after the name is a fixed width, so a nested row's indent comes
- * out of the name alone and its knowledge step and counts stay under the ones
- * above it.
- */
-const ROW_GRID =
-  'grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1fr)_112px_200px_26px]';
+import LocationRowCells, { LOCATION_ROW_GRID, describeInside } from './LocationRowCells';
 
 export interface LocationTreeRowProps {
   location: Location;
@@ -77,20 +64,12 @@ export const LocationTreeRow: React.FC<LocationTreeRowProps> = ({
   selected = false,
   isFirst = false,
 }) => {
-  const inside = [
-    insideCount ? `${insideCount} inside` : undefined,
-    npcCount ? `${npcCount} NPC${npcCount === 1 ? '' : 's'}` : undefined,
-    questCount ? `${questCount} quest${questCount === 1 ? '' : 's'}` : undefined,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
   return (
     <RosterRow
       id={`location-${location.id}`}
       entityId={location.id}
       entityName={location.name}
-      gridClassName={ROW_GRID}
+      gridClassName={LOCATION_ROW_GRID}
       toggleLabel={location.name}
       depth={depth}
       expanded={expanded}
@@ -102,34 +81,11 @@ export const LocationTreeRow: React.FC<LocationTreeRowProps> = ({
       isFirst={isFirst}
       nested={expanded ? children : undefined}
     >
-      <RosterName
-        name={location.name}
-        detail={
-          <>
-            {formatLocationType(location.type)}
-            {path && (
-              // Only in the flattened search results: a hit with no path is a
-              // name with no context (§6.1).
-              <>
-                {' · '}
-                <span>in {path}</span>
-              </>
-            )}
-          </>
-        }
+      <LocationRowCells
+        location={location}
+        path={path}
+        inside={describeInside(insideCount, npcCount, questCount)}
       />
-
-      <RosterStatus tone={STATUS_TONE[location.status]}>
-        {formatLocationStatus(location.status)}
-      </RosterStatus>
-
-      <Typography
-        variant="body-sm"
-        color="secondary"
-        className="hidden md:block text-sm truncate"
-      >
-        {inside}
-      </Typography>
     </RosterRow>
   );
 };

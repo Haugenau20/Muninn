@@ -20,6 +20,7 @@
 import React from 'react';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import LocationDirectory from '../LocationDirectory';
+import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 import { Location } from '../../types';
 import * as highlightTarget from 'shared/hooks/useHighlightTarget';
 
@@ -150,6 +151,36 @@ describe('LocationDirectory', () => {
       expect(
         screen.getByRole('button', { name: /add the first location/i })
       ).toBeInTheDocument();
+    });
+
+    test("shows the example campaign's places under it, as rows that do nothing", () => {
+      render(<LocationDirectory locations={[]} />);
+      const example = screen.getByTestId('roster-example');
+      EXAMPLE_CAMPAIGN.locations.forEach((place) =>
+        expect(within(example).getByText(place.name)).toBeInTheDocument()
+      );
+      // The real row's cells, and the tree: the town sits inside the region.
+      expect(within(example).getByText('Explored')).toBeInTheDocument();
+      expect(within(example).getByText('1 inside · 1 NPC · 1 quest')).toBeInTheDocument();
+      expect(within(example).getByText('2 NPCs · 1 quest')).toBeInTheDocument();
+      expect(within(example).getAllByTestId('roster-indent')).toHaveLength(1);
+      expect(within(example).queryAllByRole('button', { hidden: true })).toHaveLength(0);
+      const action = screen.getByRole('button', { name: /add the first location/i });
+      expect(action.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    test('a campaign with one place shows no example', () => {
+      render(<LocationDirectory locations={[makeLocation('loc-1', 'Silverkeep')]} />);
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+    });
+
+    test('a list emptied by a filter shows no example', () => {
+      render(<LocationDirectory locations={[makeLocation('loc-1', 'Silverkeep')]} />);
+      fireEvent.change(screen.getByPlaceholderText('Search locations...'), {
+        target: { value: 'nowhere like this' },
+      });
+      expect(screen.getByText(/no locations match these filters/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
     });
   });
 

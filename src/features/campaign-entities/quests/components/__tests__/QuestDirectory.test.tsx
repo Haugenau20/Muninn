@@ -5,6 +5,7 @@ import QuestDirectory from '../QuestDirectory';
 import type { Quest, QuestObjective } from '../../types';
 import type { NPC } from '../../../npcs/types';
 import type { Location } from '../../../locations/types';
+import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 
 // ---------------------------------------------------------------------------
 // Context mocks
@@ -368,11 +369,34 @@ describe('QuestDirectory', () => {
       ).toBeInTheDocument();
     });
 
+    it("shows the example campaign's quests under it, as rows that do nothing", () => {
+      mockQuestContext.quests = [];
+      renderPage();
+      const example = screen.getByTestId('roster-example');
+      EXAMPLE_CAMPAIGN.quests.forEach((quest) =>
+        expect(within(example).getByText(quest.title)).toBeInTheDocument()
+      );
+      // The real row's cells: where it happens, its state and its objectives.
+      expect(within(example).getByText('Cinderford')).toBeInTheDocument();
+      expect(within(example).getByText('Completed')).toBeInTheDocument();
+      expect(within(example).getByText('1 of 3 objectives')).toBeInTheDocument();
+      expect(within(example).queryAllByRole('button', { hidden: true })).toHaveLength(0);
+      const action = screen.getByRole('button', { name: /add the first quest/i });
+      expect(action.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('a campaign with one quest shows no example', () => {
+      mockQuestContext.quests = [questActiveDragon];
+      renderPage();
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+    });
+
     it('shows a status-specific message when a status filter yields nothing', () => {
       mockQuestContext.quests = [questActiveDragon];
       renderPage();
       fireEvent.click(screen.getByRole('button', { name: '0 failed' }));
       expect(screen.getByText(/no quests match these filters/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: /add the first quest/i })
       ).not.toBeInTheDocument();

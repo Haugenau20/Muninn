@@ -6,9 +6,10 @@ import { useNPCs } from '../../npcs/context/NPCContext';
 import { useLocations } from '../../locations/context/LocationContext';
 import { useCampaigns } from 'features/user-management';
 import Button from '../../../../core/components/Button';
-import Typography from '../../../../core/components/Typography';
 import RumorBatchActions from './RumorBatchActions';
 import RumorComposer from './RumorComposer';
+import RumorRowCells, { RUMOR_ROW_GRID } from './RumorRowCells';
+import RumorExample from './RumorExample';
 import RumorRowEditor, {
   draftFromRumor,
   isDraftDirty,
@@ -19,12 +20,8 @@ import { useNavigation } from 'shared/hooks/useNavigation';
 import useHighlightTarget from 'shared/hooks/useHighlightTarget';
 import useSelection from 'shared/hooks/useSelection';
 import type { AttachKind } from 'shared/components/attach-tray/attachCandidates';
-import { Scroll } from 'lucide-react';
 import {
   RUMOR_STATUS_FILL,
-  RUMOR_STATUS_TONE,
-  formatRumorStatus,
-  formatSourceType,
   normalizeRumorStatus,
 } from '../utils/rumor-presentation';
 import { rumorDisplayTitle, rumorTitleText, UNTITLED_RUMOR } from '../utils/rumor-title';
@@ -34,12 +31,10 @@ import {
   RosterFilterPills,
   RosterGroup,
   RosterRow,
-  RosterName,
   type RosterSegment,
   type RosterFilterOption,
   RosterSkeleton,
   RosterEmpty,
-  RosterStatus,
   RosterShowMore,
 } from 'core/components/Roster';
 import { ROSTER_PAGE_SIZE } from 'shared/utils/roster-paging';
@@ -49,10 +44,6 @@ interface RumorDirectoryProps {
   rumors: Rumor[];
   isLoading?: boolean;
 }
-
-/** Column template shared by every row, so the columns line up across groups. */
-const ROW_GRID =
-  'grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.6fr)_128px_128px_150px_26px]';
 
 /**
  * Fixed, ordered groups, on `QuestDirectory`'s pattern rather than the
@@ -564,7 +555,7 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
                       id={`rumor-${rumor.id}`}
                       entityId={rumor.id}
                       entityName={name}
-                      gridClassName={ROW_GRID}
+                      gridClassName={RUMOR_ROW_GRID}
                       isFirst={index === 0}
                       highlighted={highlightedRumorId === rumor.id}
                       expanded={isExpanded}
@@ -611,66 +602,17 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
                         />
                       }
                     >
-                      {/* The "Quest" pill that sat by the name is gone: the last cell
-                          in the same row already reads "Converted to quest", so the
-                          pill was the same fact a second time, in a box. */}
-                      <RosterName
-                        name={name}
-                        // An unnamed rumour reads as unfinished rather than as
-                        // a record actually called "Untitled rumour".
-                        muted={!displayed}
-                        detail={rumor.sourceName}
-                        badge={
-                          /*
-                            Loud on purpose. Keeping a draft across a route change
-                            is only an improvement if the row says it is holding
-                            one -- otherwise persistence is just a quieter way to
-                            lose work, because you would believe you had saved.
-                          */
-                          unsavedIds.has(rumor.id) ? (
-                            <span className="shrink-0 px-2 py-0.5 rounded-full text-xs feedback-warning-edge chip-toggle chip-toggle-selected">
-                              Unsaved
-                            </span>
-                          ) : undefined
-                        }
+                      <RumorRowCells
+                        rumor={{
+                          name,
+                          untitled: !displayed,
+                          sourceName: rumor.sourceName,
+                          status: rumor.status,
+                          sourceType: rumor.sourceType,
+                          convertedToQuest: Boolean(rumor.convertedToQuestId),
+                          unsaved: unsavedIds.has(rumor.id),
+                        }}
                       />
-
-                      {/*
-                        A false rumour is red and struck through: the strike keeps
-                        it apart from confirmed without relying on hue alone.
-                      */}
-                      <RosterStatus
-                        tone={RUMOR_STATUS_TONE[normalizeRumorStatus(rumor.status)]}
-                        negated={normalizeRumorStatus(rumor.status) === 'false'}
-                      >
-                        {formatRumorStatus(rumor.status)}
-                      </RosterStatus>
-
-                      {/* Source type, stated once and plainly -- it was a filled chip
-                          saying what a plain label says. An em dash means nobody has
-                          said where this came from. */}
-                      <Typography
-                        variant="body-sm"
-                        color="secondary"
-                        className="hidden md:block justify-self-start text-sm"
-                      >
-                        {formatSourceType(rumor.sourceType)}
-                      </Typography>
-
-                      <Typography
-                        variant="body-sm"
-                        color="secondary"
-                        className="hidden md:flex items-center gap-1.5 text-sm truncate"
-                      >
-                        {rumor.convertedToQuestId ? (
-                          <>
-                            <Scroll size={13} className="shrink-0" aria-hidden="true" />
-                            Converted to quest
-                          </>
-                        ) : (
-                          '—'
-                        )}
-                      </Typography>
                     </RosterRow>
                   );
                 })}
@@ -699,11 +641,15 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
           `/rumors/create` would send someone away from the control they are
           looking at (item 1, and the empty-campaign gate).
         */
-        <RosterEmpty
-          mark
-          title="Muninn hasn't heard any rumours yet"
-          message="Overheard in a tavern, posted on a notice board, told by someone who may be lying — title it above and mark it confirmed when you find out."
-        />
+        <>
+          <RosterEmpty
+            mark
+            title="Muninn hasn't heard any rumours yet"
+            message="Overheard in a tavern, posted on a notice board, told by someone who may be lying — title it above and mark it confirmed when you find out."
+          />
+          {/* What the page will hold, while it holds nothing (T150). */}
+          <RumorExample />
+        </>
       )}
     </div>
   );
