@@ -220,7 +220,7 @@ describe('RumorDirectory', () => {
   describe('empty state', () => {
     test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       render(<RumorDirectory rumors={[]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Example campaign' })).not.toBeInTheDocument();
     });
 
     test('says what the collection is for, and leaves the composer to fill it', () => {

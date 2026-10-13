@@ -12,7 +12,6 @@ import {
   RosterName,
   RosterStatus,
   RosterField,
-  RosterExample,
   type RosterSegment,
   type RosterStatusTone,
 } from '../Roster';
@@ -1095,16 +1094,3 @@ describe('RosterRow inert', () => {
   });
 });
 
-describe('RosterExample', () => {
-  test('captions its rows "Example" and hides them from assistive technology', () => {
-    render(
-      <RosterExample>
-        <span>Odile Marrow</span>
-      </RosterExample>
-    );
-    const example = screen.getByTestId('roster-example');
-    expect(example).toHaveAttribute('aria-hidden', 'true');
-    expect(within(example).getByText('Example')).toBeInTheDocument();
-    expect(within(example).getByText('Odile Marrow')).toBeInTheDocument();
-  });
-});

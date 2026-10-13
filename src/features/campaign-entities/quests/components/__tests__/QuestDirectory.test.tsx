@@ -371,7 +371,7 @@ describe('QuestDirectory', () => {
     it('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       mockQuestContext.quests = [];
       renderPage();
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Example campaign' })).not.toBeInTheDocument();
     });
 
     it('shows a status-specific message when a status filter yields nothing', () => {

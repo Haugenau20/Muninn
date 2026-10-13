@@ -245,7 +245,7 @@ describe('NPCDirectory', () => {
 
     test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       render(<NPCDirectory npcs={[]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Example campaign' })).not.toBeInTheDocument();
     });
 
     test('the empty state is not blank', () => {

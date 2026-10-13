@@ -1,13 +1,12 @@
 // e2e/tests/example-rows.spec.ts
 import { test, expect } from "../support/test";
 
-// T150: a signed-out visitor sees example rows under each list page's sign-in
-// panel, so a stranger can see what the page holds. A member never does: a
-// member's empty list keeps its own empty state.
+// T150: a signed-out visitor sees each list page's example under a slim
+// sign-in band, so a stranger can see what the page holds. A member never
+// does: a member's empty list keeps its own empty state.
 //
-// The example is hidden from assistive technology (the panel's sentence
-// already says what the page is for), so it has no role to find it by; its
-// chip and one example row per page are found by their text.
+// The example is a region named "Example campaign"; one row per page is
+// found inside it by its text.
 
 const PAGES = [
   { path: "/npcs", heading: "Sign in to see who your party has met", row: "Odile Marrow" },
@@ -21,13 +20,14 @@ test.describe("signed out", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   for (const { path, heading, row } of PAGES) {
-    test(`${path} shows example rows under the sign-in panel`, async ({ page }) => {
+    test(`${path} shows its example under the sign-in band`, async ({ page }) => {
       await page.goto(path);
       await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-      await expect(page.getByText("Example", { exact: true })).toBeVisible();
-      await expect(page.getByText(row, { exact: true })).toBeVisible();
-      // A picture, not rows: nothing in it is a control.
-      await expect(page.getByRole("button", { name: new RegExp(row) })).toHaveCount(0);
+      const example = page.getByRole("region", { name: "Example campaign" });
+      await expect(example.getByText("Example", { exact: true })).toBeVisible();
+      await expect(example.getByText(row, { exact: true })).toBeVisible();
+      // The newcomer's line sits under the example, not in the band.
+      await expect(page.getByRole("link", { name: "See what the site does" })).toBeVisible();
     });
   }
 });
@@ -36,5 +36,5 @@ test("a member's empty list keeps its own empty state, with no example", async (
   // The seeded campaign has no rumours.
   await page.goto("/rumors");
   await expect(page.getByRole("heading", { name: "Muninn hasn't heard any rumours yet" })).toBeVisible();
-  await expect(page.getByText("Example", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Example campaign" })).toHaveCount(0);
 });

@@ -16,7 +16,7 @@ const PRODUCT_LINES = [
  *
  * Home answers "what is this?" with a whole example campaign. The list pages
  * show a stranger example rows under their sign-in panel instead
- * (`RosterExample`, T150), drawn by the lists' own cells. Neither example
+ * (`ExampleRegion`, T150), drawn by the lists' own cells. Neither example
  * credits anyone, because inventing authors would undermine the attribution
  * the product's credibility rests on.
  *

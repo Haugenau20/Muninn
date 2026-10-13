@@ -1,15 +1,17 @@
 import React from 'react';
-import { RosterExample, RosterRow } from 'core/components/Roster';
+import { RosterRow } from 'core/components/Roster';
+import ExampleRegion from 'shared/example-campaign/ExampleRegion';
 import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 import RumorRowCells, { RUMOR_ROW_GRID } from './RumorRowCells';
 
 /**
- * The example campaign's rumours, under the rumour page's sign-in panel
+ * The example campaign's rumours, under the rumour page's sign-in band
  * (T150): the rows the directory draws, inert, so a stranger can see what this
  * page holds.
  */
 const RumorExample: React.FC = () => (
-  <RosterExample>
+  <ExampleRegion caption="The Ashen Vale · fourteen sessions in">
+    <div className="rounded-lg overflow-hidden card">
     {EXAMPLE_CAMPAIGN.rumours.map((rumour, index) => (
       <RosterRow
         key={rumour.id}
@@ -27,13 +29,14 @@ const RumorExample: React.FC = () => (
             sourceName: rumour.sourceName,
             status: rumour.status,
             sourceType: rumour.sourceType,
-            convertedToQuest: false,
+            convertedToQuest: Boolean(rumour.convertedToQuestId),
             unsaved: false,
           }}
         />
       </RosterRow>
     ))}
-  </RosterExample>
+    </div>
+  </ExampleRegion>
 );
 
 export default RumorExample;

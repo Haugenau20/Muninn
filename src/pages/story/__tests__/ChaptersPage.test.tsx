@@ -326,13 +326,13 @@ describe("ChaptersPage", () => {
     it("an empty campaign shows its own empty state and no example: the example is for signed-out visitors", () => {
       mockStoryContext = { ...mockStoryContext, chapters: [] };
       renderPage();
-      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Example campaign" })).not.toBeInTheDocument();
     });
 
     it("shows a signed-out visitor the example campaign's chronicle under the panel, as rows that do nothing", () => {
       mockUser = null;
       renderPage();
-      const example = screen.getByTestId("roster-example");
+      const example = screen.getByRole("region", { name: "Example campaign" });
       EXAMPLE_CAMPAIGN.chapters.forEach((chapter) =>
         expect(within(example).getByText(chapter.title)).toBeInTheDocument()
       );

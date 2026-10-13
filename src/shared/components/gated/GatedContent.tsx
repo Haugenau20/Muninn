@@ -1,6 +1,6 @@
 // src/shared/components/gated/GatedContent.tsx
-import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
+import React, { Suspense, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   useGroups,
   useCampaigns,
@@ -9,6 +9,8 @@ import {
 import Button from "core/components/Button";
 import Typography from "core/components/Typography";
 import GatedPageState from "./GatedPageState";
+import GatedSignInBand from "./GatedSignInBand";
+import { GATED_FOOTNOTE } from "./gated-page-copy";
 import type { CampaignOption } from "./types";
 import { useSelectableCampaigns } from "./useSelectableCampaigns";
 import type { PageGate } from "./usePageGate";
@@ -20,11 +22,13 @@ export interface GatedContentProps {
   /** What to render once the gate is `ready`. */
   children: React.ReactNode;
   /**
-   * What the page will hold, shown to a signed-out visitor under the panel
-   * (T150): the page's example rows (`NPCExample` and its siblings). A prop
-   * rather than a lookup by page, because this module cannot import the
-   * features that draw them. Members never see it, whatever their campaign
-   * holds.
+   * What the page will hold, shown to a signed-out visitor (T150): the page
+   * itself, filled from the example campaign (`NPCExample` and its
+   * siblings). Given one, the sign-in shrinks to a slim band above it and the
+   * newcomer's line moves below it. A prop rather than a lookup by page,
+   * because this module cannot import the features that draw them; it may be
+   * lazy, and loads behind a `Suspense` here. Members never see it, whatever
+   * their campaign holds.
    */
   signedOutExample?: React.ReactNode;
 }
@@ -113,8 +117,16 @@ const GatedContent: React.FC<GatedContentProps> = ({ gate, children, signedOutEx
     !campaignsLoading &&
     !options.some((option) => option.groupId === activeGroupId);
 
-  const panel =
-    gate.state === "signed-out" || isPicking ? (
+  const showsExample = gate.state === "signed-out" && Boolean(signedOutExample);
+
+  const panel = showsExample ? (
+    <GatedSignInBand
+      heading={gate.heading}
+      line={gate.copy.exampleLine ?? gate.copy.blurb}
+      signInHref={signInPathFor(location)}
+      joinHref="/join"
+    />
+  ) : gate.state === "signed-out" || isPicking ? (
       <GatedPageState
         variant={gate.state === "signed-out" ? "signed-out" : "pick-campaign"}
         heading={gate.heading}
@@ -138,9 +150,20 @@ const GatedContent: React.FC<GatedContentProps> = ({ gate, children, signedOutEx
     <>
       {gate.state === "resolving" && <Skeleton />}
 
-      {panel}
-
-      {gate.state === "signed-out" && signedOutExample}
+      {showsExample ? (
+        <div className="space-y-6">
+          {panel}
+          <Suspense fallback={null}>{signedOutExample}</Suspense>
+          <Typography variant="body-sm" color="secondary">
+            {GATED_FOOTNOTE}{" "}
+            <Link to="/" className="font-semibold primary">
+              See what the site does
+            </Link>
+          </Typography>
+        </div>
+      ) : (
+        panel
+      )}
 
       {gate.state === "error" && (
         <div className="mx-auto w-full max-w-[560px] rounded-lg p-8 card">

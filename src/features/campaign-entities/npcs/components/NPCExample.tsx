@@ -1,15 +1,17 @@
 import React from 'react';
-import { RosterExample, RosterRow } from 'core/components/Roster';
+import { RosterRow } from 'core/components/Roster';
+import ExampleRegion from 'shared/example-campaign/ExampleRegion';
 import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 import NPCRowCells, { NPC_ROW_GRID } from './NPCRowCells';
 
 /**
- * The example campaign's people, under the NPC page's sign-in panel (T150):
+ * The example campaign's people, under the NPC page's sign-in band (T150):
  * the rows the directory draws, inert, so a stranger can see what this page
  * holds.
  */
 const NPCExample: React.FC = () => (
-  <RosterExample>
+  <ExampleRegion caption="The Ashen Vale · fourteen sessions in">
+    <div className="rounded-lg overflow-hidden card">
     {EXAMPLE_CAMPAIGN.npcs.map((npc, index) => (
       <RosterRow
         key={npc.id}
@@ -23,7 +25,8 @@ const NPCExample: React.FC = () => (
         <NPCRowCells npc={npc} />
       </RosterRow>
     ))}
-  </RosterExample>
+    </div>
+  </ExampleRegion>
 );
 
 export default NPCExample;

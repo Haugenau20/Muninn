@@ -1,6 +1,7 @@
 // src/features/campaign-entities/locations/components/LocationExample.tsx
 import React from 'react';
-import { RosterExample, RosterRow } from 'core/components/Roster';
+import { RosterRow } from 'core/components/Roster';
+import ExampleRegion from 'shared/example-campaign/ExampleRegion';
 import { EXAMPLE_CAMPAIGN } from 'shared/example-campaign/example-campaign';
 import LocationRowCells, { LOCATION_ROW_GRID, describeInside } from './LocationRowCells';
 
@@ -13,13 +14,14 @@ const depthOf = (id: string | undefined): number => {
 };
 
 /**
- * The example campaign's places, under the location page's sign-in panel
+ * The example campaign's places, under the location page's sign-in band
  * (T150): the rows the tree draws, inert, so a stranger can see what this page
  * holds -- a town indented inside its region included. The fixture lists each
  * parent before what is inside it.
  */
 const LocationExample: React.FC = () => (
-  <RosterExample>
+  <ExampleRegion caption="The Ashen Vale · fourteen sessions in">
+    <div className="rounded-lg overflow-hidden card">
     {locations.map((place, index) => (
       <RosterRow
         key={place.id}
@@ -41,7 +43,8 @@ const LocationExample: React.FC = () => (
         />
       </RosterRow>
     ))}
-  </RosterExample>
+    </div>
+  </ExampleRegion>
 );
 
 export default LocationExample;

@@ -136,7 +136,7 @@ describe("NPCsPage", () => {
     it("shows a signed-out visitor the example campaign's npcs under the panel, as rows that do nothing", () => {
       mockUser = null;
       renderPage();
-      const example = screen.getByTestId("roster-example");
+      const example = screen.getByRole("region", { name: "Example campaign" });
       EXAMPLE_CAMPAIGN.npcs.forEach((row) =>
         expect(within(example).getByText(row.name)).toBeInTheDocument()
       );
@@ -147,7 +147,7 @@ describe("NPCsPage", () => {
 
     it("shows a signed-in member no example", () => {
       renderPage();
-      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Example campaign" })).not.toBeInTheDocument();
     });
 
     it("renders the page title and subtitle while signed out", () => {

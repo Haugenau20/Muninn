@@ -106,6 +106,17 @@ describe("GATED_COPY", () => {
     });
     expect(blurb).not.toMatch(/\bchapters?\b|\bsagas?\b/i);
   });
+
+  // The five directory pages show an example under a slim band, whose one line says
+  // what is below it (signed-out examples, 2026-10-13).
+  it.each(["story", "quests", "npcs", "locations", "rumors"] as const)(
+    "gives %s a line for the band over its example, in British English",
+    (page) => {
+      const line = GATED_COPY[page].exampleLine;
+      expect(line).toMatch(/example/i);
+      expect(line).not.toMatch(/rumor\b|rumors\b|traveler/i);
+    }
+  );
 });
 
 describe("gatedHeading", () => {
