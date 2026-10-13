@@ -1,3 +1,5 @@
+import { EXAMPLE_CAMPAIGN } from "shared/example-campaign/example-campaign";
+
 /**
  * One cell of the example campaign's stat strip.
  *
@@ -33,23 +35,25 @@ export interface SignedOutExample {
   readonly updates: readonly ExampleUpdate[];
 }
 
+/** The example campaign's region, its first quest and its first person. */
+const [REGION] = EXAMPLE_CAMPAIGN.locations;
+const [LEDGER_QUEST] = EXAMPLE_CAMPAIGN.quests;
+const [FERRYWOMAN] = EXAMPLE_CAMPAIGN.npcs;
+
 /**
- * The static example shown on signed-out Home. The rows under the signed-out
- * list pages' panels are a different example, with a setting of their own
- * (`shared/example-campaign`, T150).
+ * The static example shown on signed-out Home: the invented campaign whose
+ * rows a stranger also sees under each list page's sign-in panel
+ * (`shared/example-campaign`, T150), further along. One setting across the
+ * public pages, and no published adventure on them (T123). The quest and the
+ * person are taken from that fixture rather than retyped, so they cannot
+ * drift from it; the chapter is this snapshot's own, fourteen sessions in.
  *
- * Built from published module content (*The Sunless Citadel*) rather than
- * invented campaign fiction, so nothing here pretends to be a real group's
- * play. It is never derived from live data and never fetched — if it drifts
- * from what the app actually renders, that is a bug in this file, not a reason
- * to wire it to a context.
+ * It is never derived from live data and never fetched — if it drifts from
+ * what the app actually renders, that is a bug in this file, not a reason to
+ * wire it to a context.
  */
 export const SIGNED_OUT_EXAMPLE: SignedOutExample = Object.freeze({
-  campaignTitle: "The Sunless Citadel",
-  // Start date corrected from 12/03/2025: that was the same day as the
-  // newest "since you last played" row below, which would mean the campaign
-  // started and reached chapter 14 on the same day. Every other value here
-  // (including the row dates) is unchanged.
+  campaignTitle: REGION.name,
   subtitle: "Started 04/10/2024 · Chapter 14",
   // Object.freeze is shallow, so the containing array is frozen here and
   // each element is frozen individually below -- otherwise
@@ -65,17 +69,17 @@ export const SIGNED_OUT_EXAMPLE: SignedOutExample = Object.freeze({
   updates: Object.freeze([
     Object.freeze({
       date: "12/03/2025",
-      title: "The Twig Blights of Oakhurst",
+      title: "The Toll Is Paid",
       kind: "chapter" as const,
     }),
     Object.freeze({
       date: "10/03/2025",
-      title: "Find the missing Hucrele heirs",
+      title: LEDGER_QUEST.title,
       kind: "quest" as const,
     }),
     Object.freeze({
       date: "09/03/2025",
-      title: "Kerowyn Hucrele",
+      title: FERRYWOMAN.name,
       kind: "npc" as const,
     }),
   ]),

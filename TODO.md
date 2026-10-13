@@ -22,7 +22,7 @@ on the site is `high`, ahead of anything that would otherwise rank there.
 | medium | T139 | CI signs in to Google Cloud with long-lived keys | M | open | A leaked key deploys code that reads every group, and a PR's dependencies run beside the Hosting key |
 | medium | T141 | The site's contact address is a Gmail account | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
 | medium | T146 | The functions run as an Editor of the whole project | M | open | Any code deployed as a function, by CI's key (T139) or a poisoned dependency, reaches every resource in the project and can act as every service account in it; the roles it needs are measured |
-| low | T123 | Lord of the Rings screenshots in the README? | M | open | A question for the maintainer; the public home page's *Sunless Citadel* example raises the same question |
+| low | T123 | Lord of the Rings screenshots in the README? | M | open | A question for the maintainer |
 | low | T137 | An operator page: founder links, extraction limits, metrics | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 1 to 4a done; 4b waits on step 0 |
 | low | T075 | The header is crowded | M | needs scoping | Waits on the maintainer: which truncation was meant, and how much room the header gets back |
 | low | T054 | Sign in with Discord | L | needs scoping | Kept for later, not now (2026-10-02); Firebase has no built-in provider |
@@ -575,12 +575,10 @@ risk for a public repo and site? A question for the maintainer, not settled here
   sample data, which is Tolkien throughout (`utils/__dev__/generators/`). The home
   screenshot's banner painting and crest were uploaded images; where they came
   from was **not** traced.
-- **Same question, on the live site**: the public signed-out home shows Wizards
-  of the Coast's published adventure *The Sunless Citadel*, with its NPC and places
-  (`pages/home/signed-out-example.ts:48`). T075's 2026-10-03 decision covered
-  only the words "D&D".
-- **If the answer is yes**: invented sample data, new screenshots, and a new
-  example on the home page. That is the M.
+- **If the answer is yes**: invented dev sample data and new screenshots. That
+  is the M. The site's own examples, on signed-out Home and the signed-out
+  list pages, are already an invented setting (`shared/example-campaign`); the
+  dev data could reuse it.
 - **Source**: todo.txt, 2026-10-08
 
 ### T147 — Should `colour-schema.json` leave `docs/design/`?
