@@ -32,6 +32,19 @@ describe("SIGNED_OUT_EXAMPLE", () => {
     });
   });
 
+  // Home used to claim 23 NPCs and 9 locations while the list pages showed 3
+  // and 2. Counted from the fixture, the two cannot disagree.
+  it("counts what the example pages show", () => {
+    const value = (label: string) => SIGNED_OUT_EXAMPLE.stats.find((stat) => stat.label === label)?.value;
+    expect(value("Chapters")).toBe(EXAMPLE_CAMPAIGN.chapters.length);
+    expect(value("NPCs")).toBe(EXAMPLE_CAMPAIGN.npcs.length);
+    expect(value("Locations")).toBe(EXAMPLE_CAMPAIGN.locations.length);
+    expect(value("Open quests")).toBe(
+      EXAMPLE_CAMPAIGN.quests.filter((quest) => quest.status === "active").length
+    );
+    expect(SIGNED_OUT_EXAMPLE.subtitle).toContain(`${EXAMPLE_CAMPAIGN.chapters.length} sessions`);
+  });
+
   it("has three recent rows, each typed as real content", () => {
     expect(SIGNED_OUT_EXAMPLE.updates).toHaveLength(3);
     SIGNED_OUT_EXAMPLE.updates.forEach((update) => {

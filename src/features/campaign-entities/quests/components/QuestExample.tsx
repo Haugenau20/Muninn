@@ -28,8 +28,8 @@ const QuestExample: React.FC = () => (
             title: quest.title,
             status: quest.status,
             locationName: PLACE_NAME.get(quest.locationId),
-            objectivesDone: quest.objectivesDone,
-            objectivesTotal: quest.objectivesTotal,
+            objectivesDone: quest.objectives.filter((objective) => objective.completed).length,
+            objectivesTotal: quest.objectives.length,
           }}
         />
       </RosterRow>

@@ -333,12 +333,16 @@ describe("ChaptersPage", () => {
       mockUser = null;
       renderPage();
       const example = screen.getByTestId("roster-example");
-      EXAMPLE_CAMPAIGN.chapters.forEach((chapter) => {
-        expect(within(example).getByText(chapter.title)).toBeInTheDocument();
-        expect(within(example).getByText(chapter.summary)).toBeInTheDocument();
-      });
+      EXAMPLE_CAMPAIGN.chapters.forEach((chapter) =>
+        expect(within(example).getByText(chapter.title)).toBeInTheDocument()
+      );
+      EXAMPLE_CAMPAIGN.chapters
+        .filter((chapter) => chapter.summary)
+        .forEach((chapter) => expect(within(example).getByText(chapter.summary)).toBeInTheDocument());
       // The real row: read state, and the promoted current chapter's progress.
-      expect(within(example).getByText("Read")).toBeInTheDocument();
+      expect(within(example).getAllByText("Read")).toHaveLength(
+        EXAMPLE_CAMPAIGN.chapters.filter((chapter) => chapter.state === "read").length
+      );
       expect(within(example).getByText("40% through")).toBeInTheDocument();
       expect(within(example).queryAllByRole("button", { hidden: true })).toHaveLength(0);
       // Under the panel, whose sign-in stays the first thing to press.

@@ -40,13 +40,18 @@ const [REGION] = EXAMPLE_CAMPAIGN.locations;
 const [LEDGER_QUEST] = EXAMPLE_CAMPAIGN.quests;
 const [FERRYWOMAN] = EXAMPLE_CAMPAIGN.npcs;
 
+/** The quests still being worked on, as the quest page's "active" band counts them. */
+const OPEN_QUESTS = EXAMPLE_CAMPAIGN.quests.filter((quest) => quest.status === "active").length;
+
 /**
  * The static example shown on signed-out Home: the invented campaign whose
  * rows a stranger also sees under each list page's sign-in panel
  * (`shared/example-campaign`, T150), further along. One setting across the
  * public pages, and no published adventure on them (T123). The quest and the
  * person are taken from that fixture rather than retyped, so they cannot
- * drift from it; the chapter is this snapshot's own, fourteen sessions in.
+ * drift from it, and its numbers are counted from it: the list pages show
+ * the same campaign, so Home cannot claim more than they hold. The chapter is
+ * this snapshot's own, fourteen sessions in.
  *
  * It is never derived from live data and never fetched — if it drifts from
  * what the app actually renders, that is a bug in this file, not a reason to
@@ -54,17 +59,17 @@ const [FERRYWOMAN] = EXAMPLE_CAMPAIGN.npcs;
  */
 export const SIGNED_OUT_EXAMPLE: SignedOutExample = Object.freeze({
   campaignTitle: REGION.name,
-  subtitle: "Started 04/10/2024 · Chapter 14",
+  subtitle: `Started October 2024 · ${EXAMPLE_CAMPAIGN.chapters.length} sessions`,
   // Object.freeze is shallow, so the containing array is frozen here and
   // each element is frozen individually below -- otherwise
   // SIGNED_OUT_EXAMPLE.stats[0].value = 999 would type-check as `readonly`
   // but still succeed silently at runtime, contradicting "this is a fixed
   // picture" above.
   stats: Object.freeze([
-    Object.freeze({ label: "Chapters", value: 14 }),
-    Object.freeze({ label: "NPCs", value: 23 }),
-    Object.freeze({ label: "Locations", value: 9 }),
-    Object.freeze({ label: "Open quests", value: 4 }),
+    Object.freeze({ label: "Chapters", value: EXAMPLE_CAMPAIGN.chapters.length }),
+    Object.freeze({ label: "NPCs", value: EXAMPLE_CAMPAIGN.npcs.length }),
+    Object.freeze({ label: "Locations", value: EXAMPLE_CAMPAIGN.locations.length }),
+    Object.freeze({ label: "Open quests", value: OPEN_QUESTS }),
   ]),
   updates: Object.freeze([
     Object.freeze({

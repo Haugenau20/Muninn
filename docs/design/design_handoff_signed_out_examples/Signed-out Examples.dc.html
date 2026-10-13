@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet"><style>body{margin:0;background:#f0eee9;font-family:system-ui,sans-serif}a{color:#D69253}a:hover{color:#BF7C3C}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55);max-width:1280px}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}input::placeholder{color:#9E978F}</style></helmet>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Signed-out Home</span></div>
+<div style="max-width:860px;margin:0 0 28px;font:13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.7);text-wrap:pretty"><p style="margin:0">Recreated from <code>SignedOutHome.tsx</code> + <code>signed-out-example.ts</code>. <a class="dv-oid" href="#3a">3a</a> is today, for reference. <a class="dv-oid" href="#3b">3b</a> changes six things:</p><ul style="margin:6px 0 0;padding-left:18px"><li>stats are computed from the example fixture, so they match the list pages</li><li>tiles and update rows link into the live samples</li><li>update rows show a sigil and a status</li><li>invite-only gets its own line</li><li>the bullets become links to the example</li><li>dates can't be misread</li></ul></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Home · Today (dark), for reference. The card claims 23 NPCs, 9 locations and 4 open quests, while the list pages show 3, 2 and 1.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:48px 16px;font-family:Archivo,system-ui,sans-serif"><div style="max-width:1248px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+<div>
+<h1 style="margin:0 0 24px;font:700 48px/1.15 'Zilla Slab',Georgia,serif;color:#E9E1D9;text-wrap:balance">Everything your table agreed happened, in one place</h1>
+<p style="margin:0 0 32px;font:400 16px/1.6 Archivo,sans-serif;color:#AEA69F">Chapters, quests, NPCs, locations, rumours and your own notes — written by whoever is at the table, credited to the character they play. To get in, ask whoever set up your campaign for a join link.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px"><a href="#3a" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#3a" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<p style="margin:0 0 40px;padding-top:14px;border-top:1px solid #3B3630;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px"><span style="font:italic 600 15px/1.4 'Zilla Slab',Georgia,serif;color:#E9E1D9">Muninn was Odin's raven of memory.</span><a href="#3a" style="font:400 14px/20px Archivo,sans-serif;color:#D69253;text-decoration:underline;text-underline-offset:3px">About the name</a></p>
+<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px"><li style="font:400 16px/1.6 Archivo,sans-serif;color:#AEA69F">· A chapter log the whole group can add to, in play order</li><li style="font:400 16px/1.6 Archivo,sans-serif;color:#AEA69F">· Quests with objectives, and rumours you can mark true or false</li><li style="font:400 16px/1.6 Archivo,sans-serif;color:#AEA69F">· Your own session notes — AI pulls out the NPCs, locations and quests it finds</li></ul>
+</div>
+<div>
+<div style="display:flex;margin-bottom:12px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example campaign</span></div>
+<div style="padding:24px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<h3 style="margin:0 0 4px;font:600 26px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">The Ashen Vale</h3>
+<p style="margin:0 0 24px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Started 04/10/2024 · Chapter 14</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-bottom:24px;border-radius:4px;overflow:hidden;background:#342F2A">
+<div style="padding:12px;background:#2A2520"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">14</div><div style="font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F">Chapters</div></div>
+<div style="padding:12px;background:#2A2520"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">23</div><div style="font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F">NPCs</div></div>
+<div style="padding:12px;background:#2A2520"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">9</div><div style="font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F">Locations</div></div>
+<div style="padding:12px;background:#2A2520"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">4</div><div style="font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F">Open quests</div></div>
+</div>
+<div style="margin-bottom:8px;font:400 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Since you last played</div>
+<ul style="margin:0;padding:0;list-style:none">
+<li style="display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid #3B3630"><span style="flex:none;font:400 14px/20px Archivo,sans-serif;color:#9E978F">12/03/2025</span><span style="flex:1;font:600 16px/24px Archivo,sans-serif;color:#E9E1D9">The Toll Is Paid</span><span style="flex:none;font:400 12px/16px Archivo,sans-serif;color:#9E978F">chapter</span></li>
+<li style="display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid #3B3630"><span style="flex:none;font:400 14px/20px Archivo,sans-serif;color:#9E978F">10/03/2025</span><span style="flex:1;font:600 16px/24px Archivo,sans-serif;color:#E9E1D9">Recover the drowned ledger</span><span style="flex:none;font:400 12px/16px Archivo,sans-serif;color:#9E978F">quest</span></li>
+<li style="display:flex;align-items:baseline;gap:12px;padding:8px 0"><span style="flex:none;font:400 14px/20px Archivo,sans-serif;color:#9E978F">09/03/2025</span><span style="flex:1;font:600 16px/24px Archivo,sans-serif;color:#E9E1D9">Odile Marrow</span><span style="flex:none;font:400 12px/16px Archivo,sans-serif;color:#9E978F">npc</span></li>
+</ul>
+</div>
+</div>
+</div></div></div></div>
+
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Home · v2. The example card is the way in: each tile opens the matching live sample (<a class="dv-oid" href="#2c">2c</a>, <a class="dv-oid" href="#1d">1d</a>, <a class="dv-oid" href="#1h">1h</a>, <a class="dv-oid" href="#2a">2a</a>) and each update row opens its record. The numbers come from the fixture.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:48px 16px;font-family:Archivo,system-ui,sans-serif"><div style="max-width:1248px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start">
+<div>
+<h1 style="margin:0 0 24px;font:700 48px/1.15 'Zilla Slab',Georgia,serif;color:#E9E1D9;text-wrap:balance">Everything your table agreed happened, in one place</h1>
+<p style="margin:0 0 24px;font:400 16px/1.6 Archivo,sans-serif;color:#AEA69F;text-wrap:pretty">Chapters, quests, NPCs, locations, rumours and your own notes — written by whoever is at the table, credited to the character they play.</p>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:400 14px/20px Archivo,sans-serif;color:#E9E1D9">Invite only for now. Ask whoever set up your campaign for a join link.</span></div>
+<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px"><a href="#3b" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#3b" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<p style="margin:0 0 36px;padding-top:14px;border-top:1px solid #3B3630;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px"><span style="font:italic 600 15px/1.4 'Zilla Slab',Georgia,serif;color:#E9E1D9">Muninn was Odin's raven of memory.</span><a href="#3b" style="font:400 14px/20px Archivo,sans-serif;color:#D69253;text-decoration:underline;text-underline-offset:3px">About the name</a></p>
+<ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column">
+<li style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #2F2A25"><span style="font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">A chapter log the whole group can add to, in play order</span><a href="#2c" style="flex:none;font:600 14px/20px Archivo,sans-serif;color:#D69253;text-decoration:none" style-hover="color:#BF7C3C;text-decoration:underline">See the story →</a></li>
+<li style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #2F2A25"><span style="font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Quests with objectives, and rumours you can mark true or false</span><a href="#2b" style="flex:none;font:600 14px/20px Archivo,sans-serif;color:#D69253;text-decoration:none" style-hover="color:#BF7C3C;text-decoration:underline">See the rumours →</a></li>
+<li style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:10px 0"><span style="font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Your own session notes — AI pulls out the NPCs, locations and quests it finds</span><span style="flex:none;font:400 14px/20px Archivo,sans-serif;color:#9E978F">Members only</span></li>
+</ul>
+</div>
+<div>
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example campaign</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">Click around, nothing is saved</span></div>
+<div style="padding:24px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<h3 style="margin:0 0 4px;font:600 26px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">The Ashen Vale</h3>
+<p style="margin:0 0 24px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Started October 2024 · 14 sessions</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-bottom:24px;border-radius:4px;overflow:hidden;background:#3B3630">
+<a href="#2c" style="display:block;padding:12px;background:#2A2520;text-decoration:none" style-hover="background:#342F2A"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">14</div><div style="display:flex;justify-content:space-between;font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F"><span>Chapters</span><span style="color:#D69253">→</span></div></a>
+<a href="#1d" style="display:block;padding:12px;background:#2A2520;text-decoration:none" style-hover="background:#342F2A"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">10</div><div style="display:flex;justify-content:space-between;font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F"><span>NPCs</span><span style="color:#D69253">→</span></div></a>
+<a href="#1h" style="display:block;padding:12px;background:#2A2520;text-decoration:none" style-hover="background:#342F2A"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">10</div><div style="display:flex;justify-content:space-between;font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F"><span>Locations</span><span style="color:#D69253">→</span></div></a>
+<a href="#2a" style="display:block;padding:12px;background:#2A2520;text-decoration:none" style-hover="background:#342F2A"><div style="font:700 24px/32px Archivo,sans-serif;color:#E9E1D9">5</div><div style="display:flex;justify-content:space-between;font:400 12px/16px Archivo,sans-serif;letter-spacing:.025em;text-transform:uppercase;color:#9E978F"><span>Open quests</span><span style="color:#D69253">→</span></div></a>
+</div>
+<div style="margin-bottom:8px;font:400 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Since you last played</div>
+<ul style="margin:0;padding:0;list-style:none">
+<li><a href="#2c" style="display:flex;align-items:center;gap:12px;padding:10px 8px;margin:0 -8px;border-bottom:1px solid #3B3630;border-radius:4px;text-decoration:none" style-hover="background:#342F2A"><span style="flex:none;width:72px;font:400 14px/20px Archivo,sans-serif;color:#9E978F">12 Mar</span><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:#15110C;border:1px solid #3B3630;box-sizing:border-box;color:#AEA69F;font:500 12px/1 Archivo,sans-serif">12</span><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:600 16px/1.4 'Zilla Slab',Georgia,serif;color:#E9E1D9">The Toll Is Paid</span><span style="font:400 13px/18px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">We paid, and it cost more than coin.</span></span><span style="flex:none;font:600 14px/20px Archivo,sans-serif;color:#AEA69F">Chapter</span></a></li>
+<li><a href="#2a" style="display:flex;align-items:center;gap:12px;padding:10px 8px;margin:0 -8px;border-bottom:1px solid #3B3630;border-radius:4px;text-decoration:none" style-hover="background:#342F2A"><span style="flex:none;width:72px;font:400 14px/20px Archivo,sans-serif;color:#9E978F">10 Mar</span><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:#454A26;color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">R</span><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:600 16px/1.4 'Zilla Slab',Georgia,serif;color:#E9E1D9">Recover the drowned ledger</span><span style="font:400 13px/18px Archivo,sans-serif;color:#AEA69F">Quest · Cinderford · 1 of 3 objectives</span></span><span style="flex:none;font:600 14px/20px Archivo,sans-serif;color:#A59B45">Active</span></a></li>
+<li><a href="#1d" style="display:flex;align-items:center;gap:12px;padding:10px 8px;margin:0 -8px;border-radius:4px;text-decoration:none" style-hover="background:#342F2A"><span style="flex:none;width:72px;font:400 14px/20px Archivo,sans-serif;color:#9E978F">9 Mar</span><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:#2A503C;color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">O</span><span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:600 16px/1.4 'Zilla Slab',Georgia,serif;color:#E9E1D9">Odile Marrow</span><span style="font:400 13px/18px Archivo,sans-serif;color:#AEA69F">NPC · Keeper of the Cinderford crossing</span></span><span style="flex:none;font:600 14px/20px Archivo,sans-serif;color:#7EAB7A">Friendly</span></a></li>
+</ul>
+<div style="margin-top:16px;padding-top:16px;border-top:1px solid #3B3630;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">10 rumours gathered, 2 of them false</span><a href="#2b" style="font:600 14px/20px Archivo,sans-serif;color:#D69253;text-decoration:none" style-hover="text-decoration:underline">Open the example →</a></div>
+</div>
+</div>
+</div></div></div></div>
+
+</div>
+<p class="dv-next">Try next: "<a class="dv-oid" href="#3b">3b</a> on a phone" · "keep the bullets plain like <a class="dv-oid" href="#3a">3a</a>" · "add the header chrome"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Quests, Rumours and Chapters in the live-sample pattern from <a class="dv-oid" href="#1d">1d</a> / <a class="dv-oid" href="#1h">1h</a></span></div>
+<div style="max-width:860px;margin:0 0 28px;font:13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.7);display:flex;flex-direction:column;gap:8px;text-wrap:pretty">
+<p style="margin:0">Same setting, built on QuestRowCells, RumorRowCells and ChapterRowView. Each page's groups, collapse defaults and run-collapsing come from its directory: Completed and Failed quests start folded, False rumours start folded, and chapters 1–10 collapse to one line. The member-only parts are left out: Select buttons, the rumour composer, and the List/Shelf toggle. The quest and rumour rows don't expand, because I haven't read their expanded content yet.</p>
+<p style="margin:0">One fixture change: "Find Brother Aldous" is now Active, not Completed, because Aldous is listed as Missing on the NPC page.</p>
+</div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Quests · live sample. Bands, search and the location select all filter, and the folded groups open.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Campaign Quests</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Track your party's epic adventures and missions</p></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to see your party's quests</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Below is an example campaign, so try it. Your own quests are private to your group.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#2a" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#2a" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:-16px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">The Ashen Vale · try the filters</span></div>
+<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px;flex:none"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ qTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">sworn so far</span></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ qBands }}" as="b" hint-placeholder-count="3"><span onClick="{{ b.onClick }}" style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }};opacity:{{ b.op }};cursor:pointer"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ qSegs }}" as="s" hint-placeholder-count="3"><button type="button" onClick="{{ s.onClick }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:{{ s.weight }} 14px/20px Archivo,sans-serif;color:#E9E1D9;text-decoration:{{ s.underline }}"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</button></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><label style="flex:1 1 320px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ qQ }}" onChange="{{ onQQ }}" placeholder="Search quests..." style="flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 16px/24px Archivo,sans-serif;color:#E9E1D9"></label><select value="{{ qLoc }}" onChange="{{ onQLoc }}" aria-label="Filter by location" style="cursor:pointer;padding:6px 12px;background:#201B16;border:1px solid {{ qLocBorder }};border-radius:6px;font:{{ qLocWeight }} 14px/20px Archivo,sans-serif;color:#D69253"><sc-for list="{{ qLocOpts }}" as="o" hint-placeholder-count="1"><option value="{{ o.v }}">{{ o.label }}</option></sc-for></select></div>
+<sc-if value="{{ qEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 24px;text-align:center;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><h3 style="margin:0 0 6px;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">No quests match these filters</h3><p style="margin:0 auto;max-width:448px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Try a different search term, or clear the filters to see everything the party has taken on.</p></div></sc-if>
+<sc-for list="{{ qGroups }}" as="g" hint-placeholder-count="3">
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px">
+<sc-if value="{{ g.collapsible }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ g.onToggle }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E9E1D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ g.rot }};transition:transform .2s"><path d="m9 18 6-6-6-6"></path></svg><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ g.title }}</h3></button></sc-if>
+<sc-if value="{{ g.fixed }}" hint-placeholder-val="{{ true }}"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ g.title }}</h3></sc-if>
+<span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ g.count }}</span></div>
+<sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}"><div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #3B3630"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.7fr) 130px 190px 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.loc }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.sColor }}">{{ r.sLabel }}</span><div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.prog }}</span><sc-if value="{{ r.hasObj }}" hint-placeholder-val="{{ true }}"><div style="height:6px;border-radius:999px;background:#15110C"><div style="height:6px;border-radius:999px;width:{{ r.pct }};background:{{ r.fill }}"></div></div></sc-if></div><span></span></div></div>
+</sc-for></div></div></sc-if></section>
+</sc-for>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Rumours · live sample. Every source type is used, three rumours became quests, and False is folded with the strike shown.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Rumours</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Track and investigate rumours from across the realm</p></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to hear what the realm is saying</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Below is an example campaign, so try it. Your own rumours are private to your group.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#2b" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#2b" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:-16px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">The Ashen Vale · try the filters</span></div>
+<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px;flex:none"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ rTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">rumours gathered</span></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ rBands }}" as="b" hint-placeholder-count="3"><span onClick="{{ b.onClick }}" style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }};opacity:{{ b.op }};cursor:pointer"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ rSegs }}" as="s" hint-placeholder-count="3"><button type="button" onClick="{{ s.onClick }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:{{ s.weight }} 14px/20px Archivo,sans-serif;color:#E9E1D9;text-decoration:{{ s.underline }}"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</button></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><label style="flex:1 1 320px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ rQ }}" onChange="{{ onRQ }}" placeholder="Search rumours..." style="flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 16px/24px Archivo,sans-serif;color:#E9E1D9"></label><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ rSrcOpts }}" as="p" hint-placeholder-count="6"><button type="button" onClick="{{ p.onClick }}" style="cursor:pointer;padding:6px 12px;background:transparent;border:1px solid {{ p.border }};border-radius:6px;font:{{ p.weight }} 14px/20px Archivo,sans-serif;color:#D69253" style-hover="background:#29241F">{{ p.label }}</button></sc-for></div></div>
+<sc-if value="{{ rEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 24px;text-align:center;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><h3 style="margin:0 0 6px;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">No rumours match these filters</h3><p style="margin:0 auto;max-width:448px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Try a different search term, or clear the filters to see everything the party has heard.</p></div></sc-if>
+<sc-for list="{{ rGroups }}" as="g" hint-placeholder-count="3">
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px">
+<sc-if value="{{ g.collapsible }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ g.onToggle }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E9E1D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ g.rot }};transition:transform .2s"><path d="m9 18 6-6-6-6"></path></svg><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ g.title }}</h3></button></sc-if>
+<sc-if value="{{ g.fixed }}" hint-placeholder-val="{{ true }}"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ g.title }}</h3></sc-if>
+<span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ g.count }}</span></div>
+<sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}"><div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #3B3630"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.6fr) 128px 128px 150px 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.src }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.sColor }};text-decoration:{{ r.deco }};text-decoration-thickness:1px">{{ r.sLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.srcLabel }}</span><span style="display:flex;align-items:center;gap:6px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap"><sc-if value="{{ r.quest }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M19 17V5a2 2 0 0 0-2-2H4"></path><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"></path></svg>Converted to quest</sc-if><sc-if value="{{ r.noQuest }}" hint-placeholder-val="{{ true }}">—</sc-if></span><span></span></div></div>
+</sc-for></div></div></sc-if></section>
+</sc-for>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Chapters · live sample. 14 chapters (matching Home's "Chapter 14"), with 1–10 folded into one run. "Show" opens the run, and the search and All/Unread filters work.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Session Chronicles</h1></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to read your campaign's story</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Below is an example campaign's chapter log. Your own story is private to your group.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#2c" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#2c" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:-8px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">The Ashen Vale · fourteen sessions in</span></div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><input value="{{ cQ }}" onChange="{{ onCQ }}" placeholder="Search chapter titles and summaries" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520;outline:0;font:400 16px/24px Archivo,sans-serif;color:#E9E1D9"><div style="display:flex;gap:8px"><sc-for list="{{ cModes }}" as="m" hint-placeholder-count="2"><button type="button" onClick="{{ m.onClick }}" style="cursor:pointer;border:0;padding:6px 12px;border-radius:999px;background:{{ m.bg }};color:{{ m.color }};font:500 14px/20px Archivo,sans-serif" style-hover="background:#342F2A">{{ m.label }}</button></sc-for></div></div>
+<sc-if value="{{ cEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 24px;text-align:center;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><h3 style="margin:0 0 6px;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">No chapters match this view</h3><p style="margin:0 auto;max-width:448px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Try a different search term, or switch back to All to see every chapter recorded so far.</p></div></sc-if>
+<sc-if value="{{ cAny }}" hint-placeholder-val="{{ true }}"><div style="background:#2A2520;border:1px solid #3B3630;border-radius:8px;overflow:hidden">
+<sc-for list="{{ cGroups }}" as="g" hint-placeholder-count="2"><div>
+<div style="padding:24px 12px 8px"><h4 style="margin:0;font:600 20px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ g.label }}</h4><div style="margin-top:8px;border-top:1px solid #3B3630"></div></div>
+<div style="padding:0 12px"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+<sc-if value="{{ r.isRun }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px;border-bottom:1px solid #3B3630"><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.label }}</span><button type="button" onClick="{{ r.onToggle }}" style="cursor:pointer;border:0;background:transparent;padding:6px 12px;border-radius:6px;color:#AEA69F;font:500 14px/20px Archivo,sans-serif" style-hover="background:#29241F">{{ r.btn }}</button></div></sc-if>
+<sc-if value="{{ r.isChapter }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid #3B3630;border-left:{{ r.bl }};background:{{ r.bg }}"><div style="width:44px;flex:none;text-align:center;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.order }}</div><div style="flex:1;min-width:0"><div style="font:{{ r.titleFont }};color:{{ r.titleColor }}">{{ r.title }}</div><sc-if value="{{ r.hasSummary }}" hint-placeholder-val="{{ true }}"><div style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.summary }}</div></sc-if><sc-if value="{{ r.isCurrent }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;display:flex;align-items:center;gap:8px"><div style="height:8px;flex:1;border-radius:999px;background:#15110C"><div style="height:100%;border-radius:999px;background:#D69253;width:{{ r.pctW }}"></div></div><span style="flex:none;font:400 12px/16px Archivo,sans-serif;color:#AEA69F">{{ r.pctLabel }}</span></div></sc-if></div><div style="width:96px;flex:none;display:flex;align-items:center;gap:4px"><sc-if value="{{ r.isRead }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7EAB7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M20 6 9 17l-5-5"></path></svg><span style="font:400 14px/20px Archivo,sans-serif;color:#7EAB7A">Read</span></sc-if><sc-if value="{{ r.isReading }}" hint-placeholder-val="{{ false }}"><span style="font:400 14px/20px Archivo,sans-serif;color:#D69253">Reading</span></sc-if></div></div></sc-if>
+</sc-for></div>
+</div></sc-for>
+</div></sc-if>
+</div>
+</div></div></div>
+
+</div>
+<p class="dv-next">Try next: "add the expanded quest and rumour rows" · "show <a class="dv-oid" href="#2c">2c</a> as the shelf view" · "do signed-out Home in the same style"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Signed-out example data · NPCs and Locations · dark theme</span></div>
+<div style="max-width:860px;margin:0 0 28px;font:13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.7);display:flex;flex-direction:column;gap:8px;text-wrap:pretty">
+<p style="margin:0"><b>What I think is wrong today:</b> the example shows 3 people and 2 places, with no status bar, no search, no filters and no location groups. A visitor sees a sparse, unfinished-looking list, while the real directory (your 22 NPCs) is a busy, grouped, filterable record. The example undersells the product.</p>
+<p style="margin:0"><b>What changes:</b> the Ashen Vale setting grows to 10 NPCs and 10 locations. Every row uses the real cells (NPCRowCells / LocationRowCells), tokens come from colour-schema.json (dark), and there's still no invented author anywhere. That's why the expanded row in <a class="dv-oid" href="#1d">1d</a> leaves out "Recorded by". Member-only controls (Add NPC, Select NPCs) are left out.</p>
+<p style="margin:0"><b>Options:</b> <a class="dv-oid" href="#1a">1a</a>/<a class="dv-oid" href="#1e">1e</a> are today's pages for comparison. <a class="dv-oid" href="#1b">1b</a>/<a class="dv-oid" href="#1f">1f</a> are the full page, inert, under the panel. <a class="dv-oid" href="#1c">1c</a>/<a class="dv-oid" href="#1g">1g</a> put the example beside the panel so it's above the fold. <a class="dv-oid" href="#1d">1d</a>/<a class="dv-oid" href="#1h">1h</a> are a live sample with a slim sign-in banner, and their filters, bands, search and row expand all work.</p>
+</div>
+
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>NPCs · Today (dark), for reference</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">NPCs</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Keep track of all the characters you've met in your adventures</p></div>
+<div style="margin:0 auto;width:100%;max-width:560px;box-sizing:border-box;padding:32px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Private campaign</span></div>
+<h2 style="margin:0 0 16px;font:600 28px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">Sign in to see who your party has met</h2>
+<p style="margin:0 0 24px;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">NPCs are everyone the party has dealt with: allies, patrons, rivals, and the ones nobody trusts yet.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px"><a href="#1a" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1a" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<hr style="margin:24px 0;border:0;border-top:1px solid #3B3630">
+<p style="margin:0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">New here? <a href="#1a" style="font-weight:600;color:#D69253;text-decoration:none">See what the site does</a></p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="align-self:flex-start;padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px">
+<sc-for list="{{ npcToday }}" as="r" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #3B3630"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.5fr) 112px 132px minmax(0,1.15fr) 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.pColor }};text-decoration:{{ r.deco }};text-decoration-thickness:1px">{{ r.pLabel }}</span><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.dColor }}">{{ r.dLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.occ }}</span><span></span></div></div>
+</sc-for>
+</div></div></div>
+</div></div></div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>NPCs · Full page, inert, under the panel. Same order as today, but the example is the whole directory: status bar, search, stance pills, location groups, 10 people (two dead, one missing, one unknown, one with no occupation).</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">NPCs</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Keep track of all the characters you've met in your adventures</p></div>
+<div style="margin:0 auto;width:100%;max-width:560px;box-sizing:border-box;padding:32px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Private campaign</span></div>
+<h2 style="margin:0 0 16px;font:600 28px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">Sign in to see who your party has met</h2>
+<p style="margin:0 0 24px;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">NPCs are everyone the party has dealt with: allies, patrons, rivals, and the ones nobody trusts yet.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px"><a href="#1b" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1b" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<hr style="margin:24px 0;border:0;border-top:1px solid #3B3630">
+<p style="margin:0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">New here? <a href="#1b" style="font-weight:600;color:#D69253;text-decoration:none">See what the site does</a></p>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px">
+<span style="align-self:flex-start;padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;margin-bottom:-16px">Example</span>
+<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px;flex:none"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ npcTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">met so far</span></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ npcBands }}" as="b" hint-placeholder-count="4"><span style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }}"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ npcSegs }}" as="s" hint-placeholder-count="4"><span style="display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:400 14px/20px Archivo,sans-serif;color:#E9E1D9"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</span></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1 1 320px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="font:400 16px/24px Archivo,sans-serif;color:#9E978F">Search name, title or description</span></div><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ relOpts }}" as="p" hint-placeholder-count="5"><span style="padding:6px 12px;border:1px solid #8C857D;border-radius:6px;font:400 14px/20px Archivo,sans-serif;color:#D69253">{{ p.label }}</span></sc-for></div></div>
+<sc-for list="{{ npcGroups }}" as="g" hint-placeholder-count="5">
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:{{ g.titleColor }}">{{ g.title }}</h3><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ g.count }}</span><sc-if value="{{ g.link }}" hint-placeholder-val="{{ true }}"><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;text-decoration:underline;text-underline-offset:2px">Open location</span></sc-if></div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #3B3630"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.5fr) 112px 132px minmax(0,1.15fr) 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.pColor }};text-decoration:{{ r.deco }};text-decoration-thickness:1px">{{ r.pLabel }}</span><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.dColor }}">{{ r.dLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.occ }}</span><span></span></div></div>
+</sc-for></div></div></section>
+</sc-for>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>NPCs · Side by side. The example sits above the fold on the left, and a compact sticky panel on the right keeps sign-in in view while the visitor scrolls.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">NPCs</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Keep track of all the characters you've met in your adventures</p></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px;min-width:0">
+<span style="align-self:flex-start;padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;margin-bottom:-16px">Example</span>
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ npcTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">met so far</span></div><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ npcBands }}" as="b" hint-placeholder-count="4"><span style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }}"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ npcSegs }}" as="s" hint-placeholder-count="4"><span style="display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:400 14px/20px Archivo,sans-serif;color:#E9E1D9"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</span></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1 1 240px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="font:400 16px/24px Archivo,sans-serif;color:#9E978F">Search name, title or description</span></div><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ relOpts }}" as="p" hint-placeholder-count="5"><span style="padding:6px 12px;border:1px solid #8C857D;border-radius:6px;font:400 14px/20px Archivo,sans-serif;color:#D69253">{{ p.label }}</span></sc-for></div></div>
+<sc-for list="{{ npcGroups }}" as="g" hint-placeholder-count="5">
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:{{ g.titleColor }}">{{ g.title }}</h3><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ g.count }}</span><sc-if value="{{ g.link }}" hint-placeholder-val="{{ true }}"><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;text-decoration:underline;text-underline-offset:2px">Open location</span></sc-if></div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #3B3630"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.5fr) 92px 92px minmax(0,1fr) 10px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.pColor }};text-decoration:{{ r.deco }};text-decoration-thickness:1px">{{ r.pLabel }}</span><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.dColor }}">{{ r.dLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.occ }}</span><span></span></div></div>
+</sc-for></div></div></section>
+</sc-for>
+</div>
+<div style="position:sticky;top:24px;box-sizing:border-box;padding:28px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Private campaign</span></div>
+<h2 style="margin:0 0 12px;font:600 24px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9;text-wrap:balance">Sign in to see who your party has met</h2>
+<p style="margin:0 0 24px;font:400 15px/1.5 Archivo,sans-serif;color:#AEA69F">NPCs are everyone the party has dealt with: allies, patrons, rivals, and the ones nobody trusts yet.</p>
+<div style="display:flex;flex-direction:column;gap:10px"><a href="#1c" style="text-align:center;padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1c" style="text-align:center;padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<hr style="margin:24px 0;border:0;border-top:1px solid #3B3630">
+<p style="margin:0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">New here? <a href="#1c" style="font-weight:600;color:#D69253;text-decoration:none">See what the site does</a></p>
+</div>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="1d"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>NPCs · Live sample. Sign-in shrinks to a band at the top, and the example works: click a band, a stance pill, search, or open a row. Vesk starts open so the visitor sees there's more inside a row.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">NPCs</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Keep track of all the characters you've met in your adventures</p></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to see who your party has met</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Below is an example campaign, so try it. Your own NPCs are private to your group.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#1d" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1d" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:-16px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">The Ashen Vale · try the filters</span></div>
+<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px;flex:none"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ npcTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">met so far</span></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ dNpcBands }}" as="b" hint-placeholder-count="4"><span onClick="{{ b.onClick }}" style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }};opacity:{{ b.op }};cursor:pointer"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ dNpcSegs }}" as="s" hint-placeholder-count="4"><button type="button" onClick="{{ s.onClick }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:{{ s.weight }} 14px/20px Archivo,sans-serif;color:#E9E1D9;text-decoration:{{ s.underline }}"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</button></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><label style="flex:1 1 320px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ dNpcQ }}" onChange="{{ onNpcQ }}" placeholder="Search name, title or description" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 16px/24px Archivo,sans-serif;color:#E9E1D9"></label><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ dRelOpts }}" as="p" hint-placeholder-count="5"><button type="button" onClick="{{ p.onClick }}" style="cursor:pointer;padding:6px 12px;background:transparent;border:1px solid {{ p.border }};border-radius:6px;font:{{ p.weight }} 14px/20px Archivo,sans-serif;color:#D69253" style-hover="background:#29241F">{{ p.label }}</button></sc-for></div></div>
+<sc-if value="{{ dNpcEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 24px;text-align:center;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><h3 style="margin:0 0 6px;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">No NPCs match these filters</h3><p style="margin:0 auto;max-width:448px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Try a different search term, or clear the filters to see everyone you have met.</p></div></sc-if>
+<sc-for list="{{ dNpcGroups }}" as="g" hint-placeholder-count="5">
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:{{ g.titleColor }}">{{ g.title }}</h3><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ g.count }}</span><sc-if value="{{ g.link }}" hint-placeholder-val="{{ true }}"><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;text-decoration:underline;text-underline-offset:2px">Open location</span></sc-if></div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
+<div style="border-top:1px solid #3B3630;background:{{ r.bg }}">
+<button type="button" onClick="{{ r.onToggle }}" style="all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;align-items:center;gap:16px;padding:14px 20px" style-hover="background:#342F2A"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1.5fr) 112px 132px minmax(0,1.15fr) 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.pColor }};text-decoration:{{ r.deco }};text-decoration-thickness:1px">{{ r.pLabel }}</span><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.dColor }}">{{ r.dLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.occ }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="justify-self:end;transform:{{ r.rot }};transition:transform .2s"><path d="m6 9 6 6 6-6"></path></svg></div></button>
+<sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}"><div style="padding:16px 20px 20px;border-top:1px solid #3B3630;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:24px">
+<div style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#9E978F">Description</span><span style="font:400 14px/20px Archivo,sans-serif;color:#E9E1D9;text-wrap:pretty">{{ r.desc }}</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#9E978F">Stance</span><div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ r.ladder }}" as="l" hint-placeholder-count="4"><span style="padding:4px 12px;border-radius:6px;border:1px solid {{ l.border }};outline:{{ l.outline }};outline-offset:-2px;font:{{ l.weight }} 14px/20px Archivo,sans-serif;color:{{ l.color }}">{{ l.label }}</span></sc-for></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#9E978F">Notes</span><span style="font:italic 400 14px/20px Archivo,sans-serif;color:#9E978F">{{ r.notes }}</span></div></div>
+<div style="display:flex;flex-direction:column;gap:16px"><div style="display:flex;flex-direction:column;gap:6px"><span style="font:600 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#9E978F">Race</span><span style="font:400 14px/20px Archivo,sans-serif;color:#E9E1D9">{{ r.race }}</span></div><div style="display:flex;gap:8px;margin-top:4px"><span style="padding:6px 12px;border-radius:6px;border:1px solid #8C857D;color:#D69253;font:500 14px/20px Archivo,sans-serif">More info</span></div></div>
+</div></sc-if>
+</div>
+</sc-for></div></div></section>
+</sc-for>
+</div>
+</div></div></div>
+
+</div>
+
+<div style="height:48px"></div>
+
+<div class="dv-opts">
+
+<div class="dv-opt" id="1e"><div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Locations · Today (dark), for reference</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Explore and track the places you've discovered in your adventures</p></div>
+<div style="margin:0 auto;width:100%;max-width:560px;box-sizing:border-box;padding:32px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Private campaign</span></div>
+<h2 style="margin:0 0 16px;font:600 28px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">Sign in to see where your party has been</h2>
+<p style="margin:0 0 24px;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Locations are the places the party has visited, heard of, or is still trying to find, and what happened at each.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px"><a href="#1e" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1e" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<hr style="margin:24px 0;border:0;border-top:1px solid #3B3630">
+<p style="margin:0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">New here? <a href="#1e" style="font-weight:600;color:#D69253;text-decoration:none">See what the site does</a></p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="align-self:flex-start;padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px">
+<sc-for list="{{ locToday }}" as="r" hint-placeholder-count="2">
+<div style="display:flex;align-items:stretch;border-top:1px solid #3B3630"><div style="flex:none;width:{{ r.indent }};border-right:{{ r.rail }}"></div><div style="flex:1;min-width:0;display:flex;align-items:center;gap:16px;padding:14px 20px"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 112px 200px 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.detail }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.sColor }}">{{ r.sLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.inside }}</span><span></span></div></div></div>
+</sc-for>
+</div></div></div>
+</div></div></div>
+
+<div class="dv-opt" id="1f"><div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Locations · Full page, inert, under the panel. Ten places, three levels deep, all three knowledge steps used, plus two places with nothing recorded yet (the honest case).</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Explore and track the places you've discovered in your adventures</p></div>
+<div style="margin:0 auto;width:100%;max-width:560px;box-sizing:border-box;padding:32px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Private campaign</span></div>
+<h2 style="margin:0 0 16px;font:600 28px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">Sign in to see where your party has been</h2>
+<p style="margin:0 0 24px;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Locations are the places the party has visited, heard of, or is still trying to find, and what happened at each.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px"><a href="#1f" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1f" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<hr style="margin:24px 0;border:0;border-top:1px solid #3B3630">
+<p style="margin:0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">New here? <a href="#1f" style="font-weight:600;color:#D69253;text-decoration:none">See what the site does</a></p>
+</div>
+<div style="display:flex;flex-direction:column;gap:24px">
+<span style="align-self:flex-start;padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;margin-bottom:-16px">Example</span>
+<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px;flex:none"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ locTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">charted so far</span></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ locBands }}" as="b" hint-placeholder-count="3"><span style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }}"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ locSegs }}" as="s" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:400 14px/20px Archivo,sans-serif;color:#E9E1D9"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</span></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1 1 280px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="font:400 16px/24px Archivo,sans-serif;color:#9E978F">Search locations...</span></div><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ typeOpts }}" as="p" hint-placeholder-count="9"><span style="padding:6px 12px;border:1px solid #8C857D;border-radius:6px;font:400 14px/20px Archivo,sans-serif;color:#D69253">{{ p.label }}</span></sc-for></div></div>
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h3><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ locTopCount }}</span></div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px">
+<sc-for list="{{ locRows }}" as="r" hint-placeholder-count="10">
+<div style="display:flex;align-items:stretch;border-top:1px solid #3B3630"><div style="flex:none;width:{{ r.indent }};border-right:{{ r.rail }}"></div><div style="flex:1;min-width:0;display:flex;align-items:center;gap:16px;padding:14px 20px"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 112px 200px 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.detail }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.sColor }}">{{ r.sLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.inside }}</span><span></span></div></div></div>
+</sc-for>
+</div></div></section>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="1g"><div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Locations · Side by side, with a sticky panel</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Explore and track the places you've discovered in your adventures</p></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start">
+<div style="display:flex;flex-direction:column;gap:24px;min-width:0">
+<span style="align-self:flex-start;padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;margin-bottom:-16px">Example</span>
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ locTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">charted so far</span></div><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ locBands }}" as="b" hint-placeholder-count="3"><span style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }}"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ locSegs }}" as="s" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:400 14px/20px Archivo,sans-serif;color:#E9E1D9"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</span></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div>
+<div style="display:flex;flex-direction:column;gap:12px"><div style="display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="font:400 16px/24px Archivo,sans-serif;color:#9E978F">Search locations...</span></div><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ typeOpts }}" as="p" hint-placeholder-count="9"><span style="padding:6px 12px;border:1px solid #8C857D;border-radius:6px;font:400 14px/20px Archivo,sans-serif;color:#D69253">{{ p.label }}</span></sc-for></div></div>
+<section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h3><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ locTopCount }}</span></div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px">
+<sc-for list="{{ locRows }}" as="r" hint-placeholder-count="10">
+<div style="display:flex;align-items:stretch;border-top:1px solid #3B3630"><div style="flex:none;width:{{ r.indent }};border-right:{{ r.rail }}"></div><div style="flex:1;min-width:0;display:flex;align-items:center;gap:16px;padding:14px 20px"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 92px 170px 10px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.detail }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.sColor }}">{{ r.sLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.inside }}</span><span></span></div></div></div>
+</sc-for>
+</div></div></section>
+</div>
+<div style="position:sticky;top:24px;box-sizing:border-box;padding:28px;background:#2A2520;border:1px solid #3B3630;border-radius:6px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><span style="font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#9E978F">Private campaign</span></div>
+<h2 style="margin:0 0 12px;font:600 24px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9;text-wrap:balance">Sign in to see where your party has been</h2>
+<p style="margin:0 0 24px;font:400 15px/1.5 Archivo,sans-serif;color:#AEA69F">Locations are the places the party has visited, heard of, or is still trying to find, and what happened at each.</p>
+<div style="display:flex;flex-direction:column;gap:10px"><a href="#1g" style="text-align:center;padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1g" style="text-align:center;padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div>
+<hr style="margin:24px 0;border:0;border-top:1px solid #3B3630">
+<p style="margin:0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">New here? <a href="#1g" style="font-weight:600;color:#D69253;text-decoration:none">See what the site does</a></p>
+</div>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="1h"><div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Locations · Live sample. Type pills, bands and search all filter, and while a filter is on the tree flattens and each row shows its path ("in The Ashen Vale").</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Explore and track the places you've discovered in your adventures</p></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to see where your party has been</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Below is an example campaign, so try it. Your own places are private to your group.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#1h" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#1h" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:-16px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">The Ashen Vale · try the filters</span></div>
+<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><div style="display:flex;align-items:baseline;gap:8px;flex:none"><span style="font:600 24px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ locTotal }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">charted so far</span></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px"><div style="display:flex;height:7px;gap:3px"><sc-for list="{{ dLocBands }}" as="b" hint-placeholder-count="3"><span onClick="{{ b.onClick }}" style="flex:{{ b.count }} 1 0;min-width:7px;border-radius:999px;background:{{ b.fill }};opacity:{{ b.op }};cursor:pointer"></span></sc-for></div><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:16px;row-gap:4px"><sc-for list="{{ dLocSegs }}" as="s" hint-placeholder-count="3"><button type="button" onClick="{{ s.onClick }}" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;opacity:{{ s.op }};font:{{ s.weight }} 14px/20px Archivo,sans-serif;color:#E9E1D9;text-decoration:{{ s.underline }}"><span style="width:8px;height:8px;border-radius:2px;background:{{ s.dot }}"></span>{{ s.text }}</button></sc-for><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">— click a band to filter</span></div></div></div>
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><label style="flex:1 1 280px;min-width:0;display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 12px;border:1px solid #8C857D;border-radius:6px;background:#2A2520"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#AEA69F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input value="{{ dLocQ }}" onChange="{{ onLocQ }}" placeholder="Search locations..." style="flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 16px/24px Archivo,sans-serif;color:#E9E1D9"></label><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ dTypeOpts }}" as="p" hint-placeholder-count="9"><button type="button" onClick="{{ p.onClick }}" style="cursor:pointer;padding:6px 12px;background:transparent;border:1px solid {{ p.border }};border-radius:6px;font:{{ p.weight }} 14px/20px Archivo,sans-serif;color:#D69253" style-hover="background:#29241F">{{ p.label }}</button></sc-for></div></div>
+<sc-if value="{{ dLocEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 24px;text-align:center;background:#2A2520;border:1px solid #3B3630;border-radius:6px"><h3 style="margin:0 0 6px;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">No locations match these filters</h3><p style="margin:0 auto;max-width:448px;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Try a different search term, or clear the filters to see every place.</p></div></sc-if>
+<sc-if value="{{ dLocAny }}" hint-placeholder-val="{{ true }}"><section style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center;gap:12px"><h3 style="margin:0;font:600 18px/28px 'Zilla Slab',Georgia,serif;color:#E9E1D9">Locations</h3><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">{{ dLocCount }}</span></div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:6px;overflow:hidden"><div style="margin-top:-1px">
+<sc-for list="{{ dLocRows }}" as="r" hint-placeholder-count="10">
+<div style="display:flex;align-items:stretch;border-top:1px solid #3B3630"><div style="flex:none;width:{{ r.indent }};border-right:{{ r.rail }}"></div><div style="flex:1;min-width:0;display:flex;align-items:center;gap:16px;padding:14px 20px"><span style="width:28px;height:28px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 13px/1 Archivo,sans-serif">{{ r.initial }}</span><div style="flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) 112px 200px 26px;gap:16px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:600 16px/1.5 'Zilla Slab',Georgia,serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.detail }}</span></div><span style="font:600 14px/20px Archivo,sans-serif;color:{{ r.sColor }}">{{ r.sLabel }}</span><span style="font:400 14px/20px Archivo,sans-serif;color:#AEA69F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.inside }}</span><span></span></div></div></div>
+</sc-for>
+</div></div></section></sc-if>
+</div>
+</div></div></div>
+
+</div>
+<p class="dv-next">Try next: "<a class="dv-oid" href="#1b">1b</a> but open one row like in <a class="dv-oid" href="#1d">1d</a>" · "make <a class="dv-oid" href="#1d">1d</a> the pattern and do Quests, Rumours and Chapters" · "show <a class="dv-oid" href="#1c">1c</a> at phone width"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const SIG = ['#613A37','#594124','#454A26','#2A503C','#1B4F54','#2F4963','#484061','#5A3B50'];
+const PRES = { alive:['Alive','#7EAB7A','#568153'], unknown:['Unknown','#A59B45','#81761A'], missing:['Missing','#CC7F30','#A86000'], deceased:['Deceased','#E16566','#BE4649'] };
+const DISP = { friendly:['Friendly','#7EAB7A'], neutral:['Neutral','#AEA69F'], hostile:['Hostile','#E16566'], unknown:['Unknown','#748EC7'] };
+const KNOW = { explored:['Explored','#7EAB7A','#568153'], visited:['Visited','#A59B45','#81761A'], known:['Known','#CC7F30','#A86000'] };
+
+const NPCS = [
+  { id:'odile', name:'Odile Marrow', title:'Keeper of the Cinderford crossing', status:'alive', rel:'friendly', occ:'Ferrywoman', loc:'cinderford', s:3, race:'Human', desc:'Takes payment in salt, never coin. Will not cross after dark, and will not say why.' },
+  { id:'vesk', name:'Vesk Harrow', title:'Wanted in three towns', status:'alive', rel:'hostile', occ:'Smuggler', loc:'cinderford', s:1, race:'Half-elf', desc:'Told us the ledger was under the ferry landing. It was not. Owes the party forty silver and an explanation.' },
+  { id:'fenn', name:'Idris Fenn', title:'Went down with the ledger', status:'deceased', rel:'friendly', occ:'Ferry captain', loc:'cinderford', s:5, race:'Human', desc:'Captained the night ferry. His boat was found empty at Greywater Ford.' },
+  { id:'marta', name:'Marta Tallow', title:'Keeps the Tallow Cup', status:'alive', rel:'friendly', occ:'Innkeeper', loc:'tallow', s:7, race:'Halfling', desc:'Hears everything said over her bar and repeats about half of it.' },
+  { id:'pell', name:'Old Pell', title:'Saw the boat go under', status:'deceased', rel:'neutral', occ:'Fisherman', loc:'tallow', s:0, race:'Human', desc:'Swore the ferry sank on its own. Found in the fen two days later.' },
+  { id:'aldous', name:'Brother Aldous', title:'Archivist of the Vale chapel', status:'missing', rel:'neutral', occ:'Priest', loc:'chapel', s:2, race:'Human', desc:'Copied the ledger before it vanished. Nobody has seen him since the flood.' },
+  { id:'wren', name:'Sister Wren', title:'Says she never met Aldous', status:'alive', rel:'unknown', occ:'Acolyte', loc:'chapel', s:6, race:'Elf', desc:'Keeps the chapel. Her story about Aldous changes each time we ask.' },
+  { id:'toll', name:'The Toll-Keeper', title:'Nobody has seen its face', status:'unknown', rel:'hostile', occ:'', loc:'ford', s:4, race:'', desc:'Demands a toll at the ford, in a voice from under the water.' },
+  { id:'hale', name:'Corvin Hale', title:'Magistrate of Harrowgate', status:'alive', rel:'neutral', occ:'Magistrate', loc:'harrowgate', s:5, race:'Human', desc:'Signed the warrant for Vesk. Offered a reward, then halved it.' },
+  { id:'ash', name:'Ash-Tongue', title:'Sells names by the letter', status:'alive', rel:'unknown', occ:'Informant', loc:null, s:0, race:'Tiefling', desc:'Turns up wherever the party has just been. Knew our names before we gave them.' }
+];
+const NPC_GROUPS = [['cinderford','Cinderford'],['tallow','The Tallow Cup'],['chapel','The Vale Chapel'],['ford','Greywater Ford'],['harrowgate','Harrowgate'],[null,'Location unknown']];
+const TODAY = [
+  { id:'t1', name:'Odile Marrow', title:'Keeper of the Cinderford crossing', status:'alive', rel:'friendly', occ:'Ferrywoman', s:3 },
+  { id:'t2', name:'Brother Aldous', title:'Archivist of the Vale chapel', status:'missing', rel:'neutral', occ:'Priest', s:2 },
+  { id:'t3', name:'Vesk Harrow', title:'Wanted in three towns', status:'alive', rel:'hostile', occ:'Smuggler', s:1 }
+];
+const LOCS = [
+  { id:'vale', name:'The Ashen Vale', type:'Region', tk:'region', status:'explored', d:0, s:4, inside:'4 inside · 1 NPC · 1 quest' },
+  { id:'cin', name:'Cinderford', type:'Town', tk:'town', status:'visited', d:1, s:6, parent:'The Ashen Vale', inside:'2 inside · 3 NPCs · 1 quest' },
+  { id:'cup', name:'The Tallow Cup', type:'Building', tk:'building', status:'explored', d:2, s:7, parent:'The Ashen Vale · Cinderford', inside:'2 NPCs' },
+  { id:'fer', name:'Cinderford Ferry', type:'Point of Interest', tk:'poi', status:'explored', d:2, s:4, parent:'The Ashen Vale · Cinderford', inside:'1 quest' },
+  { id:'cha', name:'The Vale Chapel', type:'Building', tk:'building', status:'explored', d:1, s:2, parent:'The Ashen Vale', inside:'2 NPCs · 1 quest' },
+  { id:'frd', name:'Greywater Ford', type:'Landmark', tk:'landmark', status:'visited', d:1, s:5, parent:'The Ashen Vale', inside:'1 NPC' },
+  { id:'fen', name:'Saltmarsh Fen', type:'Village', tk:'village', status:'known', d:1, s:3, parent:'The Ashen Vale', inside:'1 inside' },
+  { id:'arc', name:'The Drowned Archive', type:'Dungeon', tk:'dungeon', status:'known', d:2, s:0, parent:'The Ashen Vale · Saltmarsh Fen', inside:'' },
+  { id:'har', name:'Harrowgate', type:'City', tk:'city', status:'visited', d:0, s:1, inside:'1 NPC · 1 quest' },
+  { id:'iro', name:'Ironmouth Pass', type:'Landmark', tk:'landmark', status:'known', d:0, s:5, inside:'' }
+];
+const LOC_TODAY = [
+  { id:'lt1', name:'The Ashen Vale', type:'Region', status:'explored', d:0, s:4, inside:'1 inside · 1 NPC · 1 quest' },
+  { id:'lt2', name:'Cinderford', type:'Town', status:'visited', d:1, s:6, inside:'2 NPCs · 1 quest' }
+];
+const TYPES = [['all','All'],['region','Regions'],['city','Cities'],['town','Towns'],['village','Villages'],['dungeon','Dungeons'],['landmark','Landmarks'],['building','Buildings'],['poi','POIs']];
+const RELS = [['all','All'],['friendly','Friendly'],['neutral','Neutral'],['hostile','Hostile'],['unknown','Unknown']];
+
+const npcRow = (n) => ({
+  ...n, initial: n.name.replace(/^The /,'T').charAt(0), sig: SIG[n.s],
+  pLabel: PRES[n.status][0], pColor: PRES[n.status][1], deco: n.status === 'deceased' ? 'line-through' : 'none',
+  dLabel: DISP[n.rel][0], dColor: DISP[n.rel][1], occ: n.occ || '—'
+});
+const locRow = (l, flat) => ({
+  ...l, initial: l.name.charAt(0), sig: SIG[l.s],
+  detail: flat && l.parent ? `${l.type} · in ${l.parent}` : l.type,
+  sLabel: KNOW[l.status][0], sColor: KNOW[l.status][1],
+  indent: flat ? '0px' : `${l.d * 30}px`, rail: !flat && l.d ? '1px solid #3B3630' : '0'
+});
+const segs = (keys, map, list, field, active, onSel) => keys.map(k => {
+  const count = list.filter(x => x[field] === k).length;
+  const isA = active === k;
+  return { key:k, count, fill: map[k][2], text: `${count} ${map[k][0].toLowerCase()}`,
+    dot: count ? map[k][2] : '#3F3934', op: count ? 1 : 0.5,
+    weight: isA ? 600 : 400, underline: isA ? 'underline' : 'none',
+    onClick: onSel ? () => onSel(isA ? 'all' : k) : undefined };
+});
+
+const QST = { completed:['Completed','#7EAB7A','#568153'], active:['Active','#A59B45','#81761A'], failed:['Failed','#E16566','#BE4649'] };
+const QFILL = { active:'#A86000', completed:'#568153', failed:'repeating-linear-gradient(45deg,#BE4649 0 3px,#8E3134 3px 6px)' };
+const QUESTS = [
+  { id:'q1', title:'Recover the drowned ledger', loc:'Cinderford', status:'active', done:1, total:3, s:2 },
+  { id:'q2', title:'Find Brother Aldous', loc:'The Vale Chapel', status:'active', done:1, total:2, s:6 },
+  { id:'q3', title:'Pay the Toll-Keeper, or don\u2019t', loc:'Greywater Ford', status:'active', done:0, total:2, s:4 },
+  { id:'q4', title:'Bring Vesk Harrow to Harrowgate', loc:'Harrowgate', status:'active', done:1, total:4, s:1 },
+  { id:'q5', title:'Map the Saltmarsh Fen', loc:'Saltmarsh Fen', status:'active', done:0, total:0, s:3 },
+  { id:'q6', title:'Cross at Cinderford after dark', loc:'Cinderford Ferry', status:'completed', done:3, total:3, s:5 },
+  { id:'q7', title:'Deliver the salt to Odile Marrow', loc:'Cinderford', status:'completed', done:1, total:1, s:7 },
+  { id:'q8', title:'Escort the magistrate home', loc:'Harrowgate', status:'completed', done:2, total:2, s:0 },
+  { id:'q9', title:'Save the night ferry', loc:'Cinderford Ferry', status:'failed', done:1, total:3, s:5 },
+  { id:'q10', title:'Keep Old Pell alive', loc:'The Tallow Cup', status:'failed', done:0, total:1, s:2 }
+];
+const RST = { confirmed:['Confirmed','#7EAB7A','#568153'], unconfirmed:['Unconfirmed','#A59B45','#81761A'], false:['False','#E16566','#BE4649'] };
+const SRC = { npc:'NPC', tavern:'Tavern', notice:'Notice', traveler:'Traveler', other:'Other' };
+const RUMOURS = [
+  { id:'r1', title:'Harrow buried the ledger, he never lost it', src:'Marta Tallow', type:'npc', status:'unconfirmed', quest:false, s:7 },
+  { id:'r2', title:'Something lives under Greywater Ford', src:'The Tallow Cup', type:'tavern', status:'unconfirmed', quest:false, s:4 },
+  { id:'r3', title:'The Drowned Archive opens at low tide', src:'Sister Wren', type:'npc', status:'unconfirmed', quest:true, s:0 },
+  { id:'r4', title:'Harrowgate pays for Vesk only if he\u2019s alive', src:'Harrowgate notice board', type:'notice', status:'unconfirmed', quest:false, s:1 },
+  { id:'r5', title:'The magistrate owes the smugglers', src:'A drover on the Ironmouth road', type:'traveler', status:'unconfirmed', quest:false, s:3 },
+  { id:'r6', title:'The ferry crosses at night for those who never paid', src:'Vesk Harrow', type:'npc', status:'confirmed', quest:true, s:5 },
+  { id:'r7', title:'Aldous copied the ledger before it vanished', src:'Old Pell', type:'npc', status:'confirmed', quest:true, s:6 },
+  { id:'r8', title:'Salt, not silver, pays the ferry', src:'The Tallow Cup', type:'tavern', status:'confirmed', quest:false, s:2 },
+  { id:'r9', title:'Brother Aldous drowned at the ford', src:'The Tallow Cup', type:'tavern', status:'false', quest:false, s:3 },
+  { id:'r10', title:'The Toll-Keeper is Captain Fenn\u2019s ghost', src:'Ash-Tongue', type:'npc', status:'false', quest:false, s:7 }
+];
+const CHAPTERS = [
+  ['The Crossing at Cinderford','We paid the ferrywoman in salt and learned why nobody crosses after dark.'],
+  ['Ashes on the Water','The ledger was not where Harrow said it would be, and neither was the boat.'],
+  ['The Tallow Cup','Marta poured, Vesk talked, and nobody believed a word of it.'],
+  ['A Warrant from Harrowgate','Hale wants Vesk alive. Vesk would rather not be wanted at all.'],
+  ['Night Ferry','We crossed after dark. Captain Fenn did not come back with us.'],
+  ['What Pell Saw','An old fisherman, a sunk boat, and a story he would only tell once.'],
+  ['Salt and Silver','The ferry has its price, and the magistrate has his.'],
+  ['The Vale Chapel','Aldous\u2019s desk was cleared out. Someone wanted us to find it that way.'],
+  ['Sister Wren\u2019s Story','She never met Aldous. She also knew where he kept his pens.'],
+  ['Low Water','The river dropped a foot overnight, and the ford started talking.'],
+  ['Greywater Ford','We asked the Toll-Keeper its name. It asked for ours.'],
+  ['The Toll Is Paid','We paid, and it cost more than coin. Pell was found in the fen.'],
+  ['Into the Fen','Wren\u2019s map was half right. The half that was wrong had teeth.'],
+  ['The Drowned Archive','']
+].map(([title, summary], i) => ({ id:'c'+(i+1), order:i+1, title, summary, state: i < 12 ? 'read' : i === 12 ? 'reading' : 'unread', isCurrent: i === 12, pct: i === 12 ? 40 : 0 }));
+const WORDS = ['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten'];
+
+class Component extends DCLogic {
+  state = { nq:'', nst:'all', nrel:'all', nexp:'vesk', lq:'', lst:'all', lty:'all',
+    qq:'', qst:'all', qloc:'all', qcomp:false, qfail:false,
+    rq:'', rst:'all', rsrc:'all', rfalse:false,
+    cq:'', cmode:'all', crun:false };
+
+  moreVals() {
+    const S = this.state;
+    const bandsOf = (sg, active) => sg.filter(s => s.count).map(s => ({ ...s, op: active !== 'all' && active !== s.key ? 0.35 : 1 }));
+    const pill = (cur, set) => ([k, label]) => {
+      const accent = cur === k && k !== 'all';
+      return { label, border: accent ? '#D69253' : '#8C857D', weight: accent ? 600 : 400, onClick: () => set(k) };
+    };
+    const chev = open => open ? 'rotate(90deg)' : 'none';
+
+    // Quests
+    const qSegs = segs(['completed','active','failed'], QST, QUESTS, 'status', S.qst, v => this.setState({ qst: v }));
+    const qq = S.qq.trim().toLowerCase();
+    const qf = QUESTS.filter(q => (S.qst === 'all' || q.status === S.qst) && (S.qloc === 'all' || q.loc === S.qloc) && (!qq || q.title.toLowerCase().includes(qq)));
+    const qRow = q => ({ ...q, initial: q.title.charAt(0), sig: SIG[q.s], sLabel: QST[q.status][0], sColor: QST[q.status][1],
+      prog: q.total ? `${q.done} of ${q.total} objectives` : 'No objectives', hasObj: q.total > 0, pct: q.total ? `${q.done / q.total * 100}%` : '0%', fill: QFILL[q.status] });
+    const qGroups = [['active','Active Quests',null],['completed','Completed Quests','qcomp'],['failed','Failed Quests','qfail']].map(([k, t, flag]) => {
+      const rows = qf.filter(q => q.status === k).map(qRow);
+      const open = flag ? S[flag] : true;
+      return { title: t, count: rows.length, rows, collapsible: !!flag, fixed: !flag, open, rot: chev(open), onToggle: flag ? () => this.setState({ [flag]: !S[flag] }) : undefined };
+    }).filter(g => g.count);
+    const locNames = [...new Set(QUESTS.map(q => q.loc))].sort();
+
+    // Rumours
+    const rSegs = segs(['confirmed','unconfirmed','false'], RST, RUMOURS, 'status', S.rst, v => this.setState({ rst: v }));
+    const rq = S.rq.trim().toLowerCase();
+    const rf = RUMOURS.filter(r => (S.rst === 'all' || r.status === S.rst) && (S.rsrc === 'all' || r.type === S.rsrc) && (!rq || (r.title + ' ' + r.src).toLowerCase().includes(rq)));
+    const rRow = r => ({ ...r, initial: r.title.charAt(0), sig: SIG[r.s], sLabel: RST[r.status][0], sColor: RST[r.status][1], deco: r.status === 'false' ? 'line-through' : 'none', srcLabel: SRC[r.type], noQuest: !r.quest });
+    const rGroups = [['unconfirmed','Unconfirmed',null],['confirmed','Confirmed',null],['false','False','rfalse']].map(([k, t, flag]) => {
+      const rows = rf.filter(r => r.status === k).map(rRow);
+      const open = flag ? S[flag] : true;
+      return { title: t, count: rows.length, rows, collapsible: !!flag, fixed: !flag, open, rot: chev(open), onToggle: flag ? () => this.setState({ [flag]: !S[flag] }) : undefined };
+    }).filter(g => g.count);
+
+    // Chapters
+    const cq = S.cq.trim().toLowerCase();
+    const cf = CHAPTERS.filter(c => (S.cmode === 'all' || c.state === 'unread') && (!cq || (c.title + ' ' + c.summary).toLowerCase().includes(cq)));
+    const cRow = c => ({ ...c, kind: 'chapter',
+      titleFont: c.isCurrent ? "600 20px/28px 'Zilla Slab',Georgia,serif" : '400 16px/24px Archivo,sans-serif',
+      titleColor: c.state === 'read' && !c.isCurrent ? '#9E978F' : '#E9E1D9',
+      bg: c.isCurrent ? '#3F3A34' : 'transparent', bl: c.isCurrent ? '4px solid #D69253' : '4px solid transparent',
+      isRead: c.state === 'read', isReading: c.state === 'reading', hasSummary: !!c.summary, pctW: c.pct + '%', pctLabel: c.pct + '% through' });
+    const cGroups = [];
+    for (let i = 0; i < cf.length; i += 10) {
+      const slice = cf.slice(i, i + 10);
+      const cur = slice.findIndex(c => c.isCurrent);
+      const rows = []; let j = 0;
+      while (j < slice.length) {
+        if (slice[j].state !== 'read') { rows.push(cRow(slice[j])); j++; continue; }
+        let e = j; while (e + 1 < slice.length && slice[e + 1].state === 'read') e++;
+        const len = e - j + 1, touches = cur !== -1 && cur >= j - 1 && cur <= e + 1;
+        if (len >= 3 && !touches) {
+          const items = slice.slice(j, e + 1);
+          rows.push({ kind: 'run', isRun: true, label: `${items[0].order}\u2013${items[items.length - 1].order} \u00b7 ${len <= 10 ? WORDS[len] : len} more read chapters`, btn: S.crun ? 'Hide' : 'Show', onToggle: () => this.setState({ crun: !S.crun }) });
+          if (S.crun) items.forEach(c => rows.push(cRow(c)));
+        } else for (let k = j; k <= e; k++) rows.push(cRow(slice[k]));
+        j = e + 1;
+      }
+      rows.forEach(r => { r.isChapter = r.kind === 'chapter'; });
+      cGroups.push({ label: `Chapters ${slice[0].order}\u2013${slice[slice.length - 1].order}`, rows });
+    }
+    const modeBtn = (k, label) => ({ label, bg: S.cmode === k ? '#3F3A34' : 'transparent', color: S.cmode === k ? '#D69253' : '#AEA69F', onClick: () => this.setState({ cmode: k }) });
+
+    return {
+      qTotal: QUESTS.length, qSegs, qBands: bandsOf(qSegs, S.qst), qQ: S.qq, onQQ: e => this.setState({ qq: e.target.value }),
+      qLocOpts: [{ v:'all', label:'All Locations' }, ...locNames.map(n => ({ v:n, label:n }))], qLoc: S.qloc,
+      qLocBorder: S.qloc !== 'all' ? '#D69253' : '#8C857D', qLocWeight: S.qloc !== 'all' ? 600 : 400,
+      onQLoc: e => this.setState({ qloc: e.target.value }), qGroups, qEmpty: qf.length === 0,
+      rTotal: RUMOURS.length, rSegs, rBands: bandsOf(rSegs, S.rst), rQ: S.rq, onRQ: e => this.setState({ rq: e.target.value }),
+      rSrcOpts: [['all','All'],['npc','NPC'],['tavern','Tavern'],['notice','Notice'],['traveler','Traveler'],['other','Other']].map(pill(S.rsrc, k => this.setState({ rsrc: k }))),
+      rGroups, rEmpty: rf.length === 0,
+      cQ: S.cq, onCQ: e => this.setState({ cq: e.target.value }),
+      cModes: [modeBtn('all', `All ${CHAPTERS.length}`), modeBtn('unread', `Unread ${CHAPTERS.filter(c => c.state === 'unread').length}`)],
+      cGroups, cEmpty: cf.length === 0, cAny: cf.length > 0
+    };
+  }
+  renderVals() {
+    const S = this.state;
+    const groupsFor = (list, interactive) => NPC_GROUPS.map(([k, t]) => {
+      const rows = list.filter(n => n.loc === k).map(n => {
+        const r = npcRow(n);
+        if (interactive) {
+          const open = S.nexp === n.id;
+          Object.assign(r, { open, bg: open ? '#342F2A' : 'transparent', rot: open ? 'rotate(180deg)' : 'none',
+            onToggle: () => this.setState({ nexp: open ? null : n.id }),
+            race: n.race || 'Unrecorded', notes: 'No notes yet',
+            ladder: ['friendly','neutral','hostile','unknown'].map(x => ({ label: DISP[x][0], border: x === n.rel ? '#D69253' : '#8C857D', outline: x === n.rel ? '1px solid #D69253' : 'none', color: x === n.rel ? '#D69253' : '#D69253', weight: x === n.rel ? 600 : 400 })) });
+        }
+        return r;
+      });
+      return { title: t, count: rows.length, rows, link: !!k, titleColor: k ? '#E9E1D9' : '#AEA69F' };
+    }).filter(g => g.rows.length);
+
+    const q = S.nq.trim().toLowerCase();
+    const dNpcs = NPCS.filter(n => (S.nst === 'all' || n.status === S.nst) && (S.nrel === 'all' || n.rel === S.nrel) &&
+      (!q || (n.name + ' ' + n.title + ' ' + n.desc).toLowerCase().includes(q)));
+
+    const npcSegs = segs(['alive','unknown','missing','deceased'], PRES, NPCS, 'status');
+    const dNpcSegs = segs(['alive','unknown','missing','deceased'], PRES, NPCS, 'status', S.nst, v => this.setState({ nst: v }));
+    const locSegs = segs(['explored','visited','known'], KNOW, LOCS, 'status');
+    const dLocSegs = segs(['explored','visited','known'], KNOW, LOCS, 'status', S.lst, v => this.setState({ lst: v }));
+    const bandsOf = (sg, active) => sg.filter(s => s.count).map(s => ({ ...s, op: active && active !== 'all' && active !== s.key ? 0.35 : 1 }));
+
+    const lq = S.lq.trim().toLowerCase();
+    const flat = lq || S.lst !== 'all' || S.lty !== 'all';
+    const dLocs = LOCS.filter(l => (S.lst === 'all' || l.status === S.lst) && (S.lty === 'all' || l.tk === S.lty) && (!lq || l.name.toLowerCase().includes(lq)));
+
+    const pill = (val, cur, set) => ([k, label]) => {
+      const accent = cur === k && k !== 'all';
+      return { label, border: accent ? '#D69253' : '#8C857D', weight: accent ? 600 : 400, onClick: () => set(k) };
+    };
+
+    return {
+      ...this.moreVals(),
+      npcToday: TODAY.map(npcRow),
+      npcTotal: NPCS.length, npcSegs, npcBands: bandsOf(npcSegs),
+      relOpts: RELS.map(([, label]) => ({ label })),
+      npcGroups: groupsFor(NPCS, false),
+      dNpcSegs, dNpcBands: bandsOf(dNpcSegs, S.nst),
+      dRelOpts: RELS.map(pill('rel', S.nrel, k => this.setState({ nrel: k }))),
+      dNpcQ: S.nq, onNpcQ: e => this.setState({ nq: e.target.value }),
+      dNpcGroups: groupsFor(dNpcs, true), dNpcEmpty: dNpcs.length === 0,
+
+      locToday: LOC_TODAY.map(l => locRow(l, false)),
+      locTotal: LOCS.length, locSegs, locBands: bandsOf(locSegs),
+      typeOpts: TYPES.map(([, label]) => ({ label })),
+      locRows: LOCS.map(l => locRow(l, false)), locTopCount: LOCS.filter(l => !l.d).length,
+      dLocSegs, dLocBands: bandsOf(dLocSegs, S.lst),
+      dTypeOpts: TYPES.map(pill('ty', S.lty, k => this.setState({ lty: k }))),
+      dLocQ: S.lq, onLocQ: e => this.setState({ lq: e.target.value }),
+      dLocRows: dLocs.map(l => locRow(l, flat)), dLocCount: flat ? dLocs.length : dLocs.filter(l => !l.d).length,
+      dLocEmpty: dLocs.length === 0, dLocAny: dLocs.length > 0
+    };
+  }
+}
+</script>
+</body>
+</html>
