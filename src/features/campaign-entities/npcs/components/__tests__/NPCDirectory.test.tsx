@@ -243,6 +243,11 @@ describe('NPCDirectory', () => {
       ).toBeInTheDocument();
     });
 
+    test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
+      render(<NPCDirectory npcs={[]} />);
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+    });
+
     test('the empty state is not blank', () => {
       // This is where a returning user is most likely to read the product as
       // unfinished, so it is designed rather than left empty.

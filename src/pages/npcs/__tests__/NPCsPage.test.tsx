@@ -1,7 +1,8 @@
 // src/pages/npcs/__tests__/NPCsPage.test.tsx
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { EXAMPLE_CAMPAIGN } from "shared/example-campaign/example-campaign";
 import NPCsPage from "../NPCsPage";
 
 // ---------------------------------------------------------------------------
@@ -68,6 +69,8 @@ let mockNPCData: NPCDataMock = {
 };
 
 jest.mock("features/campaign-entities", () => ({
+  // The real example: what it draws is what the signed-out tests are about.
+  NPCExample: jest.requireActual("features/campaign-entities/npcs/components/NPCExample").default,
   useNPCs: () => mockNPCData,
   NPCDirectory: (props: any) => (
     <div data-testid="npc-directory">
@@ -130,6 +133,23 @@ describe("NPCsPage", () => {
   // Gated states
   // -------------------------------------------------------------------------
   describe("gated states", () => {
+    it("shows a signed-out visitor the example campaign's npcs under the panel, as rows that do nothing", () => {
+      mockUser = null;
+      renderPage();
+      const example = screen.getByTestId("roster-example");
+      EXAMPLE_CAMPAIGN.npcs.forEach((row) =>
+        expect(within(example).getByText(row.name)).toBeInTheDocument()
+      );
+      expect(within(example).queryAllByRole("button", { hidden: true })).toHaveLength(0);
+      const signIn = screen.getByRole("link", { name: "Sign in" });
+      expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("shows a signed-in member no example", () => {
+      renderPage();
+      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+    });
+
     it("renders the page title and subtitle while signed out", () => {
       mockUser = null;
       renderPage();

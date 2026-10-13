@@ -39,6 +39,17 @@ export interface ChapterListProps extends ChapterViewProps {
   selection?: ChapterSelection;
 }
 
+/**
+ * What one chapter row shows, and nothing it does not: a `ChapterWithProgress`
+ * is one, and so is an example chapter, which has no author or text to carry.
+ */
+export interface ChapterRowItem {
+  chapter: Pick<ChapterWithProgress['chapter'], 'id' | 'order' | 'title' | 'summary'>;
+  state: ChapterReadState;
+  percentRead: number;
+  isCurrent: boolean;
+}
+
 /** Action button label, one per read state. */
 const ACTION_LABEL: Record<ChapterReadState, string> = {
   read: 'Reread',
@@ -78,13 +89,18 @@ function spellCount(count: number): string {
  * action's label already says it -- Reread, Resume, Read) and the actions wrap
  * onto a line of their own under the title.
  */
-const ChapterRowView: React.FC<{
-  item: ChapterWithProgress;
-  onChapterSelect: (chapterId: string) => void;
+export const ChapterRowView: React.FC<{
+  item: ChapterRowItem;
+  onChapterSelect?: (chapterId: string) => void;
   onEditChapter?: (chapterId: string) => void;
   isAdmin?: boolean;
   selection?: ChapterSelection;
-}> = ({ item, onChapterSelect, onEditChapter, isAdmin, selection }) => {
+  /**
+   * A picture of a row: no click, no hover, no actions. For the example a
+   * signed-out visitor sees (`ChapterExample`, T150).
+   */
+  inert?: boolean;
+}> = ({ item, onChapterSelect, onEditChapter, isAdmin, selection, inert = false }) => {
   const { chapter, state, percentRead, isCurrent } = item;
   const isMuted = state === 'read' && !isCurrent;
   const isTicked = selection?.selected.has(chapter.id) ?? false;
@@ -93,12 +109,15 @@ const ChapterRowView: React.FC<{
     <div
       className={clsx(
         'flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 py-3 px-2 border-b card-border last:border-b-0',
-        'selectable-item cursor-pointer transition-colors',
+        !inert && 'selectable-item cursor-pointer transition-colors',
         isCurrent && 'border-l-4 border-l-accent bg-accent',
         isTicked && 'roster-row-selected'
       )}
-      onClick={() =>
-        selection ? selection.onToggle(chapter.id, !isTicked) : onChapterSelect(chapter.id)
+      onClick={
+        inert
+          ? undefined
+          : () =>
+              selection ? selection.onToggle(chapter.id, !isTicked) : onChapterSelect?.(chapter.id)
       }
     >
       {selection && (
@@ -165,12 +184,12 @@ const ChapterRowView: React.FC<{
           real <button> so it stays keyboard-reachable. stopPropagation keeps
           a click here from also firing the row's own onClick. Selection mode
           has no actions: the checkbox is the row's one control. */}
-      {!selection && (
+      {!selection && !inert && (
         <div
           className="shrink-0 flex items-center gap-1 ml-auto sm:ml-0"
           onClick={(event) => event.stopPropagation()}
         >
-          <Button variant="ghost" size="sm" onClick={() => onChapterSelect(chapter.id)}>
+          <Button variant="ghost" size="sm" onClick={() => onChapterSelect?.(chapter.id)}>
             {ACTION_LABEL[state]}
           </Button>
           {isAdmin && onEditChapter && (

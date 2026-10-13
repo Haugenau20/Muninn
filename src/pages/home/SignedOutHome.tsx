@@ -14,10 +14,11 @@ const PRODUCT_LINES = [
 /**
  * What a stranger sees at `/`.
  *
- * Home is the one page that answers "what is this?", so it is the one page
- * allowed an example — everywhere else the feel comes from a single honest
- * sentence, because inventing quests with invented authors would undermine the
- * attribution the product's credibility rests on.
+ * Home answers "what is this?" with a whole example campaign. The list pages
+ * show a stranger example rows under their sign-in panel instead
+ * (`RosterExample`, T150), drawn by the lists' own cells. Neither example
+ * credits anyone, because inventing authors would undermine the attribution
+ * the product's credibility rests on.
  *
  * Rendered instead of `PageShell` + `GatedContent`, not inside them: the `h1`
  * here is the product's headline, not a page title, and the two-column layout

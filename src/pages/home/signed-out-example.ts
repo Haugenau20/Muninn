@@ -34,7 +34,9 @@ export interface SignedOutExample {
 }
 
 /**
- * The static example shown on signed-out Home, and nowhere else.
+ * The static example shown on signed-out Home. The rows under the signed-out
+ * list pages' panels are a different example, with a setting of their own
+ * (`shared/example-campaign`, T150).
  *
  * Built from published module content (*The Sunless Citadel*) rather than
  * invented campaign fiction, so nothing here pretends to be a real group's

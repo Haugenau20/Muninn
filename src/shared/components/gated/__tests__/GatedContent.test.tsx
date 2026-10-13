@@ -242,4 +242,32 @@ describe("GatedContent", () => {
     expect(screen.queryByText(/start a campaign in/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/campaign name/i)).not.toBeInTheDocument();
   });
+
+  describe("the signed-out example (T150)", () => {
+    const renderWithExample = (value: PageGate) =>
+      render(
+        <MemoryRouter>
+          <GatedContent gate={value} signedOutExample={<div data-testid="example">rows</div>}>
+            <div data-testid="page-body">the quests</div>
+          </GatedContent>
+        </MemoryRouter>
+      );
+
+    it("shows a signed-out visitor the page's example, under the panel", () => {
+      renderWithExample(gate({ state: "signed-out", canAct: false }));
+      const example = screen.getByTestId("example");
+      const signIn = screen.getByRole("link", { name: "Sign in" });
+      expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it.each([
+      ["ready", gate()],
+      ["resolving", gate({ state: "resolving", canAct: false })],
+      ["pick-campaign", gate({ state: "pick-campaign", canAct: false })],
+      ["error", gate({ state: "error", canAct: false, error: "Network down" })],
+    ])("shows no example when %s: it is for strangers, not members", (_state, value) => {
+      renderWithExample(value);
+      expect(screen.queryByTestId("example")).not.toBeInTheDocument();
+    });
+  });
 });

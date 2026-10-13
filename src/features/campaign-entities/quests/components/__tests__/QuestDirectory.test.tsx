@@ -368,6 +368,12 @@ describe('QuestDirectory', () => {
       ).toBeInTheDocument();
     });
 
+    it('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
+      mockQuestContext.quests = [];
+      renderPage();
+      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+    });
+
     it('shows a status-specific message when a status filter yields nothing', () => {
       mockQuestContext.quests = [questActiveDragon];
       renderPage();

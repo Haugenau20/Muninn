@@ -19,6 +19,14 @@ export interface GatedContentProps {
   gate: PageGate;
   /** What to render once the gate is `ready`. */
   children: React.ReactNode;
+  /**
+   * What the page will hold, shown to a signed-out visitor under the panel
+   * (T150): the page's example rows (`NPCExample` and its siblings). A prop
+   * rather than a lookup by page, because this module cannot import the
+   * features that draw them. Members never see it, whatever their campaign
+   * holds.
+   */
+  signedOutExample?: React.ReactNode;
 }
 
 /**
@@ -51,7 +59,7 @@ const Skeleton: React.FC = () => (
  * the whole point: the dialog had nowhere to put where you were, so signing in
  * to read one quest returned you to the campaign's front door.
  */
-const GatedContent: React.FC<GatedContentProps> = ({ gate, children }) => {
+const GatedContent: React.FC<GatedContentProps> = ({ gate, children, signedOutExample }) => {
   const [selectError, setSelectError] = useState<string | null>(null);
   const location = useLocation();
 
@@ -131,6 +139,8 @@ const GatedContent: React.FC<GatedContentProps> = ({ gate, children }) => {
       {gate.state === "resolving" && <Skeleton />}
 
       {panel}
+
+      {gate.state === "signed-out" && signedOutExample}
 
       {gate.state === "error" && (
         <div className="mx-auto w-full max-w-[560px] rounded-lg p-8 card">

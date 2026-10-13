@@ -12,7 +12,7 @@ export {
   summariseProgress,
   filterChapters,
 } from './chapters/utils/chapter-progress';
-export type { StorySummary } from './chapters/utils/chapter-progress';
+export type { StorySummary, ChapterReadState } from './chapters/utils/chapter-progress';
 export { deriveChapterByline } from './chapters/utils/chapter-byline';
 // Components (used by pages/story/* and other consumers)
 // BookViewer is the paginated book surface, now used only by SagaPage — the
@@ -21,6 +21,7 @@ export { deriveChapterByline } from './chapters/utils/chapter-byline';
 export { default as BookViewer } from './stories/components/BookViewer';
 export { default as BookshelfView } from './stories/components/BookshelfView';
 export { default as ChapterList } from './stories/components/ChapterList';
+export { default as ChapterExample } from './stories/components/ChapterExample';
 export { default as ChapterRail } from './stories/components/ChapterRail';
 export { default as ChapterReader } from './stories/components/ChapterReader';
 export { default as ChapterForm } from './chapters/components/ChapterForm';

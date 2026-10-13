@@ -7,13 +7,12 @@ import { npcIdsOfQuest } from '../../shared/links';
 import { useLocations } from '../../locations/context/LocationContext';
 import { indexLocationNames, resolveLocationName } from '../../locations/utils/location-display';
 import Button from '../../../../core/components/Button';
-import Typography from '../../../../core/components/Typography';
 import { useNavigation } from 'shared/hooks/useNavigation';
-import clsx from 'clsx';
 import useHighlightTarget from 'shared/hooks/useHighlightTarget';
 import useSelection from 'shared/hooks/useSelection';
 import EntityBatchActions, { type BatchStatusOption } from '../../shared/EntityBatchActions';
 import QuestRowSummary from './QuestRowSummary';
+import QuestRowCells, { QUEST_ROW_GRID } from './QuestRowCells';
 import { Plus } from 'lucide-react';
 import {
   RosterStatusBar,
@@ -21,14 +20,11 @@ import {
   RosterFilterSelect,
   RosterGroup,
   RosterRow,
-  RosterName,
   type RosterSegment,
   type RosterFilterOption,
   RosterSkeleton,
   RosterEmpty,
-  RosterStatus,
   RosterShowMore,
-  type RosterStatusTone,
 } from 'core/components/Roster';
 import { ROSTER_PAGE_SIZE } from 'shared/utils/roster-paging';
 import { useRosterGroupPaging } from 'shared/hooks/useRosterGroupPaging';
@@ -37,10 +33,6 @@ interface QuestDirectoryProps {
   quests: Quest[];
   isLoading?: boolean;
 }
-
-/** Column template shared by every row, so the columns line up across groups. */
-const ROW_GRID =
-  'grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.7fr)_130px_190px_26px]';
 
 /**
  * Fixed, ordered groups instead of the location-based grouping NPCs use.
@@ -62,35 +54,6 @@ const STATUS_GROUPS: { key: QuestStatus; title: string }[] = [
  * reachable and stay counted; they stop taking the top of the list.
  */
 const HISTORY_GROUPS: QuestStatus[] = ['completed', 'failed'];
-
-/**
- * Quest state on the shared valence ramp, best to worst.
- *
- * Completed is stop 0 and failed is stop 3 -- the ends of the ramp, which
- * resolve to the same values `outcome.succeeded` and `outcome.failed.ink`
- * always had, so a quest looks exactly as it did. Active is the middle rather
- * than the accent now, because the accent means "interactive" everywhere else
- * and a quest that is merely open is not an action.
- */
-const STATUS_TONE: Record<QuestStatus, RosterStatusTone> = {
-  completed: 'valence-0',
-  active: 'valence-1',
-  failed: 'valence-3',
-};
-
-/**
- * The progress bar's fill, per state.
- *
- * Spelled out rather than built as `progress-bar-${quest.status}`. A class
- * name assembled from a variable is invisible to grep, which is how a token
- * survives a migration that was supposed to delete it -- and this phase has
- * now been bitten by exactly that twice.
- */
-const PROGRESS_FILL: Record<QuestStatus, string> = {
-  active: 'progress-bar-open',
-  completed: 'progress-bar-succeeded',
-  failed: 'progress-bar-failed',
-};
 
 const STATUS_COLOR: Record<QuestStatus, string> = {
   active: 'bg-valence-1',
@@ -349,7 +312,7 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
                       id={`quest-${quest.id}`}
                       entityId={quest.id}
                       entityName={quest.title}
-                      gridClassName={ROW_GRID}
+                      gridClassName={QUEST_ROW_GRID}
                       isFirst={index === 0}
                       highlighted={highlightedQuestId === quest.id}
                       expanded={isExpanded}
@@ -380,34 +343,15 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
                         />
                       }
                     >
-                      {/* Where it happens is the line under the title, as an
-                          NPC's title is: every directory row is two lines. */}
-                      <RosterName
-                        name={quest.title}
-                        detail={questLocationName.get(quest.id)}
+                      <QuestRowCells
+                        quest={{
+                          title: quest.title,
+                          status: quest.status,
+                          locationName: questLocationName.get(quest.id),
+                          objectivesDone: completedObjectives,
+                          objectivesTotal: totalObjectives,
+                        }}
                       />
-
-                      <RosterStatus tone={STATUS_TONE[quest.status]}>
-                        {quest.status.charAt(0).toUpperCase() + quest.status.slice(1)}
-                      </RosterStatus>
-
-                      {/* Objective progress -- the detail that makes quests more than a
-                          plain roster entry, so it stays visible on the collapsed row. */}
-                      <div className="hidden md:flex flex-col gap-1 min-w-0">
-                        <Typography variant="body-sm" color="secondary" className="text-sm">
-                          {totalObjectives > 0
-                            ? `${completedObjectives} of ${totalObjectives} objectives`
-                            : 'No objectives'}
-                        </Typography>
-                        {totalObjectives > 0 && (
-                          <div className="w-full rounded-full h-1.5 progress-container">
-                            <div
-                              className={clsx('rounded-full h-1.5', PROGRESS_FILL[quest.status])}
-                              style={{ width: `${(completedObjectives / totalObjectives) * 100}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
                     </RosterRow>
                   );
                 })}

@@ -1,7 +1,8 @@
 // src/pages/quests/__tests__/QuestsPage.test.tsx
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { EXAMPLE_CAMPAIGN } from "shared/example-campaign/example-campaign";
 import QuestsPage from "../QuestsPage";
 
 // ---------------------------------------------------------------------------
@@ -75,6 +76,8 @@ let mockQuestContext: QuestContextMock = {
 };
 
 jest.mock("features/campaign-entities", () => ({
+  // The real example: what it draws is what the signed-out tests are about.
+  QuestExample: jest.requireActual("features/campaign-entities/quests/components/QuestExample").default,
   useQuests: () => mockQuestContext,
   QuestDirectory: (props: { quests?: unknown[] }) => (
     <div data-testid="quest-directory">
@@ -121,6 +124,23 @@ describe("QuestsPage", () => {
   // Gated states
   // -------------------------------------------------------------------------
   describe("gated states", () => {
+    it("shows a signed-out visitor the example campaign's quests under the panel, as rows that do nothing", () => {
+      mockUser = null;
+      renderPage();
+      const example = screen.getByTestId("roster-example");
+      EXAMPLE_CAMPAIGN.quests.forEach((row) =>
+        expect(within(example).getByText(row.title)).toBeInTheDocument()
+      );
+      expect(within(example).queryAllByRole("button", { hidden: true })).toHaveLength(0);
+      const signIn = screen.getByRole("link", { name: "Sign in" });
+      expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("shows a signed-in member no example", () => {
+      renderPage();
+      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+    });
+
     it("renders the page title and subtitle while signed out", () => {
       mockUser = null;
       renderPage();

@@ -577,7 +577,7 @@ risk for a public repo and site? A question for the maintainer, not settled here
   from was **not** traced.
 - **Same question, on the live site**: the public signed-out home shows Wizards
   of the Coast's published adventure *The Sunless Citadel*, with its NPC and places
-  (`pages/home/signed-out-example.ts:46`). T075's 2026-10-03 decision covered
+  (`pages/home/signed-out-example.ts:48`). T075's 2026-10-03 decision covered
   only the words "D&D".
 - **If the answer is yes**: invented sample data, new screenshots, and a new
   example on the home page. That is the M.

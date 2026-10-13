@@ -1,7 +1,7 @@
 // src/pages/npcs/NPCsPage.tsx
 import React from "react";
 import Button from "core/components/Button";
-import { NPCDirectory, useNPCs } from "features/campaign-entities";
+import { NPCDirectory, NPCExample, useNPCs } from "features/campaign-entities";
 import { usePageGate, GatedContent } from "shared/components/gated";
 import PageShell from "shared/components/page-shell/PageShell";
 import { useNavigation } from "shared/context/NavigationContext";
@@ -50,7 +50,7 @@ const NPCsPage: React.FC = () => {
         )
       }
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<NPCExample />}>
         {/*
           No `onNPCUpdate` or `onNPCDelete`: the list is the provider's
           listener copy (T032), which follows every write without being asked.

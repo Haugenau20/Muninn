@@ -4,6 +4,7 @@ import {
   useStory,
   BookshelfView,
   ChapterList,
+  ChapterExample,
   deriveChapterProgress,
   summariseProgress,
   filterChapters,
@@ -164,7 +165,7 @@ const ChaptersPage: React.FC = () => {
         </>
       }
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<ChapterExample />}>
         <ResumeBar summary={summary} onResume={handleResume} />
 
         {chapters.length === 0 ? (

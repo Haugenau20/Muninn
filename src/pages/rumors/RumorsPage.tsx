@@ -1,6 +1,6 @@
 // src/pages/rumors/RumorsPage.tsx
 import React from "react";
-import { RumorDirectory, useRumors } from "features/campaign-entities";
+import { RumorDirectory, RumorExample, useRumors } from "features/campaign-entities";
 import { usePageGate, GatedContent } from "shared/components/gated";
 import PageShell from "shared/components/page-shell/PageShell";
 
@@ -36,7 +36,7 @@ const RumorsPage: React.FC = () => {
       title="Rumours"
       subtitle="Track and investigate rumours from across the realm"
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<RumorExample />}>
         <RumorDirectory rumors={rumors} isLoading={false} />
       </GatedContent>
     </PageShell>

@@ -1,7 +1,7 @@
 // src/pages/quests/QuestsPage.tsx
 import React from "react";
 import Button from "core/components/Button";
-import { QuestDirectory, useQuests } from "features/campaign-entities";
+import { QuestDirectory, QuestExample, useQuests } from "features/campaign-entities";
 import { usePageGate, GatedContent } from "shared/components/gated";
 import PageShell from "shared/components/page-shell/PageShell";
 import { useNavigation } from "shared/hooks/useNavigation";
@@ -37,7 +37,7 @@ const QuestsPage: React.FC = () => {
         )
       }
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<QuestExample />}>
         <QuestDirectory quests={quests} isLoading={false} />
       </GatedContent>
     </PageShell>
