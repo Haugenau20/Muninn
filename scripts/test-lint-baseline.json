@@ -89,7 +89,7 @@
   "src/pages/__tests__/PrivacyPolicyPage.test.tsx": 76,
   "src/pages/__tests__/redundant-refreshes.test.tsx": 6,
   "src/pages/home/__tests__/signed-out-example.test.ts": 1,
-  "src/pages/home/__tests__/SignedOutHome.test.tsx": 6,
+  "src/pages/home/__tests__/SignedOutHome.test.tsx": 1,
   "src/pages/layouts/common/components/__tests__/EmptyState.test.tsx": 5,
   "src/pages/layouts/common/hooks/__tests__/useActivityDisplay.test.ts": 1,
   "src/pages/layouts/common/hooks/__tests__/useCampaignInfo.test.ts": 1,

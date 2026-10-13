@@ -65,6 +65,30 @@ test.describe("signed out", () => {
     await expect(example.getByRole("button", { name: "Expand Cross at Cinderford after dark" })).toBeVisible();
   });
 
+  // Home is the way into the examples: a recent row opens its own row there.
+  test("Home's recent NPC opens that person's row on the NPC example", async ({ page }) => {
+    await page.goto("/");
+    // The analytics question sits over the panel until it is answered.
+    await page.getByRole("region", { name: "Privacy" }).getByRole("button", { name: "No thanks" }).click();
+    const panel = page.getByTestId("example-panel");
+    await expect(panel.getByRole("link", { name: /14\s*Chapters/i })).toHaveAttribute("href", "/story/chapters");
+    await panel.getByRole("link", { name: /Odile Marrow/ }).click();
+    await expect(page).toHaveURL(/\/npcs\?highlight=example-npc-odile$/);
+    const example = page.getByRole("region", { name: "Example campaign" });
+    await expect(example.getByRole("button", { name: "Collapse Odile Marrow" })).toBeVisible();
+    await expect(example.getByText(/Takes payment in salt/)).toBeVisible();
+  });
+
+  // Home's recent rows keep their detail to one line; at phone width that
+  // line must shorten, not push the page wider than the phone.
+  test("signed-out Home fits a phone's width", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/");
+    await expect(page.getByTestId("example-panel")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
   test("the notes example is a scanned note that can be read and not changed", async ({ page }) => {
     await page.goto("/notes");
     const example = page.getByRole("region", { name: "Example campaign" });
