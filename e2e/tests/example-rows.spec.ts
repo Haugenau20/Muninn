@@ -13,7 +13,7 @@ const PAGES = [
   { path: "/quests", heading: "Sign in to see your party's quests", row: "Recover the drowned ledger" },
   { path: "/locations", heading: "Sign in to see where your party has been", row: "Harrowgate" },
   { path: "/rumors", heading: "Sign in to hear what the realm is saying", row: "The ferry crosses at night for those who never paid" },
-  { path: "/story/chapters", heading: "Sign in to read your campaign's story", row: "Ashes on the Water" },
+  { path: "/story/chapters", heading: "Sign in to read your campaign's story", row: "Into the Fen" },
 ];
 
 test.describe("signed out", () => {
