@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback, useRef, useImperativeHandle, f
 import { Note } from "../types";
 import { recordTimes } from "core/attribution";
 import Typography from "../../../../core/components/Typography";
-import Input from 'core/components/Input';
 import { useAutoGrow } from 'shared/hooks/useAutoGrow';
 import { useNotes } from "../context/NoteContext";
 import { deriveTitle, LEGACY_DEFAULT_TITLE } from "../utils/note-title";
 import { formatLastSaved } from "../utils/save-status";
-import { Loader2, AlertCircle, ArrowLeft, Archive, Trash2, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Check } from 'lucide-react';
+import NoteSheet, { countWords } from "./NoteSheet";
 
 interface NoteEditorProps {
   /** ID of the note to edit */
@@ -125,7 +125,7 @@ const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
   useEffect(() => { hasExplicitTitleRef.current = hasExplicitTitle; }, [hasExplicitTitle]);
 
   const effectiveTitle = hasExplicitTitle ? title : deriveTitle(content);
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const wordCount = countWords(content);
 
   /*
     Load note data once per note id. `getNoteById` is a dependency only so a
@@ -545,101 +545,27 @@ const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
   };
 
   return (
-    <div className="note-editor card rounded-xl flex flex-col min-h-[70vh]">
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b card-divider text-[13px]">
-        <button
-          type="button"
-          onClick={() => { void handleBack(); }}
-          disabled={isLeaving}
-          className="flex items-center gap-1.5 typography-secondary hover:underline disabled:opacity-50"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          All notes
-        </button>
-
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={onArchive}
-            disabled={readOnly}
-            className="flex items-center gap-1.5 typography-secondary hover:underline disabled:opacity-50"
-          >
-            <Archive className="w-4 h-4" />
-            Archive
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={readOnly}
-            className="flex items-center gap-1.5 typography-error hover:underline disabled:opacity-50"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
-        </div>
-      </div>
-
-      {/* The writing itself */}
-      <div className="flex-1 flex flex-col px-8 py-6">
-        {/*
-          `text-ellipsis` on an input renders the "…" only while the field is
-          unfocused, which is exactly the behaviour wanted here: a long title
-          reads with a clear truncation mark, and clicking in to edit reveals
-          the whole value. Without it the title clips mid-letter
-          ("...at the Stonehill Inn in P") with nothing to signal that more
-          text exists. This covers explicit titles too, which are uncapped.
-        */}
-        <input
-          value={effectiveTitle}
-          onChange={handleTitleChange}
-          placeholder="Untitled note"
-          disabled={readOnly}
-          aria-label="Note title"
-          className="note-title w-full bg-transparent border-none outline-none typography-heading text-[30px] font-medium placeholder:opacity-40 overflow-hidden text-ellipsis whitespace-nowrap"
-        />
-
-        {!hasExplicitTitle && (
+    <NoteSheet
+      title={effectiveTitle}
+      content={content}
+      onTitleChange={handleTitleChange}
+      onContentChange={handleContentChange}
+      disabled={readOnly}
+      onBack={() => { void handleBack(); }}
+      backDisabled={isLeaving}
+      onArchive={onArchive}
+      onDelete={onDelete}
+      titleCaption={
+        !hasExplicitTitle && (
           <Typography variant="caption" color="muted" className="mt-1 text-xs">
             Taken from the first line. Click to write your own title.
           </Typography>
-        )}
-
-        {/*
-          On the primitive every other field uses (09-2, item 5). This comment
-          used to call it "the last hand-rolled textarea element in the
-          product"; it was not. `ContactForm` in `src/shared/components` had
-          one too, and 09-2's gate grepped only `src/features` and
-          `src/pages` -- accurate about what it checked, wrong about what it
-          was taken to prove. Converted in 10-3, with the gate rewritten to
-          cover `src`. The visible label
-          comes with it: the control was already named for a screen reader by
-          its `aria-label`, so that attribute goes rather than sitting on top
-          of a real label element and shadowing it.
-        */}
-        <Input
-          ref={bodyRef as React.Ref<HTMLTextAreaElement>}
-          isTextArea
-          label="Note content"
-          value={content}
-          onChange={handleContentChange}
-          placeholder="Write your note here..."
-          disabled={readOnly}
-          fullWidth
-          containerClassName="flex-1 mt-5"
-          className="note-textarea flex-1 resize-none text-[17px] leading-[1.65] placeholder:opacity-40"
-          style={{ minHeight: "40vh" }}
-        />
-      </div>
-
-      {/* Footer: save state stated once, and only once */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t card-divider bg-secondary text-[13px]">
-        {getStatusIndicator()}
-        <Typography variant="body-sm" color="secondary" className="text-[13px]">
-          {`${wordCount.toLocaleString()} ${wordCount === 1 ? "word" : "words"} · Ctrl+S (⌘S on Mac) to save now`}
-        </Typography>
-      </div>
-    </div>
+        )
+      }
+      status={getStatusIndicator()}
+      footerNote={`${wordCount.toLocaleString()} ${wordCount === 1 ? "word" : "words"} · Ctrl+S (⌘S on Mac) to save now`}
+      bodyRef={bodyRef}
+    />
   );
 });
 

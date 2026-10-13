@@ -1,7 +1,7 @@
 // src/pages/notes/NotesPage.tsx
 import React from "react";
 import Button from "core/components/Button";
-import { NotesList, useNotes, useCreateNote } from "features/collaboration";
+import { NotesList, NoteExample, useNotes, useCreateNote } from "features/collaboration";
 import { useCampaigns } from "features/user-management";
 import { usePageGate, GatedContent } from "shared/components/gated";
 import PageShell from "shared/components/page-shell/PageShell";
@@ -52,7 +52,7 @@ const NotesPage: React.FC = () => {
         )
       }
     >
-      <GatedContent gate={gate}>
+      <GatedContent gate={gate} signedOutExample={<NoteExample />}>
         <NotesList />
       </GatedContent>
     </PageShell>

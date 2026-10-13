@@ -14,6 +14,7 @@ const PAGES = [
   { path: "/locations", heading: "Sign in to see where your party has been", row: "Harrowgate" },
   { path: "/rumors", heading: "Sign in to hear what the realm is saying", row: "The ferry crosses at night for those who never paid" },
   { path: "/story/chapters", heading: "Sign in to read your campaign's story", row: "Into the Fen" },
+  { path: "/notes", heading: "Sign in to read your notes", row: "Gully Thrane" },
 ];
 
 test.describe("signed out", () => {
@@ -62,6 +63,17 @@ test.describe("signed out", () => {
     await expect(example.getByRole("button", { name: /Cross at Cinderford after dark/ })).toHaveCount(0);
     await example.getByRole("button", { name: /Completed Quests/ }).click();
     await expect(example.getByRole("button", { name: "Expand Cross at Cinderford after dark" })).toBeVisible();
+  });
+
+  test("the notes example is a scanned note that can be read and not changed", async ({ page }) => {
+    await page.goto("/notes");
+    const example = page.getByRole("region", { name: "Example campaign" });
+    await expect(example.getByRole("textbox", { name: "Note title" })).toHaveValue("Session 13 — Into the Fen");
+    await expect(example.getByText("IN YOUR CAMPAIGN · 9")).toBeVisible();
+    await expect(example.getByRole("textbox", { name: "Note content" })).not.toBeEditable();
+    await example.getByRole("button", { name: "Scan note" }).click();
+    await expect(example.getByText("DETECTED, NOT IN YOUR CAMPAIGN · 5")).toBeVisible();
+    await expect(page).toHaveURL(/\/notes$/);
   });
 
   test("the rumour example opens a rumour as text, with nothing to edit", async ({ page }) => {
