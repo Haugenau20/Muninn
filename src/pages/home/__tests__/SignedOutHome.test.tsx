@@ -84,7 +84,7 @@ describe("SignedOutHome", () => {
   it("labels the example as an example, and says it can be clicked", () => {
     renderHome();
     expect(screen.getByText("Example campaign")).toBeInTheDocument();
-    expect(screen.getByText("Click around, nothing is saved")).toBeInTheDocument();
+    expect(screen.getByText("Click around")).toBeInTheDocument();
   });
 
   // The panel was a picture, hidden from assistive technology, with nothing in
@@ -138,7 +138,9 @@ describe("SignedOutHome", () => {
     });
   });
 
-  it("lists the three things the product does, each with the example that shows it", () => {
+  // Plain lines: the example card beside them already holds every way in
+  // (maintainer, 2026-10-13: "there are enough ways to click around").
+  it("lists the three things the product does, in words", () => {
     renderHome();
     // Scoped to the list: "rumours" and "notes" also appear in the blurb
     // above, so unscoped queries would match several elements and throw.
@@ -147,8 +149,6 @@ describe("SignedOutHome", () => {
     expect(lines).toHaveTextContent(/rumours/i);
     expect(lines).toHaveTextContent(/session notes/i);
     expect(lines.querySelectorAll("li")).toHaveLength(3);
-    expect(within(lines).getByRole("link", { name: /See the story/ })).toHaveAttribute("href", "/story/chapters");
-    expect(within(lines).getByRole("link", { name: /See the rumours/ })).toHaveAttribute("href", "/rumors");
-    expect(within(lines).getByRole("link", { name: /See a note/ })).toHaveAttribute("href", "/notes");
+    expect(within(lines).queryAllByRole("link")).toHaveLength(0);
   });
 });

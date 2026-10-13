@@ -6,15 +6,11 @@ import EntitySigil from "core/components/EntitySigil";
 import Typography from "core/components/Typography";
 import { SIGNED_OUT_EXAMPLE, describeUpdate, formatUpdateDate } from "./signed-out-example";
 
-/** The three things the product does, said plainly, each with the example that shows it. */
+/** The three things the product does, said plainly. */
 const PRODUCT_LINES = [
-  { text: "A chapter log the whole group can add to, in play order", link: "See the story", href: "/story/chapters" },
-  { text: "Quests with objectives, and rumours you can mark true or false", link: "See the rumours", href: "/rumors" },
-  {
-    text: "Your own session notes — AI pulls out the NPCs, locations and quests it finds",
-    link: "See a note",
-    href: "/notes",
-  },
+  "A chapter log the whole group can add to, in play order",
+  "Quests with objectives, and rumours you can mark true or false",
+  "Your own session notes — AI pulls out the NPCs, locations and quests it finds",
 ];
 
 /** An accent arrow after a link's words: this goes somewhere. */
@@ -80,15 +76,8 @@ const SignedOutHome: React.FC = () => (
 
         <ul data-testid="product-lines">
           {PRODUCT_LINES.map((line) => (
-            <li
-              key={line.text}
-              className="flex items-baseline justify-between gap-4 py-2.5 border-b divider last:border-b-0"
-            >
-              <Typography color="secondary">{line.text}</Typography>
-              <Link to={line.href} className="shrink-0 text-sm font-semibold accent">
-                {line.link}
-                <Arrow />
-              </Link>
+            <li key={line} className="py-2.5 border-b divider last:border-b-0">
+              <Typography color="secondary">{line}</Typography>
             </li>
           ))}
         </ul>
@@ -100,7 +89,7 @@ const SignedOutHome: React.FC = () => (
           <span className="px-2 py-1 rounded text-xs font-semibold uppercase tracking-widest chip">
             Example campaign
           </span>
-          <span className="text-sm typography-muted">Click around, nothing is saved</span>
+          <span className="text-sm typography-muted">Click around</span>
         </div>
 
         <div data-testid="example-panel" className="rounded-lg p-6 card">
