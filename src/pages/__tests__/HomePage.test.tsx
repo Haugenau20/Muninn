@@ -294,11 +294,13 @@ describe("HomePage", () => {
     // level-1 heading deliberately -- SignedOutHome's body prose repeats
     // words ("campaign", "chapters") that also appear elsewhere in the page,
     // so an unscoped text query would be ambiguous.
-    it("explains the product instead of a dashboard of zeros while signed out", () => {
+    // Awaited: signed-out Home loads lazily, so the example it carries stays
+    // out of every member's entry bundle.
+    it("explains the product instead of a dashboard of zeros while signed out", async () => {
       mockUser = null;
       renderPage();
       expect(
-        screen.getByRole("heading", { level: 1 })
+        await screen.findByRole("heading", { level: 1 })
       ).toHaveTextContent(/everything your table agreed happened/i);
       expect(screen.queryByTestId("dashboard-layout")).not.toBeInTheDocument();
     });

@@ -200,6 +200,46 @@ describe('RumorDirectory', () => {
   // -------------------------------------------------------------------------
   // Loading state
   // -------------------------------------------------------------------------
+  // The signed-out example: the list as members see it, without anything that
+  // writes -- and an open row shows the rumour, not a form to edit it.
+  describe('when the reader may not edit', () => {
+    beforeEach(() => setupMocks(null, {}, [r1, rc]));
+
+    test('offers no composer and no selection', () => {
+      render(<RumorDirectory rumors={[r1, rc]} canEdit={false} />);
+      expect(screen.queryByLabelText('Heard something? Write it down here')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Select Rumours' })).not.toBeInTheDocument();
+      expect(searchInput()).toBeInTheDocument();
+    });
+
+    test('opens a row onto what was heard, as text, with nothing to type into', () => {
+      render(<RumorDirectory rumors={[r1]} canEdit={false} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Expand Dragon spotted' }));
+      expect(screen.getByText('A test rumour about something.')).toBeInTheDocument();
+      // The search box is the only thing to type into.
+      expect(screen.getAllByRole('textbox')).toEqual([searchInput()]);
+      expect(screen.queryByRole('button', { name: /Save/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Delete/ })).not.toBeInTheDocument();
+    });
+
+    test('keeps the way to the quest a rumour became', () => {
+      render(
+        <RumorDirectory rumors={[makeRumor({ id: 'rq', title: 'Became one', convertedToQuestId: 'q-1' })]} canEdit={false} />
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Expand Became one' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Open the quest' }));
+      expect(mockNavigateToPage).toHaveBeenCalledWith('/quests/q-1');
+    });
+  });
+
+  describe('a row open from the start', () => {
+    test('opens the row it is given', () => {
+      setupMocks(undefined, {}, [r1, r2]);
+      render(<RumorDirectory rumors={[r1, r2]} initialExpandedId="r2" />);
+      expect(screen.getByRole('button', { name: 'Collapse Missing merchant' })).toHaveAttribute('aria-expanded', 'true');
+    });
+  });
+
   describe('loading state', () => {
     test('shows the rhythm of the rows that are coming, not a spinner', () => {
       const { container } = render(<RumorDirectory rumors={[]} isLoading={true} />);
@@ -220,7 +260,7 @@ describe('RumorDirectory', () => {
   describe('empty state', () => {
     test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       render(<RumorDirectory rumors={[]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Example campaign' })).not.toBeInTheDocument();
     });
 
     test('says what the collection is for, and leaves the composer to fill it', () => {

@@ -210,6 +210,63 @@ describe('NPCDirectory', () => {
   // -------------------------------------------------------------------------
   // Loading state
   // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // A reader who may not write (the signed-out example): the page as members
+  // see it, without the controls that change anything.
+  // -------------------------------------------------------------------------
+  describe('when the reader may not edit', () => {
+    it('offers no selection, and no Delete in an open row', () => {
+      render(<NPCDirectory npcs={[aldric, mira]} canEdit={false} />);
+      expect(screen.queryByRole('button', { name: 'Select NPCs' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Expand Aldric' }));
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    });
+
+    it('keeps the way into a record, and the stance ladder, as members see them', () => {
+      render(<NPCDirectory npcs={[aldric]} canEdit={false} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Expand Aldric' }));
+      expect(screen.getByRole('button', { name: 'More info' })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: 'Stance of Aldric' })).toBeInTheDocument();
+    });
+
+    it('offers no way to add the first NPC to an empty list', () => {
+      render(<NPCDirectory npcs={[]} canEdit={false} />);
+      expect(screen.queryByRole('button', { name: /Add the first NPC/ })).not.toBeInTheDocument();
+    });
+
+    it('still lets members select by default', () => {
+      render(<NPCDirectory npcs={[aldric]} />);
+      expect(screen.getByRole('button', { name: 'Select NPCs' })).toBeInTheDocument();
+    });
+  });
+
+  describe('a row open from the start', () => {
+    it('opens the row it is given', () => {
+      render(<NPCDirectory npcs={[aldric, mira]} initialExpandedId="npc-2" />);
+      expect(screen.getByRole('button', { name: 'Collapse Mira' })).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('button', { name: 'Expand Aldric' })).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // An example credits no one, so it has no one to name: no empty
+  // "Recorded by: Unknown" either.
+  describe('a record nobody recorded', () => {
+    it('draws no Recorded by at all', () => {
+      render(
+        <NPCDirectory
+          npcs={[makeNPC({ id: 'npc-x', name: 'Nobody', createdBy: '', createdByUsername: '' })]}
+          initialExpandedId="npc-x"
+        />
+      );
+      expect(screen.queryByText('Recorded by')).not.toBeInTheDocument();
+    });
+
+    it('still credits a record somebody did', () => {
+      render(<NPCDirectory npcs={[aldric]} initialExpandedId="npc-1" />);
+      expect(screen.getByText('Recorded by')).toBeInTheDocument();
+    });
+  });
+
   describe('loading state', () => {
     test('shows the rhythm of the rows that are coming, not a spinner', () => {
       // A spinner says "something is happening". A skeleton says "a list of
@@ -245,7 +302,7 @@ describe('NPCDirectory', () => {
 
     test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       render(<NPCDirectory npcs={[]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Example campaign' })).not.toBeInTheDocument();
     });
 
     test('the empty state is not blank', () => {

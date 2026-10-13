@@ -9,6 +9,7 @@ import Button from '../../../../core/components/Button';
 import RumorBatchActions from './RumorBatchActions';
 import RumorComposer from './RumorComposer';
 import RumorRowCells, { RUMOR_ROW_GRID } from './RumorRowCells';
+import RumorRowView from './RumorRowView';
 import RumorRowEditor, {
   draftFromRumor,
   isDraftDirty,
@@ -42,6 +43,14 @@ import { useRosterGroupPaging } from 'shared/hooks/useRosterGroupPaging';
 interface RumorDirectoryProps {
   rumors: Rumor[];
   isLoading?: boolean;
+  /**
+   * Whether the reader may change what is listed. False leaves out the
+   * composer and selection, and opens a row onto the rumour as text
+   * (`RumorRowView`) instead of the editor. Defaults to true.
+   */
+  canEdit?: boolean;
+  /** A row to open from the start. */
+  initialExpandedId?: string;
 }
 
 /**
@@ -95,11 +104,13 @@ const SOURCE_FILTERS: RosterFilterOption[] = [
 const RumorDirectory: React.FC<RumorDirectoryProps> = ({
   rumors: initialRumors,
   isLoading = false,
+  canEdit = true,
+  initialExpandedId,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<RumorStatus | 'all'>('all');
   const [sourceFilter, setSourceFilter] = useState<SourceType | 'all'>('all');
-  const [expandedRumorId, setExpandedRumorId] = useState<string | null>(null);
+  const [expandedRumorId, setExpandedRumorId] = useState<string | null>(initialExpandedId ?? null);
   const selection = useSelection();
   /** The rumour the composer just made, so its row opens with the caret in it. */
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -121,7 +132,10 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
    * row's *position* waits. It settles into its real group when the row
    * closes, and says so while it is open, so the list never quietly lies.
    */
-  const [pinnedGroup, setPinnedGroup] = useState<{ id: string; status: RumorStatus } | null>(null);
+  const [pinnedGroup, setPinnedGroup] = useState<{ id: string; status: RumorStatus } | null>(() => {
+    const opened = initialRumors.find((rumor) => rumor.id === initialExpandedId);
+    return opened ? { id: opened.id, status: normalizeRumorStatus(opened.status) } : null;
+  });
 
   /**
    * Typed text for every open (or recently open) row, keyed by rumour id.
@@ -495,13 +509,15 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
           label="Filter by source"
         />
 
-        <Button
-          variant={selection.active ? 'primary' : 'outline'}
-          size="sm"
-          onClick={selection.toggleActive}
-        >
-          {selection.active ? 'Exit Selection' : 'Select Rumours'}
-        </Button>
+        {canEdit && (
+          <Button
+            variant={selection.active ? 'primary' : 'outline'}
+            size="sm"
+            onClick={selection.toggleActive}
+          >
+            {selection.active ? 'Exit Selection' : 'Select Rumours'}
+          </Button>
+        )}
       </RosterFilterBar>
 
       {/* Batch actions bar — only visible in selection mode, once something is selected */}
@@ -522,7 +538,7 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
         middle of choosing which ones to combine is not a thing anyone is
         doing.
       */}
-      {!selection.active && <RumorComposer onAdd={handleAdd} />}
+      {canEdit && !selection.active && <RumorComposer onAdd={handleAdd} />}
 
       {/* Rumor roster by status */}
       {groupedRumors.length > 0 ? (
@@ -577,6 +593,20 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
                           entity where §1.3's four-fact bound does not apply,
                           because there is no page holding the remainder.
                         */
+                        !canEdit ? (
+                          <RumorRowView
+                            rumor={rumor}
+                            name={name}
+                            pointsAt={[
+                              ...rumor.relatedNPCs.map((id) => npcs.find((npc) => npc.id === id)?.name),
+                              ...[rumor.locationId, ...rumor.relatedLocations].map(
+                                (id) => locations.find((place) => place.id === id)?.name
+                              ),
+                            ].filter((named): named is string => Boolean(named))}
+                            onStatusChange={(status) => updateRumorStatus(rumor.id, status)}
+                            onOpenQuest={handleQuestClick}
+                          />
+                        ) : (
                         <RumorRowEditor
                           rumor={rumor}
                           draft={drafts[rumor.id]}
@@ -599,6 +629,7 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
                               : normalizeRumorStatus(rumor.status)
                           }
                         />
+                        )
                       }
                     >
                       <RumorRowCells

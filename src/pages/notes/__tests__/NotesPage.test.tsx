@@ -64,6 +64,9 @@ jest.mock("core/services/firebase", () => ({
 // domain barrel now, so they are mocked together in a single factory.
 jest.mock("features/collaboration", () => ({
   NotesList: () => <div data-testid="notes-list" />,
+  // What the example draws is NoteExample's own suite; here, only where the
+  // page puts it.
+  NoteExample: () => <section aria-label="Example campaign">one player's note</section>,
   useNotes: jest.fn(),
   useCreateNote: jest.fn(),
 }));
@@ -126,6 +129,19 @@ describe("NotesPage", () => {
         screen.getByRole("heading", { name: /sign in to read your notes/i })
       ).toBeInTheDocument();
       expect(screen.queryByText(/select a group/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a signed-out visitor the example note under the sign-in", () => {
+      mockUser = null;
+      renderPage();
+      const example = screen.getByRole("region", { name: "Example campaign" });
+      const signIn = screen.getByRole("link", { name: "Sign in" });
+      expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("shows a signed-in member no example", () => {
+      renderPage();
+      expect(screen.queryByRole("region", { name: "Example campaign" })).not.toBeInTheDocument();
     });
 
     it("hides the create action while signed out", () => {

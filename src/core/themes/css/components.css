@@ -118,6 +118,12 @@
     border-color: var(--surface-card-border);
   }
 
+  /* The card border's colour as a fill: behind a `gap-px` grid of cards, the
+     gaps draw hairlines in the border's own tone (signed-out Home's stats). */
+  .card-border-fill {
+    background-color: var(--surface-card-border);
+  }
+
   .card-header {
     padding: 1.5rem 1.5rem 0.75rem;
   }

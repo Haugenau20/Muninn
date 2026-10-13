@@ -1,5 +1,5 @@
 // src/context/NavigationContext.tsx
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   NavigationPath,
@@ -210,4 +210,22 @@ export const useNavigation = () => {
     throw new Error('useNavigation must be used within a NavigationProvider');
   }
   return context;
+};
+
+/** Going nowhere: what a control inside {@link InertNavigation} calls. */
+const stay = () => undefined;
+
+/**
+ * The surrounding navigation, except that going anywhere does nothing.
+ *
+ * For a page drawn from the example campaign (T150's live examples): its
+ * rows keep their "More info" and "Open location" looking exactly as they do
+ * for a member, and pressing one leaves the visitor where they are, because
+ * the records those lead to do not exist. Reading the URL still works, so a
+ * deep link's `?highlight=` still finds its row.
+ */
+export const InertNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const outer = useNavigation();
+  const value = useMemo(() => ({ ...outer, navigateToPage: stay, goBack: stay }), [outer]);
+  return <NavigationContext.Provider value={value}>{children}</NavigationContext.Provider>;
 };

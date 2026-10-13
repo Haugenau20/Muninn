@@ -38,6 +38,14 @@ import { planBatchDelete } from '../utils/batch-delete';
 interface LocationDirectoryProps {
   locations: Location[];
   isLoading?: boolean;
+  /**
+   * Whether the reader may change what is listed. False leaves out
+   * selection and adding the first place, and keeps everything that reads.
+   * Defaults to true.
+   */
+  canEdit?: boolean;
+  /** Places to open from the start, showing what is inside them. */
+  initialExpandedIds?: readonly string[];
 }
 
 /**
@@ -91,11 +99,15 @@ const BATCH_STATUSES: Array<BatchStatusOption<LocationStatus>> = STATUS_ORDER.ma
 const LocationDirectory: React.FC<LocationDirectoryProps> = ({
   locations,
   isLoading = false,
+  canEdit = true,
+  initialExpandedIds,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [expandedLocations, setExpandedLocations] = useState<Set<string>>(new Set());
+  const [expandedLocations, setExpandedLocations] = useState<Set<string>>(
+    () => new Set(initialExpandedIds)
+  );
 
   const { getNPCById } = useNPCs();
   const { quests, getQuestById } = useQuests();
@@ -398,13 +410,15 @@ const LocationDirectory: React.FC<LocationDirectoryProps> = ({
           label="Filter by location type"
         />
 
-        <Button
-          variant={selection.active ? 'primary' : 'outline'}
-          size="sm"
-          onClick={selection.toggleActive}
-        >
-          {selection.active ? 'Exit Selection' : 'Select Locations'}
-        </Button>
+        {canEdit && (
+          <Button
+            variant={selection.active ? 'primary' : 'outline'}
+            size="sm"
+            onClick={selection.toggleActive}
+          >
+            {selection.active ? 'Exit Selection' : 'Select Locations'}
+          </Button>
+        )}
       </RosterFilterBar>
 
       {/* Batch actions -- only in selection mode, once something is ticked */}
@@ -444,12 +458,14 @@ const LocationDirectory: React.FC<LocationDirectoryProps> = ({
             title="Muninn hasn't been anywhere yet"
             message="Regions, cities, dungeons and the rooms inside them — each one can hold the notes, NPCs and quests you found there."
             action={
-              <Button
-                onClick={() => navigateToPage('/locations/create')}
-                startIcon={<Plus className="w-4 h-4" />}
-              >
-                Add the first location
-              </Button>
+              canEdit ? (
+                <Button
+                  onClick={() => navigateToPage('/locations/create')}
+                  startIcon={<Plus className="w-4 h-4" />}
+                >
+                  Add the first location
+                </Button>
+              ) : undefined
             }
           />
         )

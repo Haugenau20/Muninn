@@ -32,6 +32,14 @@ import { useRosterGroupPaging } from 'shared/hooks/useRosterGroupPaging';
 interface QuestDirectoryProps {
   quests: Quest[];
   isLoading?: boolean;
+  /**
+   * Whether the reader may change what is listed. False leaves out
+   * selection and adding the first quest, and keeps everything that reads.
+   * Defaults to true.
+   */
+  canEdit?: boolean;
+  /** A row to open from the start. */
+  initialExpandedId?: string;
 }
 
 /**
@@ -82,6 +90,8 @@ const BATCH_STATUSES: Array<BatchStatusOption<QuestStatus>> = [
 const QuestDirectory: React.FC<QuestDirectoryProps> = ({
   quests,
   isLoading = false,
+  canEdit = true,
+  initialExpandedId,
 }) => {
   const { updateQuest, updateQuestObjective, updateQuestsStatus, deleteQuests } = useQuests();
   /** Selection mode for the batch actions (T017). */
@@ -102,7 +112,7 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
   const [statusFilter, setStatusFilter] = useState<QuestStatus | 'all'>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedQuestId, setExpandedQuestId] = useState<string | null>(null);
+  const [expandedQuestId, setExpandedQuestId] = useState<string | null>(initialExpandedId ?? null);
 
   // Status counts drive the one bar that replaced three stat cards. All three
   // segments always sum to the total -- unlike a two-way "active vs completed"
@@ -260,13 +270,15 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
           />
         )}
 
-        <Button
-          variant={selection.active ? 'primary' : 'outline'}
-          size="sm"
-          onClick={selection.toggleActive}
-        >
-          {selection.active ? 'Exit Selection' : 'Select Quests'}
-        </Button>
+        {canEdit && (
+          <Button
+            variant={selection.active ? 'primary' : 'outline'}
+            size="sm"
+            onClick={selection.toggleActive}
+          >
+            {selection.active ? 'Exit Selection' : 'Select Quests'}
+          </Button>
+        )}
       </RosterFilterBar>
 
       {/* Batch actions -- only in selection mode, once something is ticked */}
@@ -378,12 +390,14 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
           title="Nothing taken on yet"
           message="What the party agreed to do, who asked, and how far along it is — with the objectives ticked off as you go."
           action={
-            <Button
-              onClick={() => navigateToPage('/quests/create')}
-              startIcon={<Plus className="w-4 h-4" />}
-            >
-              Add the first quest
-            </Button>
+            canEdit ? (
+              <Button
+                onClick={() => navigateToPage('/quests/create')}
+                startIcon={<Plus className="w-4 h-4" />}
+              >
+                Add the first quest
+              </Button>
+            ) : undefined
           }
         />
       )}

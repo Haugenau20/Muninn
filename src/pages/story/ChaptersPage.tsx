@@ -2,12 +2,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   useStory,
-  BookshelfView,
-  ChapterList,
+  ChapterBrowser,
   ChapterExample,
   deriveChapterProgress,
   summariseProgress,
-  filterChapters,
+  type ChapterViewMode,
+  type ChapterFilterMode,
 } from 'features/storytelling';
 import { useNavigation } from 'shared/context/NavigationContext';
 import { usePageGate, GatedContent } from 'shared/components/gated';
@@ -19,8 +19,7 @@ import Breadcrumb from 'shared/components/Breadcrumb';
 import Button from 'core/components/Button';
 import ResumeBar from './components/ResumeBar';
 import StoryViewTabs from './components/StoryViewTabs';
-import { Plus, List, Grid, Trash } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Plus, Trash } from 'lucide-react';
 import { readLocalStorage, writeLocalStorage } from 'core/utils/local-storage';
 
 /** localStorage key for the list/shelf view toggle. */
@@ -28,8 +27,8 @@ const VIEW_PREFERENCE_KEY = 'chapters-view-preference';
 /** localStorage key for the all/unread filter pill. */
 const FILTER_PREFERENCE_KEY = 'chapters-filter-preference';
 
-type ViewMode = 'list' | 'shelf';
-type FilterMode = 'all' | 'unread';
+type ViewMode = ChapterViewMode;
+type FilterMode = ChapterFilterMode;
 
 /**
  * Normalises a stored view preference. The pre-redesign page stored
@@ -67,8 +66,6 @@ const ChaptersPage: React.FC = () => {
   const [filterMode, setFilterMode] = useState<FilterMode>(() =>
     normaliseFilterMode(readLocalStorage(FILTER_PREFERENCE_KEY))
   );
-  const [searchQuery, setSearchQuery] = useState('');
-
   const { chapters, storyProgress, isLoading, deleteChapters } = useStory();
   const { navigateToPage } = useNavigation();
   /** Selection mode for deleting several chapters at once (T017); the list view only. */
@@ -95,25 +92,6 @@ const ChaptersPage: React.FC = () => {
     [chapters, storyProgress]
   );
   const summary = useMemo(() => summariseProgress(items), [items]);
-
-  // Search narrows the pool the filter pills count and operate over, so the
-  // pill counts stay live as the reader types.
-  const searchedItems = useMemo(
-    () => filterChapters(items, searchQuery),
-    [items, searchQuery]
-  );
-  const allCount = searchedItems.length;
-  const unreadCount = useMemo(
-    () => searchedItems.filter((item) => item.state !== 'read').length,
-    [searchedItems]
-  );
-  const visibleItems = useMemo(
-    () =>
-      filterMode === 'unread'
-        ? searchedItems.filter((item) => item.state !== 'read')
-        : searchedItems,
-    [searchedItems, filterMode]
-  );
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
@@ -182,139 +160,44 @@ const ChaptersPage: React.FC = () => {
             }
           />
         ) : (
-          <>
-            {/* Search + filter + view toggle row */}
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <input
-                type="text"
-                className="input flex-1 min-w-[200px] px-3 py-2"
-                placeholder="Search chapter titles and summaries"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search chapter titles and summaries"
-              />
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  aria-pressed={filterMode === 'all'}
-                  onClick={() => setFilterMode('all')}
-                  className={clsx(
-                    'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                    filterMode === 'all'
-                      ? 'bg-accent accent'
-                      : 'typography-secondary selectable-item'
-                  )}
-                >
-                  All {allCount}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={filterMode === 'unread'}
-                  onClick={() => setFilterMode('unread')}
-                  className={clsx(
-                    'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                    filterMode === 'unread'
-                      ? 'bg-accent accent'
-                      : 'typography-secondary selectable-item'
-                  )}
-                >
-                  Unread {unreadCount}
-                </button>
-              </div>
-
-              {gate.canAct && viewMode === 'list' && (
-                <Button
-                  variant={selection.active ? 'primary' : 'outline'}
-                  size="sm"
-                  onClick={selection.toggleActive}
-                  className="ml-auto"
-                >
-                  {selection.active ? 'Exit Selection' : 'Select Chapters'}
-                </Button>
-              )}
-
-              <div className="flex rounded-lg p-1 bg-secondary ml-auto">
-                <button
-                  type="button"
-                  aria-current={viewMode === 'list' ? 'page' : undefined}
-                  onClick={() => setViewMode('list')}
-                  className={clsx(
-                    'flex items-center gap-1 px-3 py-1 rounded-md transition-colors',
-                    viewMode === 'list' ? 'card' : 'typography-secondary'
-                  )}
-                >
-                  <List className="w-4 h-4" />
-                  <span className="hidden sm:inline">List</span>
-                </button>
-
-                <button
-                  type="button"
-                  aria-current={viewMode === 'shelf' ? 'page' : undefined}
-                  onClick={() => setViewMode('shelf')}
-                  className={clsx(
-                    'flex items-center gap-1 px-3 py-1 rounded-md transition-colors',
-                    viewMode === 'shelf' ? 'card' : 'typography-secondary'
-                  )}
-                >
-                  <Grid className="w-4 h-4" />
-                  <span className="hidden sm:inline">Shelf</span>
-                </button>
-              </div>
-            </div>
-
-            {selection.active && selection.selected.size > 0 && (
-              <div className="mb-4">
-                <RosterBatchBar label={`${countChapters(selection.selected.size)} selected`}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setConfirmingDelete(true)}
-                    startIcon={<Trash size={16} className="feedback-error" />}
-                  >
-                    Delete
-                  </Button>
-                </RosterBatchBar>
-                <DeleteConfirmationDialog
-                  isOpen={confirmingDelete}
-                  onClose={() => setConfirmingDelete(false)}
-                  onConfirm={async () => {
-                    await deleteChapters(Array.from(selection.selected));
-                    clearSelection();
-                  }}
-                  itemName={countChapters(selection.selected.size)}
-                  itemType={selection.selected.size === 1 ? 'chapter' : 'chapters'}
-                  message={`Delete ${countChapters(selection.selected.size)}? The chapters after them are renumbered to close the gap.`}
-                />
-              </div>
-            )}
-
-            {visibleItems.length === 0 ? (
-              <RosterEmpty
-                title="No chapters match this view"
-                message="Try a different search term, or switch back to All to see every chapter recorded so far."
-              />
-            ) : viewMode === 'list' ? (
-              <ChapterList
-                items={visibleItems}
-                onChapterSelect={handleChapterSelect}
-                onEditChapter={handleEditChapter}
-                isAdmin={gate.canAct}
-                selection={
-                  selection.active
-                    ? { selected: selection.selected, onToggle: selection.setSelected }
-                    : undefined
-                }
-              />
-            ) : (
-              <BookshelfView
-                items={visibleItems}
-                onChapterSelect={handleChapterSelect}
-                onEditChapter={handleEditChapter}
-                isAdmin={gate.canAct}
-              />
-            )}
-          </>
+          <ChapterBrowser
+            items={items}
+            filterMode={filterMode}
+            onFilterModeChange={setFilterMode}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            selection={gate.canAct ? selection : undefined}
+            batchBar={
+              selection.active && selection.selected.size > 0 ? (
+                <div className="mb-4">
+                  <RosterBatchBar label={`${countChapters(selection.selected.size)} selected`}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirmingDelete(true)}
+                      startIcon={<Trash size={16} className="feedback-error" />}
+                    >
+                      Delete
+                    </Button>
+                  </RosterBatchBar>
+                  <DeleteConfirmationDialog
+                    isOpen={confirmingDelete}
+                    onClose={() => setConfirmingDelete(false)}
+                    onConfirm={async () => {
+                      await deleteChapters(Array.from(selection.selected));
+                      clearSelection();
+                    }}
+                    itemName={countChapters(selection.selected.size)}
+                    itemType={selection.selected.size === 1 ? 'chapter' : 'chapters'}
+                    message={`Delete ${countChapters(selection.selected.size)}? The chapters after them are renumbered to close the gap.`}
+                  />
+                </div>
+              ) : undefined
+            }
+            onChapterSelect={handleChapterSelect}
+            onEditChapter={handleEditChapter}
+            isAdmin={gate.canAct}
+          />
         )}
       </GatedContent>
     </PageShell>

@@ -12,7 +12,6 @@ import {
   RosterName,
   RosterStatus,
   RosterField,
-  RosterExample,
   type RosterSegment,
   type RosterStatusTone,
 } from '../Roster';
@@ -1062,49 +1061,3 @@ describe('RosterRow depth', () => {
   });
 });
 
-describe('RosterRow inert', () => {
-  const renderInert = () =>
-    render(
-      <RosterRow
-        entityId="example-npc-1"
-        entityName="Odile Marrow"
-        gridClassName="grid-cols-2"
-        toggleLabel="Odile Marrow"
-        expanded
-        expandedContent={<div>detail</div>}
-        inert
-      >
-        <span>Odile Marrow</span>
-      </RosterRow>
-    );
-
-  test('is not a button, so an example cannot be reached or pressed', () => {
-    renderInert();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.getByText('Odile Marrow')).toBeInTheDocument();
-  });
-
-  test('never expands, whatever it is told', () => {
-    renderInert();
-    expect(screen.queryByText('detail')).not.toBeInTheDocument();
-  });
-
-  test('still draws the mark, which is half of what a row looks like', () => {
-    renderInert();
-    expect(screen.getByTestId('entity-sigil')).toHaveTextContent('O');
-  });
-});
-
-describe('RosterExample', () => {
-  test('captions its rows "Example" and hides them from assistive technology', () => {
-    render(
-      <RosterExample>
-        <span>Odile Marrow</span>
-      </RosterExample>
-    );
-    const example = screen.getByTestId('roster-example');
-    expect(example).toHaveAttribute('aria-hidden', 'true');
-    expect(within(example).getByText('Example')).toBeInTheDocument();
-    expect(within(example).getByText('Odile Marrow')).toBeInTheDocument();
-  });
-});

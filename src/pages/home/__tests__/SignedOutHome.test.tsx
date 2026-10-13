@@ -1,8 +1,8 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SignedOutHome from "../SignedOutHome";
-import { SIGNED_OUT_EXAMPLE } from "../signed-out-example";
+import { SIGNED_OUT_EXAMPLE, describeUpdate } from "../signed-out-example";
 
 jest.mock("features/user-management", () => ({
   // `SignInForm` and `JoinGroupDialog` were stubbed here until 14.5 deleted
@@ -42,14 +42,15 @@ describe("SignedOutHome", () => {
   // Home is now the only place in `src/` that says so (`GATED_FOOTNOTE` used
   // to repeat it on twenty routes), so this assertion is what keeps a
   // signed-out visitor from being told to create an account and nothing else.
-  it("tells a stranger they need a join link, without naming the DM", () => {
+  // Moved out of the blurb onto a line of its own (signed-out Home v2), so the
+  // one thing a stranger cannot work out -- an account alone gets you nowhere
+  // -- is not buried at the end of a paragraph about the product.
+  it("tells a stranger they need a join link, on a line of its own, without naming the DM", () => {
     renderHome();
-    // Scoped to the prose element: "invite" also appears on the secondary
-    // button, and an unscoped getByText would match both and throw.
-    const blurb = screen.getByTestId("home-blurb");
-    expect(blurb).toHaveTextContent(/join link/i);
-    expect(blurb).toHaveTextContent(/whoever set up your campaign/i);
-    expect(blurb).not.toHaveTextContent(/\bDM\b/);
+    const invite = screen.getByTestId("home-invite");
+    expect(invite).toHaveTextContent("Invite only for now. Ask whoever set up your campaign for a join link.");
+    expect(invite).not.toHaveTextContent(/\bDM\b/);
+    expect(screen.getByTestId("home-blurb")).not.toHaveTextContent(/join link/i);
   });
 
   it("pitches the AI extraction a stranger has no other way to discover", () => {
@@ -80,41 +81,49 @@ describe("SignedOutHome", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("labels the example as an example, in real text", () => {
+  it("labels the example as an example, and says it can be clicked", () => {
     renderHome();
-    // Outside the aria-hidden subtree, so a screen reader hears it.
-    const chip = screen.getByText(/example campaign/i);
-    expect(chip).toBeInTheDocument();
-    expect(chip.closest("[aria-hidden='true']")).toBeNull();
+    expect(screen.getByText("Example campaign")).toBeInTheDocument();
+    expect(screen.getByText("Click around")).toBeInTheDocument();
   });
 
-  // Replaces "says the panel is a picture rather than a demo", which pinned
-  // the caption "a picture, not a demo — nothing here is clickable". That
-  // sentence described the implementation rather than the product, so it was
-  // removed. Nothing is lost: the promise it made is enforced for real by
-  // "puts nothing clickable or focusable inside the example panel" below,
-  // which checks the DOM instead of asking the reader to take our word for
-  // it. This test guards the replacement -- the chip alone is the caption.
-  it("captions the example with the chip alone, no explanatory prose", () => {
+  // The panel was a picture, hidden from assistive technology, with nothing in
+  // it to press. It is the way into the examples now (signed-out Home v2), so
+  // it is open to everyone and made of links.
+  it("is open to assistive technology, now that it holds links", () => {
     renderHome();
-    const chip = screen.getByText(/example campaign/i);
-    const captionRow = chip.parentElement as HTMLElement;
-    expect(captionRow).not.toBeNull();
-    expect(captionRow.textContent?.trim()).toBe("Example campaign");
+    expect(screen.getByTestId("example-panel")).not.toHaveAttribute("aria-hidden");
   });
 
-  it("hides the example panel from assistive technology", () => {
+  it("opens each number's example page", () => {
     renderHome();
     const panel = screen.getByTestId("example-panel");
-    expect(panel).toHaveAttribute("aria-hidden", "true");
+    SIGNED_OUT_EXAMPLE.stats.forEach((stat) =>
+      expect(within(panel).getByRole("link", { name: new RegExp(`${stat.value}\\s*${stat.label}`, "i") })).toHaveAttribute(
+        "href",
+        stat.href
+      )
+    );
   });
 
-  it("puts nothing clickable or focusable inside the example panel", () => {
+  it("opens each recent row where it lives, saying what it is and how it stands", () => {
     renderHome();
     const panel = screen.getByTestId("example-panel");
-    expect(
-      panel.querySelectorAll("a, button, input, select, textarea, [tabindex]")
-    ).toHaveLength(0);
+    SIGNED_OUT_EXAMPLE.updates.forEach((update) => {
+      const row = describeUpdate(update);
+      const link = within(panel).getByRole("link", { name: new RegExp(update.title) });
+      expect(link).toHaveAttribute("href", row.href);
+      expect(link).toHaveTextContent(row.detail);
+      expect(link).toHaveTextContent(row.status);
+    });
+    expect(within(panel).getByText("12 Mar")).toBeInTheDocument();
+  });
+
+  it("ends on the rumours, counted, and the way into them", () => {
+    renderHome();
+    const panel = screen.getByTestId("example-panel");
+    expect(panel).toHaveTextContent(SIGNED_OUT_EXAMPLE.rumourLine);
+    expect(within(panel).getByRole("link", { name: /Open the example/ })).toHaveAttribute("href", "/rumors");
   });
 
   it("renders the fixture's own numbers, not a dashboard of zeros", () => {
@@ -129,17 +138,17 @@ describe("SignedOutHome", () => {
     });
   });
 
+  // Plain lines: the example card beside them already holds every way in
+  // (maintainer, 2026-10-13: "there are enough ways to click around").
   it("lists the three things the product does, in words", () => {
     renderHome();
-    // Scoped to the list: "rumors" and "notes" also appear in the blurb
+    // Scoped to the list: "rumours" and "notes" also appear in the blurb
     // above, so unscoped queries would match several elements and throw.
     const lines = screen.getByTestId("product-lines");
     expect(lines).toHaveTextContent(/chapter log/i);
     expect(lines).toHaveTextContent(/rumours/i);
-    // Was /private session notes/i. The line no longer leads with "private" --
-    // a player assumes their own notes are their own -- and leads with the
-    // extraction pitch instead; see "pitches the AI extraction" above.
     expect(lines).toHaveTextContent(/session notes/i);
     expect(lines.querySelectorAll("li")).toHaveLength(3);
+    expect(within(lines).queryAllByRole("link")).toHaveLength(0);
   });
 });

@@ -253,11 +253,45 @@ describe("GatedContent", () => {
         </MemoryRouter>
       );
 
-    it("shows a signed-out visitor the page's example, under the panel", () => {
+    it("shows a signed-out visitor the page's example, under the sign-in", () => {
       renderWithExample(gate({ state: "signed-out", canAct: false }));
       const example = screen.getByTestId("example");
       const signIn = screen.getByRole("link", { name: "Sign in" });
       expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    // A page with an example shows it, not a panel about it: the sign-in
+    // shrinks to one band so the example is what the visitor sees first.
+    it("draws the slim band instead of the large panel", () => {
+      renderWithExample(gate({ state: "signed-out", canAct: false }));
+      expect(screen.getByRole("heading", { name: GATED_COPY.quests.heading })).toBeInTheDocument();
+      expect(screen.getByText(GATED_COPY.quests.exampleLine as string)).toBeInTheDocument();
+      expect(screen.queryByTestId("gated-eyebrow")).not.toBeInTheDocument();
+      expect(screen.queryByText(GATED_COPY.quests.blurb)).not.toBeInTheDocument();
+    });
+
+    it("ends on the example, with no newcomer's footnote under it", () => {
+      renderWithExample(gate({ state: "signed-out", canAct: false }));
+      expect(screen.getByTestId("example")).toBeInTheDocument();
+      expect(screen.queryByText(/new here/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "See what the site does" })).not.toBeInTheDocument();
+    });
+
+    it("waits for an example that loads lazily, showing the band meanwhile", async () => {
+      let resolve: (module: { default: React.FC }) => void = () => undefined;
+      const Lazy = React.lazy(
+        () => new Promise<{ default: React.FC }>((settle) => (resolve = settle))
+      );
+      render(
+        <MemoryRouter>
+          <GatedContent gate={gate({ state: "signed-out", canAct: false })} signedOutExample={<Lazy />}>
+            <div data-testid="page-body">the quests</div>
+          </GatedContent>
+        </MemoryRouter>
+      );
+      expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
+      resolve({ default: () => <div data-testid="example">rows</div> });
+      expect(await screen.findByTestId("example")).toBeInTheDocument();
     });
 
     it.each([

@@ -710,12 +710,6 @@ export interface RosterRowProps {
   depth?: number;
   /** The rows inside this one, rendered after its expansion. */
   nested?: React.ReactNode;
-  /**
-   * A picture of a row rather than a row: no button, no chevron, never
-   * expanded. For the example a signed-out visitor sees ({@link RosterExample}),
-   * whose rows must look exactly like real ones and do nothing (T150).
-   */
-  inert?: boolean;
 }
 
 /** How far each level of a tree indents, in px. */
@@ -746,7 +740,6 @@ export const RosterRow: React.FC<RosterRowProps> = ({
   id,
   depth = 0,
   nested,
-  inert = false,
 }) => {
   // Loud on purpose. A row reaching this component without an id is a data bug,
   // and the quiet alternatives are both worse than a crash: no mark leaves one
@@ -760,7 +753,7 @@ export const RosterRow: React.FC<RosterRowProps> = ({
   }
 
   const indent = Math.min(depth, ROSTER_MAX_VISUAL_DEPTH) * ROSTER_INDENT_PX;
-  const isExpanded = expanded && !inert;
+  const isExpanded = expanded;
 
   /*
     The mark sits outside the grid rather than as another column, so the
@@ -774,20 +767,14 @@ export const RosterRow: React.FC<RosterRowProps> = ({
 
       <div className={clsx('flex-1 min-w-0 items-center gap-4 grid', gridClassName)}>
         {children}
-        {inert ? (
-          // The chevron's cell, kept empty: below `md` the grid wraps, and
-          // where the last cell lands decides where the others do.
-          <span aria-hidden="true" />
-        ) : (
-          <ChevronDown
-            size={16}
-            aria-hidden="true"
-            className={clsx(
-              'justify-self-end transition-transform typography-secondary',
-              isExpanded && 'rotate-180'
-            )}
-          />
-        )}
+        <ChevronDown
+          size={16}
+          aria-hidden="true"
+          className={clsx(
+            'justify-self-end transition-transform typography-secondary',
+            isExpanded && 'rotate-180'
+          )}
+        />
       </div>
     </>
   );
@@ -822,19 +809,15 @@ export const RosterRow: React.FC<RosterRowProps> = ({
           <div className="flex items-center pl-5 shrink-0">{leadingControl}</div>
         )}
 
-        {inert ? (
-          <div className="flex-1 min-w-0 flex items-center gap-4 roster-row">{line}</div>
-        ) : (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={isExpanded}
-            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${toggleLabel}`}
-            className="flex-1 min-w-0 text-left flex items-center gap-4 roster-row selectable-item"
-          >
-            {line}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${toggleLabel}`}
+          className="flex-1 min-w-0 text-left flex items-center gap-4 roster-row selectable-item"
+        >
+          {line}
+        </button>
       </div>
 
       {isExpanded && expandedContent && (
@@ -989,41 +972,6 @@ export const RosterEmpty: React.FC<RosterEmptyProps> = ({ title, message, action
       {message}
     </Typography>
     {action && <div className="mt-5 flex justify-center">{action}</div>}
-  </div>
-);
-
-// ---------------------------------------------------------------------------
-// Example — under an empty collection
-// ---------------------------------------------------------------------------
-
-export interface RosterExampleProps {
-  /** Inert rows ({@link RosterRow} with `inert`) from the example campaign. */
-  children: React.ReactNode;
-}
-
-/**
- * What a collection looks like, shown to a signed-out visitor under the
- * page's sign-in panel (T150, through `GatedContent`'s `signedOutExample`).
- * Members never see it: a member's empty list keeps its own empty state.
- *
- * The chip is the whole caption, as on signed-out Home: "Example" already says
- * this is not the reader's campaign. Hidden from assistive technology because
- * the panel's sentence says what the page is for, and a screen-reader user
- * should not have to walk rows that are not theirs; nothing inside can take
- * focus, so a keyboard cannot reach it either.
- *
- * It came after a recorded "no sample data outside Home" (the gated-pages
- * spec, 2026-09-03). That rule's objections are answered by what the rows
- * are: they render the directories' own cells, so they cannot drift from the
- * real rows; they are not buttons; and the example campaign's types have no
- * author, so nothing here can credit an invented person.
- */
-export const RosterExample: React.FC<RosterExampleProps> = ({ children }) => (
-  <div data-testid="roster-example" aria-hidden="true" className="mt-6 flex flex-col gap-2">
-    <span className="self-start px-2 py-1 rounded text-xs font-semibold uppercase tracking-widest chip">
-      Example
-    </span>
-    <div className="rounded-lg overflow-hidden card">{children}</div>
   </div>
 );
 

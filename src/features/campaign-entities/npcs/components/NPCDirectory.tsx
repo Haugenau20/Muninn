@@ -35,6 +35,15 @@ interface NPCDirectoryProps {
   onNPCUpdate?: (updatedNPC: NPC) => void;
   /** Called after an NPC has been deleted from the directory. */
   onNPCDelete?: (npcId: string) => void;
+  /**
+   * Whether the reader may change what is listed. False leaves out every
+   * control that writes -- selection, Delete, adding the first NPC -- and
+   * keeps everything that reads: search, filters, open rows, More info.
+   * Defaults to true.
+   */
+  canEdit?: boolean;
+  /** A row to open from the start. */
+  initialExpandedId?: string;
 }
 
 const RELATIONSHIP_FILTERS = [
@@ -85,6 +94,9 @@ const BATCH_STATUSES: Array<BatchStatusOption<NPCStatus>> = [
  */
 const RecordedBy: React.FC<{ npc: NPC }> = ({ npc }) => {
   const creator = useCreatorName(npc);
+  // A record nobody recorded -- the example campaign's -- has no one to
+  // name, so it says nothing rather than "Unknown".
+  if (!npc.createdBy) return null;
   return (
     <RosterField label="Recorded by" emptyText="Unknown">
       {creator ? <Typography variant="body-sm">{creator}</Typography> : undefined}
@@ -96,14 +108,16 @@ const NPCDirectory: React.FC<NPCDirectoryProps> = ({
   npcs: initialNpcs,
   isLoading = false,
   onNPCUpdate,
-  onNPCDelete
+  onNPCDelete,
+  canEdit = true,
+  initialExpandedId,
 }) => {
   // Track npcs locally
   const [npcs, setNpcs] = useState<NPC[]>(initialNpcs);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [relationshipFilter, setRelationshipFilter] = useState<string>('all');
-  const [expandedNpcId, setExpandedNpcId] = useState<string | null>(null);
+  const [expandedNpcId, setExpandedNpcId] = useState<string | null>(initialExpandedId ?? null);
   /** How many rows the roster mounts; "Show more" raises it (T101). */
   const [rowLimit, setRowLimit] = useState(ROSTER_PAGE_SIZE);
   const { locations } = useLocations();
@@ -272,13 +286,15 @@ const NPCDirectory: React.FC<NPCDirectoryProps> = ({
           label="Filter by relationship"
         />
 
-        <Button
-          variant={selection.active ? 'primary' : 'outline'}
-          size="sm"
-          onClick={selection.toggleActive}
-        >
-          {selection.active ? 'Exit Selection' : 'Select NPCs'}
-        </Button>
+        {canEdit && (
+          <Button
+            variant={selection.active ? 'primary' : 'outline'}
+            size="sm"
+            onClick={selection.toggleActive}
+          >
+            {selection.active ? 'Exit Selection' : 'Select NPCs'}
+          </Button>
+        )}
       </RosterFilterBar>
 
       {/* Batch actions -- only in selection mode, once something is ticked */}
@@ -405,13 +421,15 @@ const NPCDirectory: React.FC<NPCDirectoryProps> = ({
                                 page edits every field in place -- so the
                                 control would have been a longer way to press
                                 *More info*. */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setConfirmingDelete(npc)}
-                            >
-                              Delete
-                            </Button>
+                            {canEdit && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfirmingDelete(npc)}
+                              >
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -438,12 +456,14 @@ const NPCDirectory: React.FC<NPCDirectoryProps> = ({
           title="Muninn hasn't met anyone yet"
           message="Every person the party meets can live here — name, standing, where you found them, and what they told you."
           action={
-            <Button
-              onClick={() => navigateToPage('/npcs/create')}
-              startIcon={<Plus className="w-4 h-4" />}
-            >
-              Add the first NPC
-            </Button>
+            canEdit ? (
+              <Button
+                onClick={() => navigateToPage('/npcs/create')}
+                startIcon={<Plus className="w-4 h-4" />}
+              >
+                Add the first NPC
+              </Button>
+            ) : undefined
           }
         />
       )}

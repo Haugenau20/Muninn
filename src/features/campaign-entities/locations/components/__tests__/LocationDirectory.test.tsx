@@ -144,7 +144,7 @@ describe('LocationDirectory', () => {
   describe('empty state', () => {
     test('an empty campaign shows its own empty state and no example: the example is for signed-out visitors', () => {
       render(<LocationDirectory locations={[]} />);
-      expect(screen.queryByTestId('roster-example')).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Example campaign' })).not.toBeInTheDocument();
     });
 
     test('says what the collection is for, and offers the action that fills it', () => {
@@ -155,6 +155,46 @@ describe('LocationDirectory', () => {
       expect(
         screen.getByRole('button', { name: /add the first location/i })
       ).toBeInTheDocument();
+    });
+  });
+
+  // The signed-out example: the page as members see it, without the controls
+  // that change anything.
+  describe('when the reader may not edit', () => {
+    test('offers no selection', () => {
+      render(<LocationDirectory locations={[makeLocation('loc-1', 'Rivendell')]} canEdit={false} />);
+      expect(screen.queryByRole('button', { name: 'Select Locations' })).not.toBeInTheDocument();
+      expect(searchInput()).toBeInTheDocument();
+    });
+
+    test('offers no way to add the first location', () => {
+      render(<LocationDirectory locations={[]} canEdit={false} />);
+      expect(screen.queryByRole('button', { name: /add the first location/i })).not.toBeInTheDocument();
+    });
+
+    test('still lets members select by default', () => {
+      render(<LocationDirectory locations={[makeLocation('loc-1', 'Rivendell')]} />);
+      expect(screen.getByRole('button', { name: 'Select Locations' })).toBeInTheDocument();
+    });
+  });
+
+  describe('places open from the start', () => {
+    test('opens the places it is given, showing what is inside them', () => {
+      render(
+        <LocationDirectory
+          locations={[
+            makeLocation('loc-1', 'Eriador'),
+            makeLocation('loc-2', 'Rivendell', { parentId: 'loc-1' }),
+            makeLocation('loc-3', 'Mordor'),
+            makeLocation('loc-4', 'Barad-dur', { parentId: 'loc-3' }),
+          ]}
+          initialExpandedIds={['loc-1']}
+        />
+      );
+      expect(collapseTwisty('Eriador')).toHaveAttribute('aria-expanded', 'true');
+      expect(twisty('Rivendell')).toBeInTheDocument();
+      expect(twisty('Mordor')).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('button', { name: /Barad-dur/ })).not.toBeInTheDocument();
     });
   });
 

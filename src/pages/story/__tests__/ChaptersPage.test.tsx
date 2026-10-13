@@ -3,7 +3,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ChaptersPage from "../ChaptersPage";
-import { EXAMPLE_CAMPAIGN } from "shared/example-campaign/example-campaign";
 
 // ---------------------------------------------------------------------------
 // Page-suite gate mock (shared across Tasks 8-13 -- see page-suite-mock.md)
@@ -78,9 +77,17 @@ let mockStoryContext: StoryContextMock = {
 jest.mock("features/storytelling", () => ({
   ...jest.requireActual("features/storytelling/chapters/utils/chapter-progress"),
   useStory: () => mockStoryContext,
-  // The real example: what it draws is what these tests are about.
-  ChapterExample: jest.requireActual("features/storytelling/stories/components/ChapterExample").default,
-  BookshelfView: (props: any) => (
+  // What the example draws is ChapterExample's own suite; here, only where
+  // the page puts it.
+  ChapterExample: () => <section aria-label="Example campaign">the example campaign's chronicle</section>,
+  // The real browser, drawing the two views stubbed below: the search and
+  // filter row moved into it from this page, and is what these tests drive.
+  ChapterBrowser: jest.requireActual("features/storytelling/stories/components/ChapterBrowser").default,
+}));
+
+jest.mock("features/storytelling/stories/components/BookshelfView", () => ({
+  __esModule: true,
+  default: (props: any) => (
     <div
       data-testid="bookshelf-view"
       data-count={props.items?.length}
@@ -105,7 +112,12 @@ jest.mock("features/storytelling", () => ({
       ))}
     </div>
   ),
-  ChapterList: (props: any) => (
+}));
+
+jest.mock("features/storytelling/stories/components/ChapterList", () => ({
+  ...jest.requireActual("features/storytelling/stories/components/ChapterList"),
+  __esModule: true,
+  default: (props: any) => (
     <div
       data-testid="chapter-list"
       data-count={props.items?.length}
@@ -326,22 +338,13 @@ describe("ChaptersPage", () => {
     it("an empty campaign shows its own empty state and no example: the example is for signed-out visitors", () => {
       mockStoryContext = { ...mockStoryContext, chapters: [] };
       renderPage();
-      expect(screen.queryByTestId("roster-example")).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Example campaign" })).not.toBeInTheDocument();
     });
 
-    it("shows a signed-out visitor the example campaign's chronicle under the panel, as rows that do nothing", () => {
+    it("shows a signed-out visitor the example campaign under the sign-in", () => {
       mockUser = null;
       renderPage();
-      const example = screen.getByTestId("roster-example");
-      EXAMPLE_CAMPAIGN.chapters.forEach((chapter) => {
-        expect(within(example).getByText(chapter.title)).toBeInTheDocument();
-        expect(within(example).getByText(chapter.summary)).toBeInTheDocument();
-      });
-      // The real row: read state, and the promoted current chapter's progress.
-      expect(within(example).getByText("Read")).toBeInTheDocument();
-      expect(within(example).getByText("40% through")).toBeInTheDocument();
-      expect(within(example).queryAllByRole("button", { hidden: true })).toHaveLength(0);
-      // Under the panel, whose sign-in stays the first thing to press.
+      const example = screen.getByRole("region", { name: "Example campaign" });
       const signIn = screen.getByRole("link", { name: "Sign in" });
       expect(signIn.compareDocumentPosition(example) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });

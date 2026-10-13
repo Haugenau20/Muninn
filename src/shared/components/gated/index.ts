@@ -13,7 +13,6 @@ export { usePageGate } from "./usePageGate";
 export { useSelectableCampaigns } from "./useSelectableCampaigns";
 export {
   GATED_COPY,
-  GATED_FOOTNOTE,
   gatedHeading,
 } from "./gated-page-copy";
 export type { GatedContentProps } from "./GatedContent";

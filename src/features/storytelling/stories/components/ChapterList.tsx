@@ -95,12 +95,7 @@ export const ChapterRowView: React.FC<{
   onEditChapter?: (chapterId: string) => void;
   isAdmin?: boolean;
   selection?: ChapterSelection;
-  /**
-   * A picture of a row: no click, no hover, no actions. For the example a
-   * signed-out visitor sees (`ChapterExample`, T150).
-   */
-  inert?: boolean;
-}> = ({ item, onChapterSelect, onEditChapter, isAdmin, selection, inert = false }) => {
+}> = ({ item, onChapterSelect, onEditChapter, isAdmin, selection }) => {
   const { chapter, state, percentRead, isCurrent } = item;
   const isMuted = state === 'read' && !isCurrent;
   const isTicked = selection?.selected.has(chapter.id) ?? false;
@@ -109,15 +104,12 @@ export const ChapterRowView: React.FC<{
     <div
       className={clsx(
         'flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-1 py-3 px-2 border-b card-border last:border-b-0',
-        !inert && 'selectable-item cursor-pointer transition-colors',
+        'selectable-item cursor-pointer transition-colors',
         isCurrent && 'border-l-4 border-l-accent bg-accent',
         isTicked && 'roster-row-selected'
       )}
-      onClick={
-        inert
-          ? undefined
-          : () =>
-              selection ? selection.onToggle(chapter.id, !isTicked) : onChapterSelect?.(chapter.id)
+      onClick={() =>
+        selection ? selection.onToggle(chapter.id, !isTicked) : onChapterSelect?.(chapter.id)
       }
     >
       {selection && (
@@ -184,7 +176,7 @@ export const ChapterRowView: React.FC<{
           real <button> so it stays keyboard-reachable. stopPropagation keeps
           a click here from also firing the row's own onClick. Selection mode
           has no actions: the checkbox is the row's one control. */}
-      {!selection && !inert && (
+      {!selection && (
         <div
           className="shrink-0 flex items-center gap-1 ml-auto sm:ml-0"
           onClick={(event) => event.stopPropagation()}

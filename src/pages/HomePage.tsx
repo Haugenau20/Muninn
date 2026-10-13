@@ -1,6 +1,6 @@
 // pages/HomePage.tsx
 import { recordTimes } from 'core/attribution';
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useStory } from 'features/storytelling';
 import { useQuests } from 'features/campaign-entities';
 import { useRumors } from 'features/campaign-entities';
@@ -10,7 +10,6 @@ import { lastActorName } from 'shared/utils/author-name';
 import { useMemberDirectory } from 'shared/hooks/useMemberDirectory';
 import { usePageGate, GatedContent } from 'shared/components/gated';
 import PageShell from 'shared/components/page-shell/PageShell';
-import SignedOutHome from 'pages/home/SignedOutHome';
 
 // Import layouts
 import DashboardLayout from 'pages/layouts/dashboard/DashboardLayout';
@@ -20,6 +19,13 @@ import { rumorTitleText } from 'features/campaign-entities';
 import type { Activity } from 'pages/layouts/common/types';
 
 export type { Activity };
+
+/**
+ * Signed-out Home, loaded only when someone signed out arrives: it carries
+ * the whole example campaign, which a member never sees and should not
+ * download with the entry bundle.
+ */
+const SignedOutHome = lazy(() => import('pages/home/SignedOutHome'));
 
 /**
  * HomePage component serving as the container for the dashboard layout.
@@ -149,7 +155,11 @@ const HomePage: React.FC = () => {
   // Signed-out Home is a different layout from the shared panel -- the h1
   // there is the product's headline, not a page title. See `SignedOutHome`.
   if (gate.state === 'signed-out') {
-    return <SignedOutHome />;
+    return (
+      <Suspense fallback={null}>
+        <SignedOutHome />
+      </Suspense>
+    );
   }
 
   // CampaignBanner supplies the page's h1 in the ready state. PageShell

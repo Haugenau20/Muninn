@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Zilla+Slab:wght@500;600;700&display=swap" rel="stylesheet"><style>body{margin:0;background:#f0eee9;font-family:system-ui,sans-serif}a{color:#D69253}a:hover{color:#BF7C3C}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55);max-width:1280px}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Signed-out Notes: should it have an example? Yes.</span></div>
+<div style="max-width:860px;margin:0 0 28px;font:13px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.7);display:flex;flex-direction:column;gap:8px;text-wrap:pretty">
+<p style="margin:0"><b>Why:</b> <code>gated-page-copy.ts</code> already calls notes "the one blurb that sells rather than describes". Extraction is the product's most persuasive feature, and a stranger has no other way to see it. Today the page is a bare panel. A list of example notes would show very little, so the example is <b>one note opened in the editor, with the Campaign links panel beside it</b>.</p>
+<p style="margin:0"><b>Content:</b> a new, invented English note from the Ashen Vale, written in a player's rough session voice. Nothing comes from your notes. The names it mentions are the fixture's NPCs and places, so "In your campaign" shows them, and five new names (one of each type, including a quest and a rumour) appear under "Detected". There's no author anywhere, and the Smart detection usage card is left out, because a stranger has no allowance.</p>
+<p style="margin:0"><b>The scan never calls OpenAI.</b> In <a class="dv-oid" href="#4b">4b</a> it replays canned results, so a visitor costs nothing and no text leaves the browser. The panel's "Sends this note's text to OpenAI" line changes to say so.</p>
+</div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a"><div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Notes · faithful. The real NoteEditor and CampaignLinksPanel, read-only, shown already scanned. "Add" is disabled.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Notes</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Your private notes. Only you can read them.</p></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to read your notes</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Write down what happened while it's fresh, then let AI pull out the NPCs, locations, quests and rumours.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#4a" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#4a" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:12px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">One player's note from the Ashen Vale</span></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start">
+<div style="display:flex;flex-direction:column;background:#2A2520;border:1px solid #3B3630;border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3B3630;font:400 13px/20px Archivo,sans-serif"><span style="display:flex;align-items:center;gap:6px;color:#AEA69F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>All notes</span><div style="display:flex;align-items:center;gap:16px;opacity:.5"><span style="display:flex;align-items:center;gap:6px;color:#AEA69F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>Archive</span><span style="display:flex;align-items:center;gap:6px;color:#E16566"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg>Delete</span></div></div>
+<div style="padding:24px 32px;display:flex;flex-direction:column">
+<div style="font:500 30px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ noteTitle }}</div>
+<div style="margin-top:20px;display:flex;flex-direction:column;gap:6px"><span style="font:500 14px/20px Archivo,sans-serif;color:#E9E1D9">Note content</span><div style="min-height:360px;box-sizing:border-box;padding:12px 16px;border:1px solid #8C857D;border-radius:6px;background:#2A2520;display:flex;flex-direction:column;gap:17px"><sc-for list="{{ paraPlain }}" as="p" hint-placeholder-count="5"><p style="margin:0;font:400 17px/1.65 Archivo,sans-serif;color:#E9E1D9;text-wrap:pretty">{{ p.text }}</p></sc-for></div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid #3B3630;background:#342F2A;font:400 13px/20px Archivo,sans-serif;color:#AEA69F"><span style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Example note · read-only</span><span>{{ wordCount }} words</span></div>
+</div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:12px;padding:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font:600 16px/24px Archivo,sans-serif;color:#E9E1D9">Campaign links</span><span style="display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #8C857D;border-radius:6px;color:#D69253;font:500 14px/20px Archivo,sans-serif;opacity:.5"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>Scan note</span></div>
+<p style="margin:8px 0 0;font:400 14px/20px Archivo,sans-serif;color:#9E978F">Sends this note's text to OpenAI to look for names. <span style="text-decoration:underline">How this works</span></p>
+<div style="margin-top:16px"><span style="font:400 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#9E978F">In your campaign · {{ refCount }}</span><div style="margin-top:8px;display:flex;flex-direction:column;gap:4px"><sc-for list="{{ refs }}" as="r" hint-placeholder-count="9"><div style="display:flex;align-items:center;gap:12px;padding:6px 8px;border-radius:4px"><span style="width:20px;height:20px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 9px/1 Archivo,sans-serif">{{ r.initial }}</span><span style="flex:1;min-width:0;font:400 14px/20px Archivo,sans-serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="flex:none;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.type }}</span></div></sc-for></div></div>
+<div style="margin-top:16px"><span style="font:400 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#D69253">Detected, not in your campaign · {{ detCount }}</span><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px"><sc-for list="{{ dets }}" as="d" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:4px;background:#342F2A"><div style="flex:1;min-width:0"><div style="font:500 14px/20px Archivo,sans-serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.name }}</div><div style="font:400 12px/16px Archivo,sans-serif;color:#AEA69F">{{ d.caption }}</div></div><span style="flex:none;padding:6px 12px;border-radius:6px;background:#D69253;color:#120D08;font:500 14px/20px Archivo,sans-serif;opacity:.5">Add</span></div></sc-for></div></div>
+<p style="margin:16px 0 0;font:400 12px/16px Archivo,sans-serif;color:#9E978F">Scanning saves your note first.</p>
+</div>
+</div>
+</div>
+</div></div></div>
+
+<div class="dv-opt" id="4b"><div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Notes · live demo. Press "Scan note": it replays a canned scan, and the names it finds light up in the text. Hover a link to find its mention. "Add" explains what would happen and asks the visitor to sign in.</div>
+<div class="dv-card" style="width:1280px"><div style="background:#201B16;padding:40px;display:flex;flex-direction:column;gap:32px;font-family:Archivo,system-ui,sans-serif">
+<div style="display:flex;flex-direction:column;gap:8px"><h1 style="margin:0;font:700 34px/1.2 'Zilla Slab',Georgia,serif;color:#E9E1D9">Notes</h1><p style="margin:0;font:400 16px/1.5 Archivo,sans-serif;color:#AEA69F">Your private notes. Only you can read them.</p></div>
+<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:16px 20px;background:#14100B;border:1px solid #29241F;border-radius:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ABA39B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg><div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:600 18px/1.3 'Zilla Slab',Georgia,serif;color:#F3EBE3">Sign in to read your notes</span><span style="font:400 14px/20px Archivo,sans-serif;color:#ABA39B">Below is an example note, so press Scan note and see what Muninn picks out. Your own notes are only ever yours.</span></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#4b" style="padding:8px 16px;border-radius:6px;background:#D69253;color:#120D08;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #D69253">Sign in</a><a href="#4b" style="padding:8px 16px;border-radius:6px;color:#D69253;font:500 16px/24px Archivo,sans-serif;text-decoration:none;border:1px solid #8C857D">I have an invite link</a></div></div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:12px"><span style="padding:4px 8px;border-radius:4px;background:#2A2520;color:#E9E1D9;font:600 12px/16px Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase">Example</span><span style="font:400 14px/20px Archivo,sans-serif;color:#9E978F">One player's note from the Ashen Vale · try Scan note</span></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start">
+<div style="display:flex;flex-direction:column;background:#2A2520;border:1px solid #3B3630;border-radius:12px;overflow:hidden">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #3B3630;font:400 13px/20px Archivo,sans-serif"><span style="display:flex;align-items:center;gap:6px;color:#AEA69F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>All notes</span><div style="display:flex;align-items:center;gap:16px;opacity:.5"><span style="display:flex;align-items:center;gap:6px;color:#AEA69F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>Archive</span><span style="display:flex;align-items:center;gap:6px;color:#E16566"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg>Delete</span></div></div>
+<div style="padding:24px 32px;display:flex;flex-direction:column">
+<div style="font:500 30px/1.25 'Zilla Slab',Georgia,serif;color:#E9E1D9">{{ noteTitle }}</div>
+<div style="margin-top:20px;display:flex;flex-direction:column;gap:6px"><span style="font:500 14px/20px Archivo,sans-serif;color:#E9E1D9">Note content</span><div style="min-height:360px;box-sizing:border-box;padding:12px 16px;border:1px solid #8C857D;border-radius:6px;background:#2A2520;display:flex;flex-direction:column;gap:17px"><sc-for list="{{ paras }}" as="p" hint-placeholder-count="5"><p style="margin:0;font:400 17px/1.65 Archivo,sans-serif;color:#E9E1D9;text-wrap:pretty"><sc-for list="{{ p.segs }}" as="s" hint-placeholder-count="3"><span style="background:{{ s.bg }};box-shadow:{{ s.ring }};border-radius:3px;text-decoration:{{ s.deco }};text-decoration-color:{{ s.decoColor }};text-underline-offset:4px;text-decoration-thickness:1px;transition:background .3s,box-shadow .15s">{{ s.t }}</span></sc-for></p></sc-for></div></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid #3B3630;background:#342F2A;font:400 13px/20px Archivo,sans-serif;color:#AEA69F"><span style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9E978F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Example note · nothing is saved</span><span>{{ wordCount }} words</span></div>
+</div>
+<div style="background:#2A2520;border:1px solid #3B3630;border-radius:12px;padding:16px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font:600 16px/24px Archivo,sans-serif;color:#E9E1D9">Campaign links</span><button type="button" onClick="{{ onScan }}" disabled="{{ scanning }}" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px solid #8C857D;border-radius:6px;color:#D69253;font:500 14px/20px Archivo,sans-serif;opacity:{{ scanOp }}" style-hover="background:#29241F"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>{{ scanLabel }}</button></div>
+<p style="margin:8px 0 0;font:400 14px/20px Archivo,sans-serif;color:#9E978F">In this example the scan is a replay. Nothing leaves your browser. In your campaign, the note's text goes to OpenAI. <span style="text-decoration:underline">How this works</span></p>
+<sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><p style="margin:16px 0 0;font:400 14px/20px Archivo,sans-serif;color:#9E978F">Not scanned yet.</p></sc-if>
+<sc-if value="{{ scanning }}" hint-placeholder-val="{{ false }}"><p style="margin:16px 0 0;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">Reading the note…</p></sc-if>
+<sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:16px"><span style="font:400 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#9E978F">In your campaign · {{ refCount }}</span><div style="margin-top:8px;display:flex;flex-direction:column;gap:4px"><sc-for list="{{ liveRefs }}" as="r" hint-placeholder-count="9"><div onMouseEnter="{{ r.onEnter }}" onMouseLeave="{{ onLeave }}" style="cursor:default;display:flex;align-items:center;gap:12px;padding:6px 8px;border-radius:4px;background:{{ r.bg }}"><span style="width:20px;height:20px;flex:none;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:{{ r.sig }};color:#F7EFE6;font:500 9px/1 Archivo,sans-serif">{{ r.initial }}</span><span style="flex:1;min-width:0;font:400 14px/20px Archivo,sans-serif;color:#E9E1D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="flex:none;font:400 14px/20px Archivo,sans-serif;color:#AEA69F">{{ r.type }}</span></div></sc-for></div></div>
+<div style="margin-top:16px"><span style="font:400 11px/16px Archivo,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:#D69253">Detected, not in your campaign · {{ detCount }}</span><div style="margin-top:8px;display:flex;flex-direction:column;gap:8px"><sc-for list="{{ liveDets }}" as="d" hint-placeholder-count="5"><div onMouseEnter="{{ d.onEnter }}" onMouseLeave="{{ onLeave }}" style="display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:4px;background:#342F2A;box-shadow:{{ d.ring }}"><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div style="font:500 14px/20px Archivo,sans-serif;color:#E9E1D9">{{ d.name }}</div><div style="font:400 12px/16px Archivo,sans-serif;color:#AEA69F">{{ d.caption }}</div></div><button type="button" onClick="{{ d.onAdd }}" style="cursor:pointer;flex:none;padding:6px 12px;border:0;border-radius:6px;background:#D69253;color:#120D08;font:500 14px/20px Archivo,sans-serif" style-hover="background:#BF7C3C">Add</button></div><sc-if value="{{ d.asked }}" hint-placeholder-val="{{ false }}"><div style="font:400 12px/16px Archivo,sans-serif;color:#E9E1D9;text-wrap:pretty">{{ d.would }} <a href="#4b" style="font-weight:600;color:#D69253">Sign in</a></div></sc-if></div></sc-for></div></div>
+<p style="margin:16px 0 0;font:400 12px/16px Archivo,sans-serif;color:#9E978F">Scanning saves your note first.</p>
+</sc-if>
+</div>
+</div>
+</div>
+</div></div></div>
+
+</div>
+<p class="dv-next">Try next: "show the /notes list with this note in it" · "<a class="dv-oid" href="#4b">4b</a> on a phone" · "start <a class="dv-oid" href="#4b">4b</a> already scanned"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const SIG = ['#613A37','#594124','#454A26','#2A503C','#1B4F54','#2F4963','#484061','#5A3B50'];
+const TITLE = 'Session 13 \u2014 Into the Fen';
+const RAW = [
+  'Left [[cin|Cinderford]] at first light. [[odile|Odile]] wouldn\u2019t take us past the ford, so we walked the last stretch through [[fen|Saltmarsh Fen]].',
+  '[[wren|Sister Wren]]\u2019s map is wrong about the causeway. Lost half a day. Found a [[hut|hut on stilts]]. The man there calls himself [[gully|Gully Thrane]], eel-catcher, and says he knew [[pell|Old Pell]].',
+  'Cold, wet, and everyone in a bad mood. Lunch was the last of the bread from [[cin|Cinderford]], and it had gone soft in the pack.',
+  'Gully says [[arc|the Drowned Archive]] [[post|only opens when the water is below the third post]]. Today it was at the fifth.',
+  'Spent the afternoon drying out by his stove. He cooked eels. Nobody asked what kind.',
+  '[[ash|Ash-Tongue]] was waiting at the hut. Of course he was. Sold us a name for ten silver: [[reedy|Mother Reedy]]. No idea who that is yet.',
+  'Walked back the long way so we wouldn\u2019t pass the ford after dark. [[odile|Odile]] was right about that much.',
+  '[[boat|Come back with rope and a proper boat]], not one of [[vesk|Vesk]]\u2019s. Someone should ask [[hale|Corvin Hale]] about the reward again.',
+  'Long day. Everyone was too tired to argue about who keeps the map.'
+];
+const REFS = [
+  ['odile','Odile Marrow','NPC',3],['wren','Sister Wren','NPC',6],['pell','Old Pell','NPC',0],['ash','Ash-Tongue','NPC',0],
+  ['vesk','Vesk Harrow','NPC',1],['hale','Corvin Hale','NPC',5],['cin','Cinderford','Location',6],['fen','Saltmarsh Fen','Location',3],['arc','The Drowned Archive','Location',0]
+];
+const DETS = [
+  ['gully','Gully Thrane','an NPC',97,'Adding makes Gully Thrane an NPC in your campaign, linked back to this note.'],
+  ['reedy','Mother Reedy','an NPC',88,'Adding makes Mother Reedy an NPC, ready for whoever finds out who she is.'],
+  ['hut','Eel-catcher\u2019s hut','a Location',81,'Adding makes the hut a Location. You can nest it inside Saltmarsh Fen.'],
+  ['post','The Archive opens below the third post','a Rumour',90,'Adding records it as an unconfirmed Rumour, sourced from this note.'],
+  ['boat','Return to the Archive with a boat','a Quest',76,'Adding opens it as an active Quest for the whole party.']
+];
+const REF_KEYS = new Set(REFS.map(r => r[0]));
+const parse = (line) => {
+  const out = []; const re = /\[\[(\w+)\|([^\]]+)\]\]/g; let last = 0, m;
+  while ((m = re.exec(line))) { if (m.index > last) out.push({ t: line.slice(last, m.index) }); out.push({ t: m[2], key: m[1] }); last = re.lastIndex; }
+  if (last < line.length) out.push({ t: line.slice(last) });
+  return out;
+};
+const PARSED = RAW.map(parse);
+const PLAIN = PARSED.map(segs => segs.map(s => s.t).join(''));
+const WORDS = (TITLE + ' ' + PLAIN.join(' ')).split(/\s+/).filter(Boolean).length;
+
+class Component extends DCLogic {
+  state = { phase: 'idle', hover: null, asked: {} };
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const { phase, hover, asked } = this.state;
+    const done = phase === 'done';
+    const enter = k => () => this.setState({ hover: k });
+    const paras = PARSED.map(segs => ({ segs: segs.map(s => {
+      if (!s.key || !done) return { t: s.t, bg: 'transparent', ring: 'none', deco: 'none', decoColor: 'transparent' };
+      const isRef = REF_KEYS.has(s.key), hot = hover === s.key;
+      return { t: s.t,
+        bg: hot ? 'rgba(214,146,83,0.28)' : isRef ? 'transparent' : 'rgba(214,146,83,0.12)',
+        ring: hot ? '0 0 0 2px rgba(214,146,83,0.28)' : 'none',
+        deco: isRef ? 'underline' : 'none', decoColor: '#8C857D' };
+    }) }));
+    return {
+      noteTitle: TITLE, wordCount: WORDS,
+      paraPlain: PLAIN.map(text => ({ text })),
+      refCount: REFS.length, detCount: DETS.length,
+      refs: REFS.map(([k, name, type, s]) => ({ name, type, sig: SIG[s], initial: name.charAt(0) })),
+      dets: DETS.map(([k, name, art, pct]) => ({ name, caption: `looks like ${art} \u00b7 ${pct}% confidence` })),
+      paras, idle: phase === 'idle', scanning: phase === 'scanning', done,
+      scanLabel: phase === 'scanning' ? 'Scanning\u2026' : 'Scan note', scanOp: phase === 'scanning' ? 0.6 : 1,
+      onScan: () => { clearTimeout(this.t); this.setState({ phase: 'scanning', hover: null, asked: {} }); this.t = setTimeout(() => this.setState({ phase: 'done' }), 1400); },
+      onLeave: () => this.setState({ hover: null }),
+      liveRefs: REFS.map(([k, name, type, s]) => ({ name, type, sig: SIG[s], initial: name.charAt(0), bg: hover === k ? '#342F2A' : 'transparent', onEnter: enter(k) })),
+      liveDets: DETS.map(([k, name, art, pct, would]) => ({ name, would, caption: `looks like ${art} \u00b7 ${pct}% confidence`,
+        ring: hover === k ? 'inset 0 0 0 1px #D69253' : 'none', asked: !!asked[k], onEnter: enter(k),
+        onAdd: () => this.setState(s => ({ asked: { ...s.asked, [k]: true } })) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

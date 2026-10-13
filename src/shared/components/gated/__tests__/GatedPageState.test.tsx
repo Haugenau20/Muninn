@@ -76,18 +76,13 @@ describe("GatedPageState, signed out", () => {
     );
   });
 
-  // The footnote used to explain the invite model itself ("a DM invites you
-  // with a join link") on every one of the twenty gated routes. It now only
-  // opens the question, and the link carries the reader to Home, which is the
-  // single place that answers it -- so what this test must protect is the
-  // route out, not a sentence. Without the link working, the newcomer the
-  // footnote addresses has nowhere to go.
-  it("asks the newcomer's question and links to Home for the answer", () => {
+  // "New here? See what the site does" sat under the panel's buttons until
+  // the maintainer removed it (2026-10-13): the header's Home link already
+  // goes where it went.
+  it("ends on its two links, with no newcomer's footnote", () => {
     renderPanel();
-    expect(screen.getByText(/new here/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /what the site does/i })
-    ).toHaveAttribute("href", "/");
+    expect(screen.queryByText(/new here/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /what the site does/i })).not.toBeInTheDocument();
   });
 
   it("never lists campaigns", () => {

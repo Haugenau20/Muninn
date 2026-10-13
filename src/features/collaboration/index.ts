@@ -9,6 +9,8 @@ export { matchesInText } from './notes/utils/entity-matching';
 export { formatLastSaved } from './notes/utils/save-status';
 // Components consumed by pages/notes/* and other external consumers
 export { default as NotesList } from './notes/components/NotesList';
+// Lazy: the example campaign loads only for a signed-out visitor.
+export { NoteExample } from './notes/example';
 export { default as NoteEditor } from './notes/components/NoteEditor';
 export { default as NoteCard } from './notes/components/NoteCard';
 export { default as NoteReferences } from './notes/components/NoteReferences';

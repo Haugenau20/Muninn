@@ -18,6 +18,13 @@ import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 const RumorContext = createContext<RumorContextValue | undefined>(undefined);
 
 /**
+ * Hands a ready value to everything under it, in place of
+ * `RumorProvider`'s own: the example campaign's records, for a page drawn from
+ * it (`../../example/ExampleCampaignProvider`).
+ */
+export const RumorContextValueProvider = RumorContext.Provider;
+
+/**
  * Most rumours one conversion or combination can take. Each costs two writes,
  * its mark and the note saying what happened (a document of its own since
  * T133), beside the new record and, when combining, that record's own note.

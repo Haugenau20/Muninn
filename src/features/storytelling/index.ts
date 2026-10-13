@@ -21,7 +21,10 @@ export { deriveChapterByline } from './chapters/utils/chapter-byline';
 export { default as BookViewer } from './stories/components/BookViewer';
 export { default as BookshelfView } from './stories/components/BookshelfView';
 export { default as ChapterList } from './stories/components/ChapterList';
-export { default as ChapterExample } from './stories/components/ChapterExample';
+export { default as ChapterBrowser } from './stories/components/ChapterBrowser';
+export type { ChapterViewMode, ChapterFilterMode } from './stories/components/ChapterBrowser';
+// Lazy: the example campaign loads only for a signed-out visitor.
+export { ChapterExample } from './stories/example';
 export { default as ChapterRail } from './stories/components/ChapterRail';
 export { default as ChapterReader } from './stories/components/ChapterReader';
 export { default as ChapterForm } from './chapters/components/ChapterForm';

@@ -38,6 +38,12 @@ export interface GatedPageCopy {
   /** One paragraph on what this page is for, in the product's voice. */
   blurb: string;
   /**
+   * The band's one line, on a page that shows a signed-out visitor its
+   * example under a slim band instead of the large panel: what is below.
+   * Absent, the band says `blurb`.
+   */
+  exampleLine?: string;
+  /**
    * The small-caps line above the signed-out heading. Defaults to "Private
    * campaign", which is right for every page that shows campaign content and
    * wrong for one that does not -- an account page is private, but it is not a
@@ -60,19 +66,6 @@ export type GatedPageKey =
   | "rumors"
   | "notes"
   | "profile";
-
-/**
- * The line for genuine newcomers, below the hairline on the signed-out panel.
- *
- * Shared rather than per-page: it answers "what is this site?", which is the
- * same question regardless of which URL a stranger happened to land on.
- *
- * Deliberately just the question, with the "What it does" link beside it
- * carrying the answer. This used to explain the invite model here as well,
- * on all twenty gated routes; that explanation now lives once, on Home,
- * where a stranger who needs it is already headed.
- */
-export const GATED_FOOTNOTE = "New here?";
 
 /**
  * The single source of gated wording in `src/`.
@@ -108,6 +101,8 @@ export const GATED_COPY: Record<GatedPageKey, GatedPageCopy> = {
     blurb:
       "The chapter log is the campaign told in order — one entry a session, " +
       "written by whoever was at the table.",
+    exampleLine:
+      "Below is an example campaign's chapter log.",
     noun: "chapters",
     requires: "campaign",
   },
@@ -117,6 +112,8 @@ export const GATED_COPY: Record<GatedPageKey, GatedPageCopy> = {
     blurb:
       "Quests are the open threads of a campaign — who asked for what, which " +
       "objectives are done, and what the party still owes.",
+    exampleLine:
+      "Below is an example campaign, so try it.",
     noun: "quests",
     requires: "campaign",
   },
@@ -126,6 +123,8 @@ export const GATED_COPY: Record<GatedPageKey, GatedPageCopy> = {
     blurb:
       "NPCs are everyone the party has dealt with: allies, patrons, rivals, " +
       "and the ones nobody trusts yet.",
+    exampleLine:
+      "Below is an example campaign, so try it.",
     noun: "NPCs",
     requires: "campaign",
   },
@@ -135,6 +134,8 @@ export const GATED_COPY: Record<GatedPageKey, GatedPageCopy> = {
     blurb:
       "Locations are the places the party has visited, heard of, or is still " +
       "trying to find, and what happened at each.",
+    exampleLine:
+      "Below is an example campaign, so try it.",
     noun: "locations",
     requires: "campaign",
   },
@@ -144,6 +145,8 @@ export const GATED_COPY: Record<GatedPageKey, GatedPageCopy> = {
     blurb:
       "Rumours are the leads a party picks up in taverns and on notice boards " +
       "— some true, some not, all worth writing down.",
+    exampleLine:
+      "Below is an example campaign, so try it.",
     noun: "rumours",
     requires: "campaign",
   },

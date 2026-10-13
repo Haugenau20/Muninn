@@ -22,6 +22,13 @@ import { createListenerDemandContext, useListenerDemand, ListReaderOptions } fro
 const QuestContext = createContext<QuestContextValue | undefined>(undefined);
 
 /**
+ * Hands a ready value to everything under it, in place of
+ * `QuestProvider`'s own: the example campaign's records, for a page drawn from
+ * it (`../../example/ExampleCampaignProvider`).
+ */
+export const QuestContextValueProvider = QuestContext.Provider;
+
+/**
  * Who is reading this provider's list right now (T032, `PERF-03`): the
  * listener is open only while some component that called `useQuests()` is
  * mounted, and for a while after. See `useListenerDemand`.
