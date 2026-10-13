@@ -26,8 +26,7 @@ test.describe("signed out", () => {
       const example = page.getByRole("region", { name: "Example campaign" });
       await expect(example.getByText("Example", { exact: true })).toBeVisible();
       await expect(example.getByText(row, { exact: true })).toBeVisible();
-      // The newcomer's line sits under the example, not in the band.
-      await expect(page.getByRole("link", { name: "See what the site does" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "See what the site does" })).toHaveCount(0);
     });
   }
 });

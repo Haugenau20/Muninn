@@ -270,12 +270,11 @@ describe("GatedContent", () => {
       expect(screen.queryByText(GATED_COPY.quests.blurb)).not.toBeInTheDocument();
     });
 
-    it("offers the newcomer's way out under the example", () => {
+    it("ends on the example, with no newcomer's footnote under it", () => {
       renderWithExample(gate({ state: "signed-out", canAct: false }));
-      const example = screen.getByTestId("example");
-      const whatItDoes = screen.getByRole("link", { name: "See what the site does" });
-      expect(whatItDoes).toHaveAttribute("href", "/");
-      expect(example.compareDocumentPosition(whatItDoes) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByTestId("example")).toBeInTheDocument();
+      expect(screen.queryByText(/new here/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "See what the site does" })).not.toBeInTheDocument();
     });
 
     it("waits for an example that loads lazily, showing the band meanwhile", async () => {

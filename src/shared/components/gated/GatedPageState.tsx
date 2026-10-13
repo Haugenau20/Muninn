@@ -5,7 +5,6 @@ import { Lock } from "lucide-react";
 import { buttonClasses } from "core/components/Button";
 import Typography from "core/components/Typography";
 import FirstCampaignForm, { type FirstCampaignValues } from "../FirstCampaignForm";
-import { GATED_FOOTNOTE } from "./gated-page-copy";
 import type { CampaignOption } from "./types";
 
 export type { CampaignOption } from "./types";
@@ -176,15 +175,6 @@ const GatedPageState: React.FC<GatedPageStateProps> = ({
               I have an invite link
             </Link>
           </div>
-
-          <hr className="my-6 divider" />
-
-          <Typography variant="body-sm" color="secondary">
-            {GATED_FOOTNOTE}{" "}
-            <Link to="/" className="font-semibold primary">
-              See what the site does
-            </Link>
-          </Typography>
         </>
       ) : (
         <>

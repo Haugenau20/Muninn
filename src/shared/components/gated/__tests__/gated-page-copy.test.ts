@@ -1,7 +1,6 @@
 // src/shared/components/gated/__tests__/gated-page-copy.test.ts
 import {
   GATED_COPY,
-  GATED_FOOTNOTE,
   gatedHeading,
   GatedPageKey,
 } from "../gated-page-copy";
@@ -93,7 +92,6 @@ describe("GATED_COPY", () => {
       expect(copy.heading).not.toMatch(/\bDMs?\b|dungeon master/i);
       expect(copy.writeHeading ?? "").not.toMatch(/\bDMs?\b|dungeon master/i);
     });
-    expect(GATED_FOOTNOTE).not.toMatch(/\bDMs?\b|dungeon master/i);
   });
 
   it("pitches extraction on the notes page, naming only what it returns", () => {
@@ -115,6 +113,9 @@ describe("GATED_COPY", () => {
       const line = GATED_COPY[page].exampleLine;
       expect(line).toMatch(/example/i);
       expect(line).not.toMatch(/rumor\b|rumors\b|traveler/i);
+      // The access model is not the product's voice (see `GATED_COPY`): a
+      // player assumes their campaign is theirs.
+      expect(line).not.toMatch(/private|your group/i);
     }
   );
 });
@@ -137,13 +138,3 @@ describe("gatedHeading", () => {
   });
 });
 
-describe("GATED_FOOTNOTE", () => {
-  // Was "explains that joining is by invite", asserting /join link/. The
-  // footnote no longer explains anything: it opens the question and the link
-  // beside it goes to Home, which answers it once instead of twenty times.
-  // `SignedOutHome.test.tsx` now owns the join-link assertion.
-  it("opens the question and leaves the answer to Home", () => {
-    expect(GATED_FOOTNOTE).toMatch(/new here/i);
-    expect(GATED_FOOTNOTE).not.toMatch(/join link|invite-only|private/i);
-  });
-});
