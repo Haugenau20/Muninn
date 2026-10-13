@@ -26,7 +26,8 @@ export { QuestProvider, useQuests } from './quests/context/QuestContext';
 export { useQuestData } from './quests/hooks/useQuestData';
 // Components consumed by pages/quests/* and other external consumers
 export { default as QuestDirectory } from './quests/components/QuestDirectory';
-export { default as QuestExample } from './quests/components/QuestExample';
+// Lazy: the example campaign loads only for a signed-out visitor.
+export { QuestExample } from './quests/example';
 export { default as QuestObjectives } from './quests/components/QuestObjectives';
 export { default as DeleteQuestDialog } from './quests/components/DeleteQuestDialog';
 // How a quest says what it is, shared by the row and the page.
@@ -88,7 +89,8 @@ export { useRumorData } from './rumors/hooks/useRumorData';
 export { useCreateRumor } from './rumors/hooks/useCreateRumor';
 // Components consumed by pages/rumors/* and other external consumers
 export { default as RumorDirectory } from './rumors/components/RumorDirectory';
-export { default as RumorExample } from './rumors/components/RumorExample';
+// Lazy: the example campaign loads only for a signed-out visitor.
+export { RumorExample } from './rumors/example';
 export { default as RumorBatchActions } from './rumors/components/RumorBatchActions';
 export { default as CombineRumorsDialog } from './rumors/components/CombineRumorsDialog';
 export { default as ConvertToQuestDialog } from './rumors/components/ConvertToQuestDialog';

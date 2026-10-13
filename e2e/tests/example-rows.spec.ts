@@ -54,6 +54,25 @@ test.describe("signed out", () => {
     await expect(example.getByText(/Searching flattens the tree/)).toBeVisible();
     await expect(example.getByRole("button", { name: "Expand The Drowned Archive" })).toBeVisible();
   });
+
+  test("the quest example opens on a quest's objectives, history folded", async ({ page }) => {
+    await page.goto("/quests");
+    const example = page.getByRole("region", { name: "Example campaign" });
+    await expect(example.getByText("Search under the ferry landing")).toBeVisible();
+    await expect(example.getByRole("button", { name: /Cross at Cinderford after dark/ })).toHaveCount(0);
+    await example.getByRole("button", { name: /Completed Quests/ }).click();
+    await expect(example.getByRole("button", { name: "Expand Cross at Cinderford after dark" })).toBeVisible();
+  });
+
+  test("the rumour example opens a rumour as text, with nothing to edit", async ({ page }) => {
+    await page.goto("/rumors");
+    const example = page.getByRole("region", { name: "Example campaign" });
+    await expect(example.getByText(/We crossed, so it does/)).toBeVisible();
+    await expect(example.getByRole("textbox")).toHaveCount(1);
+    await expect(example.getByLabel("Heard something? Write it down here")).toHaveCount(0);
+    await example.getByRole("button", { name: "Open the quest" }).click();
+    await expect(page).toHaveURL(/\/rumors$/);
+  });
 });
 
 test("a member's empty list keeps its own empty state, with no example", async ({ page }) => {

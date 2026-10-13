@@ -244,6 +244,38 @@ describe('QuestDirectory', () => {
   // Loading state — the directory's own; the page owns the context guards and
   // the error branch, and covers them in its own suite.
   // -------------------------------------------------------------------------
+  // The signed-out example: the quest log as members see it, without anything
+  // that changes it.
+  describe('when the reader may not edit', () => {
+    test('offers no selection, and no way to add the first quest', () => {
+      const { unmount } = render(
+        <QuestDirectory quests={[makeQuest({ id: 'q-1', title: 'Destroy the Ring' })]} canEdit={false} />
+      );
+      expect(screen.queryByRole('button', { name: 'Select Quests' })).not.toBeInTheDocument();
+      unmount();
+      render(<QuestDirectory quests={[]} canEdit={false} />);
+      expect(screen.queryByRole('button', { name: /Add the first quest/ })).not.toBeInTheDocument();
+    });
+
+    test('still lets members select by default', () => {
+      render(<QuestDirectory quests={[makeQuest({ id: 'q-1', title: 'Destroy the Ring' })]} />);
+      expect(screen.getByRole('button', { name: 'Select Quests' })).toBeInTheDocument();
+    });
+  });
+
+  describe('a row open from the start', () => {
+    test('opens the row it is given', () => {
+      render(
+        <QuestDirectory
+          quests={[makeQuest({ id: 'q-1', title: 'Destroy the Ring' }), makeQuest({ id: 'q-2', title: 'Find Gollum' })]}
+          initialExpandedId="q-2"
+        />
+      );
+      expect(screen.getByRole('button', { name: 'Collapse Find Gollum' })).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('button', { name: 'Expand Destroy the Ring' })).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
   describe('loading state', () => {
     it('renders a loading indicator and no rows', () => {
       mockQuestContext = { ...mockQuestContext, loading: true, quests: [] };
