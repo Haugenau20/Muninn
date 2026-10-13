@@ -11,7 +11,7 @@ import { test, expect } from "../support/test";
 const PAGES = [
   { path: "/npcs", heading: "Sign in to see who your party has met", row: "Odile Marrow" },
   { path: "/quests", heading: "Sign in to see your party's quests", row: "Recover the drowned ledger" },
-  { path: "/locations", heading: "Sign in to see where your party has been", row: "Cinderford" },
+  { path: "/locations", heading: "Sign in to see where your party has been", row: "Harrowgate" },
   { path: "/rumors", heading: "Sign in to hear what the realm is saying", row: "The ferry crosses at night for those who never paid" },
   { path: "/story/chapters", heading: "Sign in to read your campaign's story", row: "Ashes on the Water" },
 ];
@@ -29,6 +29,31 @@ test.describe("signed out", () => {
       await expect(page.getByRole("link", { name: "See what the site does" })).toHaveCount(0);
     });
   }
+
+  // The example is the page itself, working: it filters, opens rows, and
+  // goes nowhere when a row's way out is pressed.
+  test("the NPC example filters, opens a row, and stays put on More info", async ({ page }) => {
+    await page.goto("/npcs");
+    const example = page.getByRole("region", { name: "Example campaign" });
+    await expect(example.getByRole("button", { name: "Collapse Vesk Harrow" })).toBeVisible();
+
+    await example.getByRole("group", { name: "Filter by relationship" }).getByRole("button", { name: "Friendly" }).click();
+    await expect(example.getByRole("button", { name: "Expand Odile Marrow" })).toBeVisible();
+    await expect(example.getByRole("button", { name: /Vesk Harrow/ })).toHaveCount(0);
+
+    await example.getByRole("button", { name: "Expand Odile Marrow" }).click();
+    await example.getByRole("button", { name: "More info" }).click();
+    await expect(page).toHaveURL(/\/npcs$/);
+    await expect(example.getByRole("button", { name: "Select NPCs" })).toHaveCount(0);
+  });
+
+  test("the location example flattens the tree while searching", async ({ page }) => {
+    await page.goto("/locations");
+    const example = page.getByRole("region", { name: "Example campaign" });
+    await example.getByPlaceholder("Search locations...").fill("archive");
+    await expect(example.getByText(/Searching flattens the tree/)).toBeVisible();
+    await expect(example.getByRole("button", { name: "Expand The Drowned Archive" })).toBeVisible();
+  });
 });
 
 test("a member's empty list keeps its own empty state, with no example", async ({ page }) => {

@@ -21,6 +21,13 @@ import { createListenerDemandContext, useListenerDemand, ListReaderOptions } fro
 
 const LocationContext = createContext<LocationContextValue | undefined>(undefined);
 
+/**
+ * Hands a ready value to everything under it, in place of
+ * `LocationProvider`'s own: the example campaign's records, for a page drawn from
+ * it (`../../example/ExampleCampaignProvider`).
+ */
+export const LocationContextValueProvider = LocationContext.Provider;
+
 /** Children marked or moved per transaction, under its 500-write limit. */
 const CLAIMS_PER_TRANSACTION = 400;
 

@@ -18,6 +18,13 @@ import { createListenerDemandContext, useListenerDemand, ListReaderOptions } fro
 const NPCContext = createContext<NPCContextValue | undefined>(undefined);
 
 /**
+ * Hands a ready value to everything under it, in place of
+ * `NPCProvider`'s own: the example campaign's records, for a page drawn from
+ * it (`../../example/ExampleCampaignProvider`).
+ */
+export const NPCContextValueProvider = NPCContext.Provider;
+
+/**
  * Who is reading this provider's list right now (T032, `PERF-03`): the
  * listener is open only while some component that called `useNPCs()` is
  * mounted, and for a while after. See `useListenerDemand`.

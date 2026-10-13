@@ -3,7 +3,8 @@ export { NPCProvider, useNPCs } from './npcs/context/NPCContext';
 export { useNPCData } from './npcs/hooks/useNPCData';
 // Components consumed by pages/npcs/* and other external consumers
 export { default as NPCDirectory } from './npcs/components/NPCDirectory';
-export { default as NPCExample } from './npcs/components/NPCExample';
+// Lazy: the example campaign loads only for a signed-out visitor.
+export { NPCExample } from './npcs/example';
 // NPC types
 export type { NPC, NPCStatus, NPCRelationship, NPCNote, NPCConnections, NPCContextState, NPCContextValue } from './npcs/types';
 
@@ -48,7 +49,8 @@ export { LocationProvider, useLocations } from './locations/context/LocationCont
 export { useLocationData } from './locations/hooks/useLocationData';
 // Components consumed by pages/locations/* and other external consumers
 export { default as LocationDirectory } from './locations/components/LocationDirectory';
-export { default as LocationExample } from './locations/components/LocationExample';
+// Lazy: the example campaign loads only for a signed-out visitor.
+export { LocationExample } from './locations/example';
 export { default as WhereThisSits } from './locations/components/WhereThisSits';
 export { default as DeleteLocationDialog } from './locations/components/DeleteLocationDialog';
 // Location types
