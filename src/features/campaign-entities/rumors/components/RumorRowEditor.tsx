@@ -235,7 +235,7 @@ export const RumorRowEditor: React.FC<RumorRowEditorProps> = ({
             isTextArea
             rows={3}
             label="What was heard"
-            placeholder="Traders coming down from Rivendell say the goblin road is busy again after dark."
+            placeholder="Drovers coming down from Harrowgate say the Ironmouth road is busy again after dark."
             value={current.content}
             maxLength={TEXT_LIMITS.text}
             onChange={(event) => onDraftChange({ content: event.target.value })}

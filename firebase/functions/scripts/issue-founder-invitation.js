@@ -12,7 +12,7 @@
  *   gcloud auth application-default login
  *   cd firebase/functions
  *   npm run build
- *   node scripts/issue-founder-invitation.js --project dnd-campaign-companion --note "Bree table"
+ *   node scripts/issue-founder-invitation.js --project dnd-campaign-companion --note "Thursday table"
  *
  * `--note` is for your own records: it is stored with the invitation and seen
  * by nobody else. `--emulator` issues one in the dev emulators, with a link to

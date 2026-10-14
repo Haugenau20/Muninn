@@ -39,7 +39,7 @@ export interface StateLadderProps<V extends string> {
   value: V;
   /** Perform the write. Rejecting shows the reason beside the control. */
   onChange: (next: V) => Promise<unknown>;
-  /** Names the group for assistive technology, e.g. "Status of Reclaim Erebor". */
+  /** Names the group for assistive technology, e.g. "Status of Recover the drowned ledger". */
   ariaLabel: string;
   /**
    * Which surface the ladder is drawn on.

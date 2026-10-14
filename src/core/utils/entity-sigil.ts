@@ -45,7 +45,7 @@ const fnv1a = (input: string): number => {
 /**
  * The palette index for an entity id. Stable for a given id, forever.
  *
- * @param entityId - The entity's document id (a slug, e.g. `thorin-oakenshield`).
+ * @param entityId - The entity's document id (a slug, e.g. `odile-marrow`).
  * @returns An integer in `[0, SIGIL_BUCKET_COUNT)`.
  */
 export const sigilIndexFor = (entityId: string): number =>

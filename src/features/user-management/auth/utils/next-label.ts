@@ -5,7 +5,7 @@
  * uses for them.
  *
  * A closed list on purpose. The alternative -- prettifying whatever segment is
- * in the URL -- turns `/npcs/aragorn` into "Npcs Aragorn", and an id into
+ * in the URL -- turns `/npcs/odile-marrow` into "Npcs Odile Marrow", and an id into
  * something that looks like a name but is not one.
  */
 const SECTION_LABELS: Record<string, string> = {
@@ -26,7 +26,7 @@ const SECTION_LABELS: Record<string, string> = {
  *
  * Returns `null` when the destination cannot be named, and the caller omits
  * the line rather than printing a path. "You were heading to
- * /locations/edit/rivendell" is worse than saying nothing: it shows the reader
+ * /locations/edit/cinderford" is worse than saying nothing: it shows the reader
  * a URL they did not type and cannot act on.
  *
  * @param next A path already validated by `safeNextPath`

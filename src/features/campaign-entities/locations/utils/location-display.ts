@@ -44,7 +44,7 @@ export const indexLocationNames = (locations: readonly Location[]): LocationName
  * free-text `location` is only ever shown, never looked up:
  * 1. `locationId` set and resolves to a Location -> that Location's current
  *    `name`, so a rename shows everywhere the place is referenced.
- * 2. Otherwise the free text, exactly as written. "Somewhere in Mirkwood" is
+ * 2. Otherwise the free text, exactly as written. "Somewhere in the fen" is
  *    what a player wrote, and it stays visible.
  * 3. No free text either, but a `locationId` that names nothing -> that id,
  *    verbatim.

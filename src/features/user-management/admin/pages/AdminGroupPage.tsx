@@ -402,7 +402,7 @@ const AdminGroupPage: React.FC = () => {
             onChange={(event) => setName(event.target.value)}
             required
             disabled={creating}
-            placeholder="The Fellowship"
+            placeholder="Thursday Night Table"
           />
 
           <Input

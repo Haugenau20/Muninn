@@ -15,7 +15,7 @@ export interface ImageSlotProps {
   caption?: string;
   /** The image to show, when one has been added. */
   image?: StoredImage | null;
-  /** Alt text for `image`, e.g. "Portrait of Bilbo". */
+  /** Alt text for `image`, e.g. "Portrait of Odile Marrow". */
   alt?: string;
   /**
    * A picture the app ships, drawn while there is no `image` (or it was

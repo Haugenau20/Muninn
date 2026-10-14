@@ -41,7 +41,7 @@ export interface Quest extends BaseContent {
    *
    * The one relation list (`D15.7`). A second field -- `importantNPCs`, free
    * text `{name, description}` -- used to sit beside this one and was rendered
-   * beside it too, which is why Thorin and Smaug appeared twice on the same
+   * beside it too, which is why the same people appeared twice on one
    * quest card. `15-5` deleted it: two fields for one relationship cannot be
    * kept in agreement, and only this one can be resolved to a record, a page
    * and an occupation.

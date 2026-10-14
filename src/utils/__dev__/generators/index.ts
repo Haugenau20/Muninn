@@ -2,5 +2,5 @@
 
 export * from './userGenerator';
 export * from './groupGenerator';
-export * from './campaignGenerator';
 export * from './contentGenerator';
+export { SAMPLE_CAMPAIGNS } from './campaigns';

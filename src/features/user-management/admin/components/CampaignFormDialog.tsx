@@ -82,7 +82,7 @@ const CampaignFormDialog: React.FC<CampaignFormDialogProps> = ({
           onChange={(event) => setName(event.target.value)}
           required
           disabled={saving}
-          placeholder="The Lord of the Rings"
+          placeholder="The Ashen Vale"
         />
 
         <Input

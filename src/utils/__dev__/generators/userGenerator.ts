@@ -28,42 +28,44 @@ export interface SampleMembership {
  * (the membership documents) both read it, so the two cannot drift apart.
  *
  * Two entries exist for browser checks rather than for the story:
- * - **Eowyn** is a second admin in group 1, for role changes and the
+ * - **Elspeth** is a second admin in group 1, for role changes and the
  *   last-admin guard -- with one admin there is nobody to demote.
- * - **Faramir** is in no group: where a first-time invitee, or someone who
+ * - **Alder** is in no group: where a first-time invitee, or someone who
  *   left their only group, lands.
+ *
+ * The names are invented, as is everything else in the sample data (T123).
  */
 export const SAMPLE_MEMBERSHIPS: Record<string, SampleMembership> = {
   DungeonMaster: { groups: ['group1', 'group2'], admin: true },
-  Aragorn: { groups: ['group1', 'group2'], admin: false },
-  Gandalf: { groups: ['group1'], admin: false },
-  Gimli: { groups: ['group1'], admin: false },
-  Legolas: { groups: ['group1'], admin: false },
-  Eowyn: { groups: ['group1'], admin: true },
-  Frodo: { groups: ['group2'], admin: false },
-  Samwise: { groups: ['group2'], admin: false },
-  Pippin: { groups: ['group2'], admin: false },
-  Faramir: { groups: [], admin: false },
+  Rowan: { groups: ['group1', 'group2'], admin: false },
+  Tamsin: { groups: ['group1'], admin: false },
+  Brannoc: { groups: ['group1'], admin: false },
+  Merrit: { groups: ['group1'], admin: false },
+  Elspeth: { groups: ['group1'], admin: true },
+  Kestrel: { groups: ['group2'], admin: false },
+  Mabyn: { groups: ['group2'], admin: false },
+  Oswin: { groups: ['group2'], admin: false },
+  Alder: { groups: [], admin: false },
 };
 
 // Create the sample users with Firebase Auth and get their actual UIDs
 export const createSampleUsers = async (auth: any) => {
   const userTemplates = [
     // Users 1-5 (in group 1)
-    { email: 'dm@example.com', password: 'password123', username: 'DungeonMaster', role: 'dm' },          // User 1 (in both groups as admin)
-    { email: 'player1@example.com', password: 'password123', username: 'Aragorn', role: 'aragorn' },      // User 2 (in both groups as member)
-    { email: 'player2@example.com', password: 'password123', username: 'Gandalf', role: 'gandalf' },      // User 3 (only in group 1)
-    { email: 'player3@example.com', password: 'password123', username: 'Gimli', role: 'gimli' },          // User 4 (only in group 1)
-    { email: 'player4@example.com', password: 'password123', username: 'Legolas', role: 'legolas' },      // User 5 (only in group 1)
+    { email: 'dm@example.com', password: 'password123', username: 'DungeonMaster', role: 'dm' },                // User 1 (in both groups as admin)
+    { email: 'player1@example.com', password: 'password123', username: 'Rowan', role: 'rowan' },                // User 2 (in both groups as member)
+    { email: 'player2@example.com', password: 'password123', username: 'Tamsin', role: 'tamsin' },              // User 3 (only in group 1)
+    { email: 'player3@example.com', password: 'password123', username: 'Brannoc', role: 'brannoc' },            // User 4 (only in group 1)
+    { email: 'player4@example.com', password: 'password123', username: 'Merrit', role: 'merrit' },              // User 5 (only in group 1)
     
     // Users 6-8 (only in group 2)
-    { email: 'player5@example.com', password: 'password123', username: 'Frodo', role: 'frodo' },          // User 6 (only in group 2)
-    { email: 'player6@example.com', password: 'password123', username: 'Samwise', role: 'samwise' },      // User 7 (only in group 2)
-    { email: 'player7@example.com', password: 'password123', username: 'Pippin', role: 'pippin' },        // User 8 (only in group 2)
+    { email: 'player5@example.com', password: 'password123', username: 'Kestrel', role: 'kestrel' },            // User 6 (only in group 2)
+    { email: 'player6@example.com', password: 'password123', username: 'Mabyn', role: 'mabyn' },                // User 7 (only in group 2)
+    { email: 'player7@example.com', password: 'password123', username: 'Oswin', role: 'oswin' },                // User 8 (only in group 2)
 
     // Users 9-10 exist for browser checks; see SAMPLE_MEMBERSHIPS
-    { email: 'player8@example.com', password: 'password123', username: 'Eowyn', role: 'eowyn' },          // User 9 (second admin in group 1)
-    { email: 'player9@example.com', password: 'password123', username: 'Faramir', role: 'faramir' }       // User 10 (in no group)
+    { email: 'player8@example.com', password: 'password123', username: 'Elspeth', role: 'elspeth' },            // User 9 (second admin in group 1)
+    { email: 'player9@example.com', password: 'password123', username: 'Alder', role: 'alder' }                 // User 10 (in no group)
   ];
 
   console.log('Creating users...');

@@ -91,7 +91,7 @@ export function rumorIdsOfLocation(location: Location, rumors: readonly Rumor[])
 
 /**
  * The people a person is linked to, both ways (maintainer, 2026-10-08):
- * "Aragorn knows Arwen" is stored once, on either of them, and both pages
+ * "Odile knows Marta" is stored once, on either of them, and both pages
  * show it.
  */
 export function npcIdsOfNpc(npc: NPC, npcs: readonly NPC[]): string[] {

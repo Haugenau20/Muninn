@@ -12,7 +12,7 @@ generateSampleData()
   .then(() => {
     console.log('Sample data generation completed successfully!');
     console.log('Generated:');
-    console.log('- 8 unique users (2 users belong to both groups)');
+    console.log('- 10 users: 2 in both groups, 1 in none');
     console.log('- 2 groups with appropriate user memberships');
     console.log('- 2 campaigns per group (4 total)');
     console.log('- Campaign content including chapters, NPCs, locations, quests, and rumors');

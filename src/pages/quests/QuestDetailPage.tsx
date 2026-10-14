@@ -77,7 +77,7 @@ const PREP_FIELDS: {
     title: 'Complications',
     prompt: 'What could go wrong?',
     another: 'Add another complication',
-    placeholder: 'The threat of waking Smaug',
+    placeholder: 'The magistrate wants the ledger too',
   },
   {
     key: 'rewards',
@@ -129,8 +129,8 @@ const QuestNotFound: React.FC<{ onBack: () => void }> = ({ onBack }) => (
  *   would be inventing a history the data does not carry.
  * - No per-field credit under the description, for the same reason.
  * - No second NPC list. `importantNPCs` is deleted (`D15.7`) -- two fields for
- *   one relationship, both rendered, is why Thorin and Smaug appeared twice on
- *   the same card.
+ *   one relationship, both rendered, is why the same people appeared twice on
+ *   one card.
  */
 const QuestDetailPage: React.FC = () => {
   const { questId } = useParams<{ questId: string }>();
@@ -192,8 +192,8 @@ const QuestDetailPage: React.FC = () => {
   /**
    * The quest's location, as a name.
    *
-   * Item 10: **resolve every id to a name.** The quest card printed `bag-end`
-   * and `erebor` as though they were labels, and one of them was wrong
+   * Item 10: **resolve every id to a name.** The quest card printed two
+   * location ids as though they were labels, and one of them was wrong
    * besides.
    *
    * `resolveLocationName` names the place `locationId` points at, else
@@ -356,7 +356,7 @@ const QuestDetailPage: React.FC = () => {
       status: 'known',
       description: place.description ?? '',
       // Inside the quest's own location when there is one: a secret door is a
-      // place inside Erebor, not a region of its own.
+      // place inside the Drowned Archive, not a region of its own.
       parentId: locationRecord?.id ?? '',
       features: [],
       connectedNPCs: [],
@@ -556,8 +556,8 @@ const QuestDetailPage: React.FC = () => {
                               <span className="font-heading block truncate">{npc.name}</span>
                               {/*
                                 Occupation and where they are: what tells two
-                                NPCs apart (item 4). "Thorin Oakenshield ·
-                                King under the Mountain" is the line `S3`
+                                NPCs apart (item 4). "Odile Marrow ·
+                                Ferrywoman" is the line `S3`
                                 draws.
                               */}
                               <Typography

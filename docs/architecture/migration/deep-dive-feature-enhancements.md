@@ -679,7 +679,7 @@ class CampaignSearchService extends BaseFirebaseService {
     const intent = await this.openAIService.extractSearchIntent(query);
     
     return {
-      entities: intent.entities, // ['Thorin', 'Erebor', 'Dragon']
+      entities: intent.entities, // ['Odile', 'Cinderford', 'Ferry']
       types: intent.types,       // ['npc', 'location', 'quest']
       relationships: intent.relationships, // ['lives in', 'guards']
       temporalContext: intent.timeframe    // ['recent', 'past session']
@@ -703,7 +703,7 @@ const AdvancedCampaignSearch: React.FC = () => {
         {/* Intelligent search box with entity recognition */}
         <SearchBox
           translations={{
-            placeholder: 'Search characters, locations, quests... (e.g., "Thorin in Erebor")'
+            placeholder: 'Search characters, locations, quests... (e.g., "Odile in Cinderford")'
           }}
           className="enhanced-search-box"
         />

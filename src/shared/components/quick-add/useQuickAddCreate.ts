@@ -38,7 +38,7 @@ export interface QuickAddCreateOptions {
  *
  * Three fields per entity, all of them prose arriving where an id belongs:
  *
- * - a **location**'s `parentId` carries `parentLocation` — "The Shire", not an
+ * - a **location**'s `parentId` carries `parentLocation` — "The Ashen Vale", not an
  *   id. Unresolved, it becomes `""`, which is what `buildDocument` already
  *   writes for a top-level place; the place shows under "Unplaced", honestly,
  *   rather than holding a reference to nothing.

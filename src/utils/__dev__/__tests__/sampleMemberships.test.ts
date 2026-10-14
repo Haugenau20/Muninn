@@ -43,7 +43,7 @@ describe("sample memberships", () => {
   it("seeds an account that belongs to no group", async () => {
     await createUserProfiles({}, users);
 
-    const profile = writes()[`users/${uidOf("Faramir")}`];
+    const profile = writes()[`users/${uidOf("Alder")}`];
     // The shape `removeUserFromGroup` leaves behind for someone whose last
     // group is gone -- not a missing field. No account lists its groups since
     // T136: membership is the group profile.
@@ -54,8 +54,8 @@ describe("sample memberships", () => {
   it("gives that account no membership document anywhere", async () => {
     await addUsersToGroups({}, users, { group1Id: "group1", group2Id: "group2" }, "2026-09-24");
 
-    const faramir = uidOf("Faramir");
-    expect(Object.keys(writes()).filter((path) => path.includes(faramir))).toEqual([]);
+    const alder = uidOf("Alder");
+    expect(Object.keys(writes()).filter((path) => path.includes(alder))).toEqual([]);
   });
 
   it("seeds a second admin in group 1", async () => {
@@ -64,7 +64,7 @@ describe("sample memberships", () => {
     const admins = Object.entries(writes())
       .filter(([path, data]) => path.startsWith("groups/group1/users/") && data.role === "admin")
       .map(([, data]) => data.username);
-    expect(admins.sort()).toEqual(["DungeonMaster", "Eowyn"]);
+    expect(admins.sort()).toEqual(["DungeonMaster", "Elspeth"]);
   });
 
   it("makes each account's active group one it has a group profile in", async () => {

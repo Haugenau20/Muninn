@@ -6,7 +6,7 @@ import { DocumentAlreadyExistsError } from '../services/firebase/data/DocumentAl
  * campaign-entity contexts (NPC, Quest, Rumor, Location).
  *
  * Document ids in this app are human-readable slugs derived from an entity's
- * name/title (e.g. "Thorin Oakenshield" -> "thorin-oakenshield"), chosen for
+ * name/title (e.g. "Odile Marrow" -> "odile-marrow"), chosen for
  * readability over Firestore's opaque auto-ids. That readability is exactly
  * why two entities with different names can collide: names that differ only
  * by case, whitespace or punctuation reduce to the same slug. The create path
@@ -145,7 +145,7 @@ export interface CreateWithUniqueEntityIdOptions {
  * to it, so the clean slug is chosen and `DocumentService.createDocument`'s
  * existence guard -- correctly -- refuses. That refusal is information: the id
  * is taken. It stays in `issuedIds`, the next derivation skips it, and the write
- * is tried again under the next free id (`gandalf-2`, ...). The player sees none
+ * is tried again under the next free id (`odile-marrow-2`, ...). The player sees none
  * of it.
  *
  * Deliberately not an async `isTaken` that asks the server about every
