@@ -164,9 +164,9 @@ export const QUICK_ADD_SPECS: Record<QuickAddEntity, QuickAddSpec> = {
     labels: {
       title: "New Quest",
       nameLabel: "Title",
-      namePlaceholder: "Reclaim Erebor",
+      namePlaceholder: "Recover the drowned ledger",
       lineLabel: "What was the party asked to do?",
-      linePlaceholder: "Take back the mountain from Smaug…",
+      linePlaceholder: "Find Captain Fenn’s ledger before the magistrate does…",
       countNoun: "quests",
     },
     messages: {

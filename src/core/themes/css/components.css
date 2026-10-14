@@ -316,7 +316,7 @@
        `base-select` replaces the native button with a real box the page lays
        out, and it does not inherit the native control's centring: the value
        sat flush with the top of the field, with the whole lower half empty.
-       Measured on `/locations/isengard`, where the field is 32px and
+       Measured on a location's page, where the field is 32px and
        `text-sm`: the word's ascent began 5.3px below the top edge and its
        baseline 16.6px above the bottom, which is a line box at the top of the
        box rather than in the middle of it (centred, those are 9px and 11px).

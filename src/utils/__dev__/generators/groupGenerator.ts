@@ -8,11 +8,11 @@ import { HASHED_INVITATION_SCHEME, hashInvitationToken } from '../../../core/uti
 export const createGroups = async (db: any, userMapping: UserMapping) => {
   const dmUid = userMapping['dm'];
   
-  // Create Group 1: The Fellowship
+  // Create Group 1: Thursday Night Table
   const group1Id = 'group1';
   const group1Data = {
-    name: 'The Fellowship',
-    description: 'A group of adventurers bound by a common quest to destroy the One Ring.',
+    name: 'Thursday Night Table',
+    description: 'Every other Thursday at Tamsin\'s. Currently in the Ashen Vale.',
     createdAt: new Date().toISOString(),
     createdBy: dmUid
   };
@@ -20,11 +20,11 @@ export const createGroups = async (db: any, userMapping: UserMapping) => {
   await setDoc(doc(db, 'groups', group1Id), group1Data);
   console.log(`Created group: ${group1Data.name} (${group1Id})`);
   
-  // Create Group 2: The Council of Elrond
+  // Create Group 2: Second Sunday Club
   const group2Id = 'group2';
   const group2Data = {
-    name: 'The Council of Elrond',
-    description: 'Representatives of the free peoples of Middle-earth who gathered to decide the fate of the One Ring.',
+    name: 'Second Sunday Club',
+    description: 'The second Sunday of the month, all afternoon. Currently in Vellmouth.',
     createdAt: new Date().toISOString(),
     createdBy: dmUid
   };
@@ -88,11 +88,11 @@ const createGroupTokens = async (db: any, groupId: string, users: UserData[], fo
   let tokenUsers = [];
   
   if (groupId === 'group1') {
-    // Group 1 tokens: Aragorn, Gandalf, Gimli
-    tokenUsers = users.filter(u => ['Aragorn', 'Gandalf', 'Gimli'].includes(u.username));
+    // Group 1 tokens: Rowan, Tamsin, Brannoc
+    tokenUsers = users.filter(u => ['Rowan', 'Tamsin', 'Brannoc'].includes(u.username));
   } else {
-    // Group 2 tokens: Aragorn, Frodo, Samwise
-    tokenUsers = users.filter(u => ['Aragorn', 'Frodo', 'Samwise'].includes(u.username));
+    // Group 2 tokens: Rowan, Kestrel, Mabyn
+    tokenUsers = users.filter(u => ['Rowan', 'Kestrel', 'Mabyn'].includes(u.username));
   }
   
   // Create tokens

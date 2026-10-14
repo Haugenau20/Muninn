@@ -383,7 +383,7 @@ Do not output any text yourself—*only* invoke the function with correct JSON.
                           },
                           description: { type: ["string", "null"] },
                           /*
-                            Prose -- "The Shire" -- never an id, whatever the
+                            Prose -- "The Ashen Vale" -- never an id, whatever the
                             name suggests. `convertEntity` assigns it straight
                             to `parentId` today, which writes a dangling
                             reference and files the place under "Unplaced".

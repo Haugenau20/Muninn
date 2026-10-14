@@ -89,9 +89,14 @@ line and run `npm ci` (or `npm ci --os=win32` for one install).
   `{"email":…,"rememberMe":false}` first if the link wasn't requested from that browser. Google
   sign-in opens a popup the browser agent cannot drive — that's the maintainer's to check.
 - Seeded accounts for such checks (`SAMPLE_MEMBERSHIPS` in `utils/__dev__/generators/userGenerator.ts`):
-  `player9@example.com` (Faramir) is in **no group**; `player8@example.com` (Eowyn) is a **second
+  `player9@example.com` (Alder) is in **no group**; `player8@example.com` (Elspeth) is a **second
   admin** in group 1. An older emulator dataset lacks both — regenerate it (this resets the other
   seeded profiles too).
+- **The sample data is invented, and stays that way** (T123): no setting, name or text from a
+  published work. Each campaign is a file in `utils/__dev__/generators/campaigns/`; campaign 1-1 is
+  the site's own example, the Ashen Vale (`shared/example-campaign`), read from it rather than
+  copied. `sampleCampaigns.test.ts` holds every link and author in them to what the app expects.
+  A dataset generated before 2026-10-14 is Tolkien's: `clear`, then `generate`.
 
 ## Testing
 

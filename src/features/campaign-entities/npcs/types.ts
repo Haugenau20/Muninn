@@ -56,7 +56,7 @@ export interface NPC extends BaseContent {
    * `locationId` is the canonical reference to a Location record and wins
    * whenever it is set and resolves. `location` is free text, used when no
    * Location record was selected (a player may legitimately write "somewhere
-   * in Mirkwood"). It is also written alongside `locationId` as a
+   * in the fen"). It is also written alongside `locationId` as a
    * human-readable convenience, but is never authoritative.
    *
    * Free text is shown as written and never looked up as a place, even when

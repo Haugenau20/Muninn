@@ -92,7 +92,7 @@ async function runCase(label, sourcePath) {
   const mod = require(sourcePath);
   const res = await mod.extractEntities.run({
     auth: { uid: "user-1", token: {} },
-    data: { content: "Gandalf met Frodo in Bree.", model: "gpt-5.2-pro" },
+    data: { content: "Odile met Vesk in Cinderford.", model: "gpt-5.2-pro" },
     rawRequest: { headers: {} },
   });
   console.log(`  ${label}: model sent to OpenAI = ${JSON.stringify(recordedModel)}` +

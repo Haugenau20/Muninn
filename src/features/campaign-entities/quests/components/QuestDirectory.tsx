@@ -132,8 +132,8 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
   }, [quests]);
 
   // `quest.location` holds the location's id, so both the filter options and the
-  // row's location cell used to read as slugs -- "mines-of-moria" where the
-  // Locations page says "Mines of Moria" (#1412, the same defect NPCDirectory
+  // row's location cell used to read as slugs -- "the-drowned-archive" where the
+  // Locations page says "The Drowned Archive" (#1412, the same defect NPCDirectory
   // had). Resolve once here and key everything -- display, options and the
   // filter comparison -- off the resolved name, so the three cannot disagree.
   //

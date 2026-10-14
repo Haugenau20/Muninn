@@ -9,8 +9,8 @@ import {
   createUserProfiles, 
   createGroups, 
   addUsersToGroups,
-  createCampaigns,
-  generateContentForCampaign
+  generateContentForCampaign,
+  SAMPLE_CAMPAIGNS
 } from './generators';
 dotenv.config();
 
@@ -62,15 +62,10 @@ export const generateSampleData = async () => {
     console.log('Step 4: Adding users to groups...');
     await addUsersToGroups(db, users, { group1Id, group2Id }, formattedDate);
     
-    // Step 5: Create campaigns for each group
-    console.log('Step 5: Creating campaigns...');
-    const campaigns = await createCampaigns(db, { group1Id, group2Id }, userMapping, formattedDate);
-    
-    // Step 6: Generate content for each campaign
-    console.log('Step 6: Generating content for campaigns...');
-    for (const campaign of campaigns) {
-      console.log(`Generating content for campaign: ${campaign.name}`);
-      await generateContentForCampaign(db, campaign.groupId, campaign.id, userMapping, formattedDate);
+    // Step 5: Create each campaign and everything in it
+    console.log('Step 5: Creating campaigns and their content...');
+    for (const campaign of SAMPLE_CAMPAIGNS) {
+      await generateContentForCampaign(db, campaign, userMapping, now);
     }
     
     console.log('Sample data generation complete!');

@@ -683,7 +683,7 @@ const NPCDetailPage: React.FC = () => {
             isEditing('title') ? (
               <InlineEditor
                 label="Title"
-                helperText="What they are called — “The Grey”, “Innkeeper of Bree”."
+                helperText="What they are called — “Magistrate of Harrowgate”, “Wanted in three towns”."
                 rows={1}
                 initialValue={npc.title ?? ''}
                 optional
@@ -998,7 +998,7 @@ const NPCDetailPage: React.FC = () => {
                 {/*
                   `15-8` found affiliations with nowhere to live: the tray
                   offers records, and an affiliation is free text -- "The
-                  Fellowship", "Istari" -- so `NPCForm` was the only place it
+                  Lockwardens", "House Crale" -- so `NPCForm` was the only place it
                   could be written. The tray above handles the four kinds that
                   are records; this handles the one that is not.
                 */}
@@ -1010,7 +1010,7 @@ const NPCDetailPage: React.FC = () => {
                       rows={1}
                       submitLabel="Add affiliation"
                       maxLength={TEXT_LIMITS.line}
-                      placeholder="The Fellowship"
+                      placeholder="The Lockwardens"
                       clearOnSave
                       onSubmit={(value) =>
                         changeConnections('affiliations', (names) =>

@@ -11,7 +11,7 @@ export interface DeleteQuestDialogProps {
   title: string;
   /**
    * What else loses a link, in words already resolved to names -- "2 rumours
-   * were converted into it", "Erebor points at it". Never ids.
+   * were converted into it", "Cinderford points at it". Never ids.
    */
   losses: string[];
   /** Must reject on failure -- nothing here claims success before it resolves. */

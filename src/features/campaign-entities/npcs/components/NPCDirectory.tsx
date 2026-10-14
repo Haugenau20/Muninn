@@ -234,8 +234,8 @@ const NPCDirectory: React.FC<NPCDirectoryProps> = ({
   // own record says, as `resolveLocationName` reads it -- the free text, or a
   // reference to a place since deleted, visible as one (#1412; see the
   // contract on `NPC.location`). Grouping on a stored id verbatim printed
-  // slugs as headings -- "mines-of-moria" where the Locations page says
-  // "Mines of Moria".
+  // slugs as headings -- "the-drowned-archive" where the Locations page says
+  // "The Drowned Archive".
   const groupedNPCs = useMemo(() => {
     return filteredNPCs.reduce((acc, npc) => {
       const location =

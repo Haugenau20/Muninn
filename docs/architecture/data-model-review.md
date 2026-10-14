@@ -369,7 +369,7 @@ worth a migration on its own.
 
 The structure itself was decided in `backend-structure-options.md`: R2, Firestore restructured.
 
-1. **NPC → NPC links run both ways.** "Aragorn knows Arwen" is stored once and shown on both pages.
+1. **NPC → NPC links run both ways.** "Odile knows Marta" is stored once and shown on both pages.
 2. **Names in attribution are the author's name now.** A record stores who wrote it
    (`createdBy`, and `createdByCharacterId`, which it already writes) and the names are looked up
    when it is shown, so a renamed character is renamed everywhere. The name stored at writing time

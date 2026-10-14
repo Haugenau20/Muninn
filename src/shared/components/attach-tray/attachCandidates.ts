@@ -122,7 +122,7 @@ export function buildCandidates(
    *
    * `locationId` wins when it is set: its place's name, or nothing when it
    * names no place, rather than the id printed raw. Without one, `location`
-   * is free text a player wrote ("somewhere in Mirkwood") and is shown as
+   * is free text a player wrote ("somewhere in the fen") and is shown as
    * written; see the contract on `NPC.location`.
    */
   const resolvePlace = (record: any): string | undefined => {

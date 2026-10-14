@@ -17,7 +17,7 @@ export interface NamedRecord {
  *
  * The extraction model has never seen the NPC directory or the location tree,
  * so everything relational it returns is prose: `parentLocation` is "The
- * Shire", and a quest's people are names. Those were written straight into
+ * Ashen Vale", and a quest's people are names. Those were written straight into
  * id-shaped fields — `Location.parentId`, `Quest.relatedNPCIds` — where every
  * consumer looked them up and found nothing, and where a dangling `parentId`
  * additionally filed the new place under "Unplaced".
@@ -30,7 +30,7 @@ export interface NamedRecord {
  * misspelling would become a permanent duplicate place.
  *
  * Matching is trimmed and case-insensitive, because a model varies both
- * freely, but never partial — "Shire" must not match "The Shire", or a name
+ * freely, but never partial — "Vale" must not match "The Ashen Vale", or a name
  * would link to whichever record happened to contain the word.
  */
 export const resolveNameToId = (
