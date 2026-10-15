@@ -113,11 +113,13 @@ api() {
 }
 
 # has_binding ROLE MEMBER GET-IAM-POLICY-COMMAND...
+# Matches the printed pairs rather than using --filter, which
+# `gcloud storage buckets get-iam-policy` refuses: the bucket's bindings read
+# as missing on every check, though they were there (2026-10-15).
 has_binding() {
   local role="$1" member="$2"; shift 2
-  "$@" --flatten="bindings[].members" \
-    --filter="bindings.role=\"${role}\" AND bindings.members=\"${member}\"" \
-    --format="value(bindings.role)" 2>/dev/null | grep -q .
+  "$@" --flatten="bindings[].members" --format="value(bindings.role,bindings.members)" 2>/dev/null \
+    | grep -qxF "${role}"$'\t'"${member}"
 }
 
 # members ROLE GET-IAM-POLICY-COMMAND...: every member holding ROLE.
@@ -641,11 +643,15 @@ enforced() {
   gcloud org-policies describe "$1" --project="$PROJECT" --effective --format=json 2>/dev/null \
     | json 'any(r.get("enforce") for r in d["spec"]["rules"])' | grep -q True
 }
+# Google disables an exposed key unless WAIT_FOR_ABUSE is chosen (its
+# announcement, June 2024). The organization's default reads as `denyAll`,
+# which chooses nothing and so disables; allowing WAIT_FOR_ABUSE, or all
+# values, does not.
 disables_exposed_keys() {
   gcloud org-policies describe iam.serviceAccountKeyExposureResponse --project="$PROJECT" \
     --effective --format=json 2>/dev/null \
-    | json '[v for r in d["spec"]["rules"] for v in r.get("values", {}).get("allowedValues", [])]' \
-    | grep -q DISABLE_KEY
+    | json 'not any(r.get("allowAll") or "WAIT_FOR_ABUSE" in r.get("values", {}).get("allowedValues", []) for r in d["spec"]["rules"])' \
+    | grep -q True
 }
 if [[ "$POLICIES_READABLE" != true ]]; then
   missing "the organization policies: ${UNREADABLE}"
