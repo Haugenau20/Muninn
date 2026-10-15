@@ -145,15 +145,43 @@ step "0  Preconditions (plan, step 0)"
 
 PARENT="$(gcloud projects describe "$PROJECT" --format="value(parent.type,parent.id)")"
 in_organization() { [[ "$PARENT" == organization* ]]; }
+
+# The policies are read through the Organization Policy API. Until it is
+# enabled on the project every read fails, which looked like a missing policy
+# and stopped the first run here, before part 1 could enable it (2026-10-15).
+orgpolicy_enabled() {
+  gcloud services list --enabled --project="$PROJECT" \
+    --filter="config.name=orgpolicy.googleapis.com" --format="value(config.name)" 2>/dev/null \
+    | grep -q .
+}
+POLICIES_READABLE=false
+if ensure "orgpolicy.googleapis.com, to read the policies" orgpolicy_enabled; then
+  gcloud services enable orgpolicy.googleapis.com --project="$PROJECT"
+fi
+orgpolicy_enabled && POLICIES_READABLE=true
+UNREADABLE="unreadable while orgpolicy.googleapis.com is off; \`bash setup.sh\` enables it"
+
 domain_overridden() {
   gcloud org-policies describe iam.allowedPolicyMemberDomains --project="$PROJECT" \
     --format=json 2>/dev/null | json 'any(r.get("allowAll") for r in d["spec"]["rules"])' \
     | grep -q True
 }
+# An API just enabled can take a minute to answer, so a run that enabled it
+# asks a few times before calling the policy missing.
+domain_overridden_soon() {
+  local tries=6
+  until domain_overridden; do
+    tries=$((tries - 1))
+    [[ "$MODE" == "apply" && "$tries" -gt 0 ]] || return 1
+    sleep 10
+  done
+}
 READY=true
-if in_organization; then ok "in an organization (${PARENT#organization})"
+if in_organization; then ok "in an organization (${PARENT##*[[:space:]]})"
 else missing "in an organization: the project has none yet"; READY=false; fi
-if domain_overridden; then ok "iam.allowedPolicyMemberDomains overridden to allow all"
+if [[ "$POLICIES_READABLE" != true ]]; then
+  missing "iam.allowedPolicyMemberDomains: ${UNREADABLE}"; READY=false
+elif domain_overridden_soon; then ok "iam.allowedPolicyMemberDomains overridden to allow all"
 else missing "iam.allowedPolicyMemberDomains overridden to allow all on the project"; READY=false; fi
 
 if [[ "$MODE" == "apply" && "$READY" != true ]]; then
@@ -619,14 +647,18 @@ disables_exposed_keys() {
     | json '[v for r in d["spec"]["rules"] for v in r.get("values", {}).get("allowedValues", [])]' \
     | grep -q DISABLE_KEY
 }
-for constraint in iam.managed.disableServiceAccountKeyCreation iam.disableServiceAccountKeyUpload; do
-  if enforced "$constraint"; then ok "${constraint} enforced"; else missing "${constraint} enforced"; fi
-done
-if disables_exposed_keys; then ok "iam.serviceAccountKeyExposureResponse disables an exposed key"
-else missing "iam.serviceAccountKeyExposureResponse disables an exposed key"; fi
-# Checked in part 0; repeated here so --check lists every policy together.
-if domain_overridden; then ok "iam.allowedPolicyMemberDomains allows all on the project"
-else missing "iam.allowedPolicyMemberDomains allows all on the project"; fi
+if [[ "$POLICIES_READABLE" != true ]]; then
+  missing "the organization policies: ${UNREADABLE}"
+else
+  for constraint in iam.managed.disableServiceAccountKeyCreation iam.disableServiceAccountKeyUpload; do
+    if enforced "$constraint"; then ok "${constraint} enforced"; else missing "${constraint} enforced"; fi
+  done
+  if disables_exposed_keys; then ok "iam.serviceAccountKeyExposureResponse disables an exposed key"
+  else missing "iam.serviceAccountKeyExposureResponse disables an exposed key"; fi
+  # Checked in part 0; repeated here so --check lists every policy together.
+  if domain_overridden; then ok "iam.allowedPolicyMemberDomains allows all on the project"
+  else missing "iam.allowedPolicyMemberDomains allows all on the project"; fi
+fi
 
 # ---------------------------------------------------------------------------
 # What to record

@@ -37,6 +37,9 @@ of an up-to-date `main`.
 
 1. `bash setup.sh --check`. Before the first run, every part from 1 on says `MISSING`, and part 0
    and part 8 say `ok`. Anything in part 0 or 8 that is `MISSING` means step 0 is unfinished: stop.
+   One exception: while the Organization Policy API is off, which it is before the first run,
+   part 0 and part 8 say the policies are *unreadable*. Go on: `bash setup.sh` enables the API
+   first, then reads them.
 2. `bash setup.sh`. A part that is created prints `setting`. It takes a few minutes, most of
    them in part 6.
 3. `bash setup.sh --check` again. It must end with **Everything is in place.** If anything is
