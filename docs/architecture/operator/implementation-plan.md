@@ -183,6 +183,9 @@ The maintainer runs `setup.sh`, then `setup.sh --check`, and reports what it pri
 the service exists, protected, serving Google's placeholder, and an anonymous request to it is
 turned away.
 
+✅ Done 2026-10-15, in Cloud Shell. The first runs found three faults in the script, fixed on the
+way (#386, #387); the runbook's record has the findings.
+
 ## Step 5: the pipeline and the checks (PR)
 
 - **`operator-deploy.yml`:**

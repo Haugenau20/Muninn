@@ -48,7 +48,7 @@ from each entry's summary alone: a judgement, not a measurement.
 
 | Priority | ID | Item | Category | Size | Status | Why here |
 |---|---|---|---|---|---|---|
-| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 4a done; next, the maintainer runs `setup.sh` (4b) |
+| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 4b done; next, step 5, the pipeline |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 
@@ -409,10 +409,13 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   overridden to allow all; both of the organization's accounts sign in only
   with hardware keys. Open: the first functions deploy after the move (the
   plan's step 0, item 6).
-- **Step 4a**: `firebase/functions/operator/infra/setup.sh` and its runbook
-  (`README.md` beside it). Its `--check` ran read-only against the live
-  project on 2026-10-10: everything missing, as expected before the move.
-- **Next**: step 4b, the maintainer running it; then step 5, the pipeline.
+- **Steps 4a and 4b**: `firebase/functions/operator/infra/setup.sh` and its
+  runbook (`README.md` beside it), run by the maintainer on 2026-10-15: the
+  service exists behind IAP, serving Google's placeholder, refused to an
+  anonymous request and to another Google account, open to the operator
+  account; the GitHub `operator` environment and the repository variables are
+  set. The runbook's record holds what the run found.
+- **Next**: step 5, the pipeline (a PR).
 - **Source**: todo.txt, 2026-10-08 (two inbox items, combined)
 
 ### T141 — The site's contact address is a Gmail account, not `muninn.quest`

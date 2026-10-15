@@ -71,9 +71,14 @@ The script checks its own work; these are the checks only a person can make.
 
 ## The operator's subject
 
-`OPERATOR_SUBJECTS` is `accounts.google.com:` followed by the operator account's Google id. In the
-Admin console (signed in as the super admin), Directory, Users, the operator account: the number
-at the end of the address bar is that id.
+`OPERATOR_SUBJECTS` is `accounts.google.com:` followed by the operator account's Google id: about
+21 digits. The Admin console's address bar does not show it (its user pages carry an encoded id of letters
+and digits). Read it from the Directory API instead: as the super admin, open the
+reference page for `users.get` (developers.google.com, Admin SDK, Directory API), put the operator
+account's address in *userKey* in its *Try this method* panel, and grant only *See info about
+users on your domain*. The answer's `"id"` is the number. Remove the APIs Explorer's access from
+the super admin's Google Account straight after (Security, third-party connections); it lapses by
+itself after 7 days.
 
 If it is wrong, step 6 shows it: the first visit to the real service is refused, the alert for a
 refused request fires, and the refusal's line in the `operator-audit` bucket carries the `sub`
@@ -98,6 +103,10 @@ gh api -X POST repos/Haugenau20/Muninn/environments/operator/deployment-branch-p
 Then run the `gh variable set` lines `setup.sh` printed last, with the subject from above. They are
 repository variables, not secrets: none of them lets anyone in, and the verification workflow,
 which runs without the environment, reads them too.
+
+**In Git Bash on Windows, prefix them with `MSYS_NO_PATHCONV=1`.** Git Bash rewrites an argument
+that starts with `/` into a Windows path, so `OPERATOR_IAP_AUDIENCE` was stored as
+`C:/Program Files/Git/projects/…` (2026-10-15). Check with `gh variable list` afterwards.
 
 ## What setup does not settle
 
@@ -126,4 +135,8 @@ What a run found that the documents should keep. Fill in at step 4b.
 
 | Date | Finding |
 |---|---|
-| | Re-authentication method set: |
+| 2026-10-15 | Re-authentication method set: `SECURE_KEY` (3600 s, `MINIMUM`) |
+| 2026-10-15 | Audit bucket retention not locked; lock it 30 days after go-live (plan, step 8) |
+| 2026-10-15 | `iam.serviceAccountKeyExposureResponse` reads as `denyAll`: WAIT_FOR_ABUSE not chosen, so exposed keys are disabled |
+| 2026-10-15 | Part 6: an anonymous request gets a 302 to `accounts.google.com` from IAP; another Google account is refused; the operator account reaches the placeholder |
+| 2026-10-15 | The four `operator-*` service accounts hold no user-managed keys |
