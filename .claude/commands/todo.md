@@ -36,15 +36,24 @@ nothing is silently skipped.
 
 ### 1. Classify
 
-Pick one type. It decides the section the entry lands in.
+Pick one category. It decides the section the entry lands in.
 
-| Type | Means |
-|---|---|
-| `bug` | Something is broken or wrong in the tree right now |
-| `feature` | New capability, or an enhancement to an existing one |
-| `decision` | An open question that blocks work until somebody answers it |
-| `debt` | Tech debt, platform work, performance, structure |
-| `docs` | Documentation that is wrong, stale, or missing |
+| Category | Section | Means |
+|---|---|---|
+| `bug` | Bugs | Something is broken or wrong in the tree right now |
+| `security` | Security | Access, keys, permissions, abuse |
+| `reliability` | Reliability | Data loss, correctness, limits the data will reach as it grows |
+| `performance` | Performance and cost | Speed, cost, storage, bundle size |
+| `ops` | Operations | Deploys, domains, infrastructure, tooling, docs |
+| `ux` | User experience | Friction, polish and copy in what already exists |
+| `feature` | Features | A new capability |
+| `question` | Questions | An open question that blocks work until the maintainer answers it |
+
+Then pick its **horizon**, which decides the overview table it is listed in
+(the definitions are at the top of `TODO.md`): *earlier rather than later*,
+*backlog*, *ideas and parked*, or *waiting on the maintainer*. A new feature
+idea nobody has asked to build goes to *ideas and parked*; anything blocked on
+the maintainer, or a `question`, goes to *waiting on the maintainer*.
 
 ### 2. Verify against the tree
 
@@ -94,11 +103,12 @@ Size from what you found in step 2, not from the sentence.
 
 Next free `T` number — read the file, take the highest, add one. **Numbers are
 never reused**, matching the bug tracker's rule. Append to the section for its
-type, newest last.
+category, newest last, and add its row to its horizon's table in the overview,
+in priority order.
 
 ```markdown
 ### T014 — Quest objectives can't be ticked off from the quest list
-**Type** bug · **Size** S · **Status** open · **Verified** 2026-09-16
+**Category** bug · **Size** S · **Status** open · **Verified** 2026-09-16
 
 One or two sentences: what is wrong or wanted, and why it matters. Written
 for someone who has not read the raw note.
