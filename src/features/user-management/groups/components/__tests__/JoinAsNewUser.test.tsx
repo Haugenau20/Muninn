@@ -7,7 +7,7 @@
 // name asked first and explained, the email validated, the way out for
 // somebody who already has an account -- is still asserted.
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import JoinAsNewUser from "../JoinAsNewUser";
@@ -152,6 +152,55 @@ describe("JoinAsNewUser", () => {
       await userEvent.click(linkButton());
       expect(await screen.findByRole("alert")).toHaveTextContent(/expired/i);
       expect(sendSignInLink).not.toHaveBeenCalled();
+    });
+  });
+
+  // T151: the same address again, without going back to the form.
+  describe("sending the link again", () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    /** Send the first link with a clock the test moves, and wait out the first resend wait. */
+    async function sendThenWait() {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      setup();
+      await user.type(screen.getByLabelText(/your name in this group/i), "Boromir");
+      await user.type(screen.getByLabelText(/^email/i), "b@gondor.test");
+      await waitFor(() => expect(linkButton()).toBeEnabled());
+      await user.click(linkButton());
+      await screen.findByText(/check your inbox/i);
+      act(() => { jest.advanceTimersByTime(60 * 1000); });
+      return user;
+    }
+
+    const resendButton = () => screen.getByRole("button", { name: /send it again/i });
+
+    test("reserves the address again, then sends the same link", async () => {
+      const user = await sendThenWait();
+      await user.click(resendButton());
+
+      expect(await screen.findByText(/sent again/i)).toHaveTextContent(/newest email/i);
+      expect(reserveSignUp).toHaveBeenCalledTimes(2);
+      expect(reserveSignUp).toHaveBeenLastCalledWith("tok-1", "b@gondor.test");
+      expect(reserveSignUp.mock.invocationCallOrder[1]).toBeLessThan(
+        sendSignInLink.mock.invocationCallOrder[1]
+      );
+      expect(sendSignInLink.mock.calls[1]).toEqual(sendSignInLink.mock.calls[0]);
+    });
+
+    test("sends nothing, and says why, when the invitation is gone by then", async () => {
+      const user = await sendThenWait();
+      reserveSignUp.mockRejectedValueOnce(new Error("This invitation has already been used. Ask for a new link."));
+      await user.click(resendButton());
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/already been used/i);
+      expect(sendSignInLink).toHaveBeenCalledTimes(1);
+    });
+
+    test("still offers another address", async () => {
+      const user = await sendThenWait();
+      await user.click(screen.getByRole("button", { name: /use a different email/i }));
+      expect(linkButton()).toBeInTheDocument();
     });
   });
 

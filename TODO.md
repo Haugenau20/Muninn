@@ -41,6 +41,7 @@ from each entry's summary alone: a judgement, not a measurement.
 | medium | T146 | The functions run as an Editor of the whole project | security | M | open | Any code deployed as a function, by CI's key (T139) or a poisoned dependency, reaches every resource in the project and can act as every service account in it; the roles it needs are measured |
 | medium | T139 | CI signs in to Google Cloud with long-lived keys | security | M | open | A leaked key deploys code that reads every group, and a PR's dependencies run beside the Hosting key |
 | medium | T141 | The site's contact address is a Gmail account | ops | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
+| medium | T152 | Anyone can spend the site's sign-in emails for the day | security | M | open | The quota is the project's, 25,000 a day, and the browser asks Firebase directly; spent, nobody can sign in by email until the next day |
 
 ### Backlog
 
@@ -49,7 +50,6 @@ from each entry's summary alone: a judgement, not a measurement.
 | low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 1 to 4a done; 4b waits on step 0 |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: Google's branding check, and two cosmetic leftovers |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
-| low | T151 | No way to resend the sign-in email | ux | M | open | A missed email has a workaround (back to the form, send again), but it is labelled "use a different email" |
 
 ### Ideas and parked
 
@@ -219,6 +219,33 @@ Let a user who wants it add a second step to sign-in.
   Check first that Firebase MFA applies to email-link sign-in at all -- it was
   not confirmed during T022.
 - **Source**: maintainer, 2026-09-23
+
+### T152 — Anyone can spend the site's sign-in emails for the day
+**Category** security · **Size** M · **Status** open · **Verified** 2026-10-15
+
+Sign-in links are sent by the browser calling Firebase directly
+(`AuthService.sendSignInLink`, `sendSignInLinkToEmail`) with the public API
+key. The client sends App Check tokens (`core/services/firebase/config/appCheck.ts`),
+but whether Authentication enforces them is a console setting, **unverified**.
+Firebase caps these emails for the whole project, not per address: 25,000 a
+day on Blaze ([limits](https://firebase.google.com/docs/auth/limits)). A
+script can spend that in an afternoon, after which nobody can sign in by email
+until the quota resets (Google still works), and every one of those emails goes
+to an address the script chose.
+
+- **Measured**: the only brake in the app is the resend wait on the "Check
+  your inbox" screens (`ResendLink`, one minute doubling to ten), which lives
+  in the page: a reload resets it, and a direct call skips it.
+  `startDeviceSignIn` caps device requests at five per address, but a link can
+  be sent without one. Firebase's own per-address or per-IP throttling is
+  **unverified**.
+- **Ways out**: App Check enforced on Authentication (the callables already
+  enforce it, `firebase/functions/src/shared/appCheck.ts`), or sending the
+  link from a callable with its own per-address and per-IP budget, the way the
+  contact form keeps one (`firebase/functions/src/contactThrottle.ts`). The
+  callable is also where T057 would put the code. Measure first how far App
+  Check alone goes.
+- **Source**: review of the resend button, 2026-10-15
 
 ---
 
@@ -476,34 +503,6 @@ gone through. **Later, not now** (maintainer, 2026-10-10).
   to name. A photo of the table needs the other players' say-so. The photo's
   alt text today is "Søren".
 - **Source**: maintainer, 2026-10-10, during the Muninn identity work
-
-### T151 — No way to resend the sign-in email
-**Category** ux · **Size** M · **Status** open · **Verified** 2026-10-13
-
-When the magic-link email does not arrive, the "Check your inbox" screen offers
-only "use a different email". Sending to the same address again means taking
-that link back to the form (the address is kept) and pressing send again, so
-the way to resend is labelled as something else.
-
-- **Where**: three screens, each with its own copy of it:
-  `SignInForm.tsx:231` (sign-in), `JoinAsNewUser.tsx:166` (joining from an
-  invitation) and `FounderSignUp.tsx:121` (founder link). Each sends through
-  `AuthService.sendSignInLink` (`AuthService.ts:235`), which calls Firebase from
-  the browser.
-- **Catch**: on sign-in, each send also opens a new device request
-  (`startDeviceSignIn`, at most `MAX_OPEN_REQUESTS` = 5 per address,
-  `deviceSignIn.ts:33`), and the screen keeps only the newest one: an older
-  email's code fails on that screen, so the screen must say only the newest
-  email works. Past the cap, `handleSendLink` sends the link without a code and
-  says nothing. The two sign-up screens call `reserveSignUp` again before
-  sending; whether a second reservation of the same address is accepted is
-  **unverified**. Nothing in the app limits how often a send can be pressed,
-  so a resend wants a cooldown. Firebase's own quota for sign-in emails is
-  **unverified**.
-- **Related**: T141 (the domain has no DMARC record, which makes spam folders
-  likelier) and T057 (if the code moves into the email, resending goes through
-  that callable).
-- **Source**: todo.txt, 2026-10-13
 
 ---
 
