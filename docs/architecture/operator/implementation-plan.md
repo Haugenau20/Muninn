@@ -37,30 +37,28 @@ pipeline deploys to it.
   3. ✅ Domain verified with a second `google-site-verification` TXT record; keep it, Google
      re-checks it. The organization appeared once the super admin first opened the Cloud console
      (2026-10-09).
-  4. ✅ The operator account created in the Admin console, with no admin role, signed in with a
-     passkey on the maintainer's phone (2026-10-09). Both accounts have 2-Step Verification; the
-     super admin a passkey on the maintainer's computer, as a bridge.
-  5. **Waiting for two hardware keys.** Register both on the super admin and one on the operator
-     account as its backup; then enforce 2-Step Verification with *Only security key or passkey*
-     (Cloud Identity Free offers it, checked 2026-10-09), remove the text-message method, turn
-     off *security codes*, review the super admin's account recovery (a recovery phone is a
-     SIM-swap path), and issue backup codes.
-  6. **Move `dnd-campaign-companion`** in, after 5; Google's guide for migrating a project into an
-     organization. The move cannot be undone without Google's support; the billing account stays.
-     - The mover needs `roles/resourcemanager.projectIamAdmin` on the project and Project Creator
-       on the organization. The super admin does it: the owner grants it the project role for the
-       move, and the organization's domain-wide Project Creator grant covers the rest.
+  4. ✅ The operator account created in the Admin console, with no admin role (2026-10-09).
+  5. ✅ Hardware keys registered on both accounts (2026-10-13), one carried and one kept
+     elsewhere. 2-Step Verification is enforced with *Only security key*, with trusted devices and
+     security codes off; account recovery was reviewed (2026-10-15).
+  6. ✅ **Moved** into the organization (2026-10-15), after the data was exported. The move cannot
+     be undone without Google's support; the billing account stayed.
+     - Google's guide names `roles/resourcemanager.projectIamAdmin` on the project and Project
+       Creator on the organization, but the console's *Migrate* also wants
+       `resourcemanager.projects.update`: grant Project Mover
+       (`roles/resourcemanager.projectMover`) on the project as well.
      - `resourcemanager.allowedImportSources` does not apply: it governs moves between
        organizations, not into one from none.
-     - Straight after, override `iam.allowedPolicyMemberDomains` on the project to allow all
-       ([layer 1a](security-architecture.md#1a-the-organization)); the super admin grants itself
-       Organization Policy Administrator first. No deploy in between, so no merge to `main`.
-     - The first functions deploy afterwards shows whether the default-service-account policies
-       touch anything; each can be overridden on the project.
-  7. **Cleanup after the move:** remove the super admin's project role and the domain-wide Project
-     Creator and Billing Account Creator grants; remove the owner role of the contact form's Gmail
-     account (it is used for nothing else; billing is administered by the maintainer's own
-     account), then check the OAuth consent screen, whose support address is that account.
+     - Straight after, `iam.allowedPolicyMemberDomains` was overridden on the project to allow all
+       ([layer 1a](security-architecture.md#1a-the-organization)). Check it with
+       `gcloud resource-manager org-policies describe iam.allowedPolicyMemberDomains --project=dnd-campaign-companion --effective`
+       (`allValues: ALLOW`); the newer `gcloud org-policies` needs an API the project has not
+       enabled.
+     - **Open:** the first functions deploy afterwards shows whether the default-service-account
+       policies touch anything; each can be overridden on the project.
+  7. ✅ **Cleanup** (2026-10-15): the roles granted for the move and the domain-wide Project Creator
+     and Billing Account Creator grants are removed, and the project's owners reviewed. Google
+     sign-in was tried straight after.
   [Security architecture](security-architecture.md#1-the-human-identity), layers 1 and 1a.
 - **The defaults** in the design's [decisions](design.md#decisions-with-defaults): keep or change.
 

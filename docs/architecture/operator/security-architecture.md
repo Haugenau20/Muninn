@@ -75,12 +75,13 @@ editing any document stay outside it ([design](design.md#scope)).
   maintainer, 2026-10-08), so the account is the organization's own: its admin can require 2-Step
   Verification by security key only, and recovering it goes through the organization's super
   admin, not Google's consumer recovery. Cloud Identity Free offers that enforcement, as *Only
-  security key or passkey* (checked 2026-10-09). The account signs in with a passkey in the
-  maintainer's phone's keychain, so the Apple ID it syncs through is part of the key, with a
-  hardware key as backup.
+  security key or passkey* (checked 2026-10-09), and enforces it as *Only security key*. The
+  account signs in with either of two hardware keys, one kept elsewhere; no passkey syncs through
+  a cloud account.
 - **The super admin is a second account, used for nothing else**: it can reset the operator's
-  sign-in, so it is guarded more strictly: two hardware keys, one kept elsewhere, and its own
-  browser profile. It is rarely used, so convenience barely counts.
+  sign-in, so it is guarded the same way, and has its own browser profile. It never signs in to a
+  command-line tool on the maintainer's computer; what must run as it runs in Cloud Shell. It is
+  rarely used, so convenience barely counts.
 - **It holds no role on the project** except IAP-secured Web App User
   (`roles/iap.httpsResourceAccessor`) on the operator service. Stealing it reaches the page and
   nothing else: not the console, not the data.
@@ -298,9 +299,8 @@ Accepted, and named so they are not forgotten:
    Mitigated by the narrow code, its tests, the approval and the review. Unchanged from the
    functions, which have the same access.
 2. **Two human keys.** Everything rests on the operator account and on the organization's super
-   admin, which can reset it. Each has a backup key kept apart, and their recovery options are
-   checked once a year. The operator's passkey syncs through the maintainer's Apple ID, so taking
-   over that account is a way to the passkey; the super admin's hardware keys sync nowhere.
+   admin, which can reset it. Both sign in only with hardware keys, which sync nowhere, with a
+   backup key kept apart; their recovery options are checked once a year.
 3. **An hour.** A session taken from the device works until re-authentication. The email per action
    makes it visible; every action it can take can be undone.
 4. **Founder tokens were document ids.** Anyone who could read Firestore (the console, the runtime
