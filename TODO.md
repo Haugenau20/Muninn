@@ -42,13 +42,14 @@ from each entry's summary alone: a judgement, not a measurement.
 | medium | T139 | CI signs in to Google Cloud with long-lived keys | security | M | open | A leaked key deploys code that reads every group, and a PR's dependencies run beside the Hosting key |
 | medium | T141 | The site's contact address is a Gmail account | ops | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
 | medium | T152 | Anyone can spend the site's sign-in emails for the day | security | M | open | The quota is the project's, 25,000 a day, and the browser asks Firebase directly; spent, nobody can sign in by email until the next day |
+| medium | T154 | No backup of the data outside a manual export | reliability | M | open | A bad deploy or a mistaken delete can be undone for an hour at most; point-in-time recovery is off |
 
 ### Backlog
 
 | Priority | ID | Item | Category | Size | Status | Why here |
 |---|---|---|---|---|---|---|
-| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 1 to 4a done; 4b waits on step 0 |
-| low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: Google's branding check, and two cosmetic leftovers |
+| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 4a done; next, the maintainer runs `setup.sh` (4b) |
+| low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 
 ### Ideas and parked
@@ -70,6 +71,7 @@ from each entry's summary alone: a judgement, not a measurement.
 | low | T075 | The header is crowded | ux | M | needs scoping | Which truncation was meant, and how much room the header gets back |
 | low | T143 | The About page's coffee link and photo | ux | S | blocked | A coffee page to link to and a photo; both are built and switched off |
 | low | T148 | Does the theme belong in Firestore? | question | S | open | An answer; the current design works |
+| low | T153 | The project's second owner is a Gmail account without a hardware key | security | S | blocked | A third hardware key (November or December 2026); then a key-only account for the local CLIs |
 | nit | T147 | Should `colour-schema.json` leave `docs/design/`? | question | S | open | An answer; nothing is wrong where it is |
 
 The dormant `theme-contract` questions at the bottom are unranked on purpose.
@@ -247,6 +249,28 @@ to an address the script chose.
   Check alone goes.
 - **Source**: review of the resend button, 2026-10-15
 
+### T153 — The project's second owner is a Gmail account without a hardware key
+**Category** security · **Size** S · **Status** blocked · **Verified** 2026-10-15
+
+The project has two owners (read 2026-10-15): the organization's super admin,
+`admin@muninn.quest`, which signs in only with a hardware key, and the
+maintainer's personal Gmail, whose second factor is weaker and which cannot
+take a hardware key (only device passkeys are offered). The project is only
+as safe as the weaker of the two. The Gmail stays an owner on purpose, as the
+way back in if both hardware keys are lost (maintainer, 2026-10-15).
+
+- **Blocked on**: a third hardware key, kept off-site and registered on both
+  `muninn.quest` accounts and Porkbun (the maintainer expects it in November
+  or December 2026).
+- **Then**, in order: a new `muninn.quest` account with key-only sign-in for the
+  maintainer's local `gcloud` and `firebase` (the super admin never signs in to
+  a local CLI); the CLIs signed in with it; the Gmail's Owner role removed.
+  The billing account's administrator stays the Gmail for now.
+- **Where**: the plan's step 0, items 5 and 7
+  ([`implementation-plan.md`](docs/architecture/operator/implementation-plan.md)),
+  and the security architecture's layer 1.
+- **Source**: maintainer, 2026-10-15, during T137 step 0
+
 ---
 
 ## Reliability
@@ -286,6 +310,40 @@ reach 1 MiB (F3).
   one editor per section, or one editor that splits on headings, and what the
   saga page shows while it reads them.
 - **Source**: `data-model-review.md` change 4
+
+### T154 — No backup of the data outside a manual export
+**Category** reliability · **Size** M · **Status** open · **Verified** 2026-10-15
+
+Read from the live database (read-only, 2026-10-15): Firestore
+(`europe-north2`) has point-in-time recovery **off**, delete protection
+**off**, no backup schedule, and keeps old versions for one hour. A bad deploy,
+a bug or a mistaken console edit that deletes data can be undone for an hour
+at most. One manual export exists, taken before the project moved into the
+organization (T137 step 0): Firestore through `gs://dnd-campaign-companion-backups`
+(`europe-north2`, public access prevented, 7-day soft delete), the Auth
+accounts and the Storage images, all on the maintainer's computer.
+
+- **Two different needs**: recovering from a mistake inside the project
+  (point-in-time recovery, 7 days, or Firestore's scheduled backups, up to 14
+  weeks; both restore only into the same project), and rebuilding elsewhere
+  if the project itself were lost (an export to somewhere the project's
+  owners do not control: Firestore export, `firebase auth:export`, a copy of
+  the Storage bucket). The manual export ran as:
+  `gcloud firestore export gs://dnd-campaign-companion-backups/<date>`, then
+  `gcloud storage cp -r` of that folder; `npx firebase auth:export <file> --format=json`
+  from `firebase/`; `gcloud storage rsync gs://dnd-campaign-companion.firebasestorage.app <folder> --recursive`.
+  Kept out of the images bucket, which the app's Storage rules govern; its
+  sweep walks only `groups/` and `support/`
+  (`firebase/functions/src/imageMaintenance/sweepOrphanedImages.ts:250`).
+- **Catch**: the privacy page says an account deleted is gone
+  (`PrivacyPolicyPage.tsx`, "Retention and deletion"); a backup keeps it until
+  the backup expires. A retention period has to be chosen and the page has to
+  say it. The manual export on the maintainer's computer is the first such
+  copy.
+- **Cost**: point-in-time recovery is billed as storage of the old versions;
+  at today's size, cents.
+- **Source**: maintainer, 2026-10-15 ("is it possible to back up all data in
+  Firestore, in case I ever have to migrate")
 
 ---
 
@@ -332,7 +390,7 @@ was sent before that.
 ## Operations
 
 ### T118 — Finish the move to `muninn.quest`
-**Category** ops · **Size** S · **Status** open · **Verified** 2026-10-07
+**Category** ops · **Size** S · **Status** open · **Verified** 2026-10-15
 
 The site lives on `muninn.quest` (Hosting site `muninn-quest`). The project's
 default site, `dnd-campaign-companion` (`web.app`, `firebaseapp.com`), answers
@@ -346,18 +404,9 @@ its id stays in `CLAUDE.md`, the scripts and the workflows. A new project would
 have meant moving Firestore, Storage and Auth and setting up again everything
 outside the repo, to hide the id only in developer tools; reconsider only if
 something fixed at creation, such as the Firestore location, is wanted changed
-anyway. What is left:
+anyway. Google verified the consent screen's branding: its sign-in window
+names "Muninn" (seen 2026-10-15). What is left:
 
-- **Google's branding check** (maintainer): Google's sign-in window shows the
-  name "Muninn" only once Google verifies the consent screen's branding. Search
-  Console verified `muninn.quest` on 2026-10-07; retry no earlier than 24 hours
-  later. A first check, run while `muninn.quest` served nothing, listed nine
-  issues. Besides the unreachable pages, several fit a checker that does not run
-  JavaScript, since every path serves the same `index.html`: the privacy page
-  "the same as the home page", "insufficient content", "home page behind a
-  login", "does not explain the purpose". If they recur with the site live,
-  serve real HTML for `/` and `/privacy`. The consent screen's support address,
-  `dndcampaigncompanion@gmail.com`, is shown to users once verified.
 - **Cosmetic**: Google Cloud holds two OAuth web clients, one left over from
   switching the Google provider off and on; the one Firebase does not name
   (Authentication → Sign-in method → Google) can go, with a Google sign-in
@@ -366,7 +415,7 @@ anyway. What is left:
   moved 2026-10-07
 
 ### T137 — An operator page: founder links, extraction limits, metrics
-**Category** ops · **Size** L · **Status** open · **Verified** 2026-10-09
+**Category** ops · **Size** L · **Status** open · **Verified** 2026-10-15
 
 One web page for operator work, usable from a phone: issue and revoke founder
 links, and set one person's extraction allowance (their own, since they pay for
@@ -387,22 +436,20 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   `npm run operator:dev` in `firebase/functions` (port 4700, against the dev
   emulators), behind the same identity check it will run with under IAP; its
   container files (`firebase/functions/operator/`) are first built in step 5.
-- **Step 0** (maintainer): the project moves into a `muninn.quest`
-  organization (Cloud Identity Free, decided 2026-10-08), so IAP uses Google's
-  own OAuth client; then the operator account, in that organization. The
-  steps are in the plan's step 0. Under way: the organization exists, and
-  the super admin and the operator account both sign in with passkeys
-  (2026-10-09). Waiting for two hardware keys; then the strict 2-Step
-  Verification, then the move.
+- **Step 0** (maintainer): done 2026-10-15. The project is in the
+  `muninn.quest` organization, with `iam.allowedPolicyMemberDomains`
+  overridden to allow all; the super admin and the operator account sign in
+  only with hardware keys. The plan's step 0 records how, and two things it
+  leaves open: the first functions deploy after the move, and T153.
 - **Step 4a**: `firebase/functions/operator/infra/setup.sh` and its runbook
   (`README.md` beside it). Its `--check` ran read-only against the live
   project on 2026-10-10: everything missing, as expected before the move.
-- **Next**: step 4b, the maintainer running it, once step 0 is finished;
-  then step 5, the pipeline.
+- **Next**: step 4b, the maintainer running it (in Cloud Shell as the super
+  admin, or as the project's other owner); then step 5, the pipeline.
 - **Source**: todo.txt, 2026-10-08 (two inbox items, combined)
 
 ### T141 — The site's contact address is a Gmail account, not `muninn.quest`
-**Category** ops · **Size** M · **Status** open · **Verified** 2026-10-08
+**Category** ops · **Size** M · **Status** open · **Verified** 2026-10-15
 
 Players who write through the contact form get replies from the project's
 Gmail account, and Google's consent screen names it as the support address.
@@ -413,11 +460,15 @@ for T137 step 0); it cannot send yet.
 - **Where**: `sendContactEmail` (`firebase/functions/src/contact.ts:67`)
   sends through nodemailer's `gmail` service, from and to `CONTACT_EMAIL`,
   reply-to the sender (`:342-344`); the address and its password are secrets
-  (`:270`), not in the repo. The consent screen's support address is in T118.
-- **Address unverified**: the maintainer gave `dnd-campaign-companion@gmail.com`,
-  T118 records `dndcampaigncompanion@gmail.com`; Gmail allows no hyphens, so
-  likely the latter. Other places it shows (Firebase's public-facing support
-  email, the Auth templates' reply-to) are unchecked.
+  (`:270`), not in the repo. The OAuth consent screen (Google Auth Platform,
+  Branding) names `dndcampaigncompanion@gmail.com` as both user support email
+  and developer contact (read 2026-10-15). Other places it may show
+  (Firebase's public-facing support email, the Auth templates' reply-to) are
+  unchecked.
+- **Since 2026-10-15** that account is no longer a project owner (T137 step 0).
+  The support address field offers, by Google's help, only the editor's own
+  address or a group they manage (unchecked here), so a `muninn.quest` address
+  there likely means an account or group in the organization makes the change.
 - **Catch**: a mail host must be chosen (Porkbun's mail, Google Workspace on
   the `muninn.quest` organization, Zoho, ...), and the apex SPF record has a
   10-lookup budget: Firebase's include takes 4, Porkbun's 6 (it sat at exactly
