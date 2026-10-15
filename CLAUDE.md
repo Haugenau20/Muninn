@@ -11,7 +11,8 @@ large, fully deployed website with many users: concurrency, abuse, data volume a
 "Only a handful of people use it" is never the reason to skip a guard, an index or a race fix.
 
 **Key documents**
-- `TODO.md` — **start here**: the backlog, its priorities and what is blocked on whom
+- `TODO.md` — **start here**: the backlog, sorted by when to pick each item up (its horizons), and
+  what waits on the maintainer
 - `docs/testing/bug-tracking/README.md` — live bug tracker
 - `docs/architecture/migration/deep-dive-feature-enhancements.md` — long-term feature ideas (nothing in it is installed yet)
 
@@ -202,6 +203,8 @@ The reason is recorded in that file.
 
 The control rule applies to anything new: a suite green on its first run proves the code runs, not
 that it changed anything. Break the thing on purpose once and watch the right tests fail.
+A comment claiming a gate exists is checkable too, so check it: one saying `ladder-classes.test.ts`
+caught theme classes passed as data covered for a live instance, and the file did not exist.
 
 **`gateAccountCreation` is a blocking function; the emulator registers it only at startup.** New
 callables hot-reload, but a new or renamed `beforeUserCreated` trigger isn't wired in until the
@@ -306,6 +309,12 @@ maintainer watches CI and asks when something needs doing.
    `scripts/check-bundle-size.js` (T030). Over it usually means an eager module (a provider, the
    layout, a barrel's public API) now imports something only one page needs. Raising the ceiling
    is allowed; say in the PR what grew and why it belongs in the entry bundle.
+
+**Green gates say nothing about the browser.** jsdom has no CSS, no real auth lifecycle and no
+pointer: a page that flashed to a skeleton on every write, a disclosure that never hid and 32px
+controls under a 44px rule all passed every gate, and the skeleton shipped three times that way.
+Open what you changed in the running app, **and the other pages that render the same thing**: a fix
+applied only at the call sites a PR happened to touch left the same defect live on three other pages.
 
 **`package.json` declares `"sideEffects": ["*.css"]`**: Rolldown (`vite build`) may drop any other module
 in `src/` whose exports nobody uses, which is how the feature barrels stay out of the entry bundle

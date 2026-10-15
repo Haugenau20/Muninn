@@ -12,7 +12,7 @@
 // lives: asking for a link never says whether the address has an account.
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import SignInForm from '../SignInForm';
@@ -401,6 +401,100 @@ describe('SignInForm — signing in with the code the link shows', () => {
     await userEvent.click(screen.getByRole('button', { name: /use a different email/i }));
     expect(screen.queryByTestId('device-sign-in')).not.toBeInTheDocument();
     expect(emailInput()).toBeInTheDocument();
+  });
+
+  // T151: the same address again, without going back to the form.
+  describe('sending the link again', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    /** Ask for a link with a clock the test moves, and wait out the first resend wait. */
+    async function sendThenWait() {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderForm({ next: '/quests' });
+      await user.type(emailInput(), 'frodo@shire.dev');
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(linkButton());
+      await screen.findByTestId('sign-in-link-sent');
+      act(() => { jest.advanceTimersByTime(60 * 1000); });
+      return user;
+    }
+
+    const resendButton = () => screen.getByRole('button', { name: /send it again/i });
+
+    test('is offered on the "Check your inbox" screen, after a wait', async () => {
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      renderForm();
+      await user.type(emailInput(), 'frodo@shire.dev');
+      await user.click(linkButton());
+      await screen.findByTestId('sign-in-link-sent');
+      expect(resendButton()).toBeDisabled();
+      act(() => { jest.advanceTimersByTime(60 * 1000); });
+      expect(resendButton()).toBeEnabled();
+    });
+
+    test('sends to the same address with a new request, keeping the destination and session length', async () => {
+      const user = await sendThenWait();
+      mockStartDeviceSignIn.mockResolvedValueOnce({ ...REQUEST, requestId: 'req-2' });
+      await user.click(resendButton());
+
+      await screen.findByText(/sent again/i);
+      await waitFor(() => expect(mockSendSignInLink).toHaveBeenCalledTimes(2));
+      expect(mockStartDeviceSignIn).toHaveBeenLastCalledWith('frodo@shire.dev');
+      const [address, link, remember] = mockSendSignInLink.mock.calls[1];
+      expect(address).toBe('frodo@shire.dev');
+      expect(new URL(link).searchParams.get('device')).toBe('req-2');
+      expect(new URL(link).searchParams.get('next')).toBe('/quests');
+      expect(remember).toBe(true);
+    });
+
+    test('says only the newest code works, and claims with the new request', async () => {
+      const user = await sendThenWait();
+      const second = { ...REQUEST, requestId: 'req-2' };
+      mockStartDeviceSignIn.mockResolvedValueOnce(second);
+      await user.click(resendButton());
+
+      expect(await screen.findByText(/sent again/i)).toHaveTextContent(
+        /code from the newest email/i
+      );
+      await user.type(digits()[0], '482913');
+      await waitFor(() => expect(mockClaimDeviceSignIn).toHaveBeenCalledWith(second, '482913'));
+    });
+
+    test('offers the code again once a spent request is replaced', async () => {
+      const user = await sendThenWait();
+      mockClaimDeviceSignIn.mockRejectedValueOnce(
+        callableError('failed-precondition', 'This sign-in request has expired.')
+      );
+      await user.type(digits()[0], '000000');
+      expect(await screen.findByText(/can no longer be used/i)).toBeInTheDocument();
+
+      await user.click(resendButton());
+      await screen.findByText(/sent again/i);
+      expect(screen.queryByText(/can no longer be used/i)).not.toBeInTheDocument();
+      expect(digits()).toHaveLength(6);
+    });
+
+    test('asks for no code when the new request cannot be opened', async () => {
+      const user = await sendThenWait();
+      mockStartDeviceSignIn.mockRejectedValueOnce(new Error('Too many sign-in requests.'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      await user.click(resendButton());
+      expect(await screen.findByText(/sent again/i)).toHaveTextContent(/on this device/i);
+      errorSpy.mockRestore();
+      expect(screen.queryByTestId('device-sign-in')).not.toBeInTheDocument();
+      expect(new URL(mockSendSignInLink.mock.calls[1][1]).searchParams.get('device')).toBeNull();
+    });
+
+    test('says why when the link cannot be sent again, and keeps the screen', async () => {
+      const user = await sendThenWait();
+      mockSendSignInLink.mockRejectedValueOnce(
+        Object.assign(new Error('Firebase: (auth/too-many-requests).'), { code: 'auth/too-many-requests' })
+      );
+      await user.click(resendButton());
+      expect(await screen.findByRole('alert')).toBeInTheDocument();
+      expect(screen.getByTestId('sign-in-link-sent')).toBeInTheDocument();
+    });
   });
 
   test('every control on the code screen has an accessible name', async () => {

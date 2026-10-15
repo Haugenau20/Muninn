@@ -14,6 +14,7 @@ import {
 import { signInLinkUrl } from '../utils/email-link';
 import DevEmailLinkShortcut from './DevEmailLinkShortcut';
 import CodeInput from './CodeInput';
+import ResendLink from './ResendLink';
 
 interface SignInFormProps {
   /**
@@ -84,6 +85,27 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, next }) => {
   const emailValid = EMAIL.test(email.trim());
   const busy = pending !== null;
 
+  /**
+   * Open a device request and email a link that carries it. Each send opens a
+   * new request and the screen keeps only that one, so only the newest email's
+   * code can be typed here.
+   * @param address Where to send the link
+   */
+  const sendLink = async (address: string) => {
+    let request: DeviceSignInRequest | null = null;
+    try {
+      request = await startDeviceSignIn(address);
+    } catch (err) {
+      console.error('Could not open a request to sign in from another device:', err);
+    }
+    await sendSignInLink(
+      address,
+      signInLinkUrl(window.location.origin, { next, device: request?.requestId }),
+      rememberMe
+    );
+    setDeviceRequest(request);
+  };
+
   const handleSendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailValid || busy) return;
@@ -92,18 +114,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, next }) => {
 
     try {
       const address = email.trim();
-      let request: DeviceSignInRequest | null = null;
-      try {
-        request = await startDeviceSignIn(address);
-      } catch (err) {
-        console.error('Could not open a request to sign in from another device:', err);
-      }
-      await sendSignInLink(
-        address,
-        signInLinkUrl(window.location.origin, { next, device: request?.requestId }),
-        rememberMe
-      );
-      setDeviceRequest(request);
+      await sendLink(address);
       setSentTo(address);
     } catch (err) {
       setError(describeSignInError(err));
@@ -171,6 +182,15 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, next }) => {
     }
   };
 
+  /** Send the link to the same address again, starting the code over. */
+  const resendLink = async () => {
+    if (!sentTo) return;
+    setError(null);
+    await sendLink(sentTo);
+    setCode('');
+    setDeviceExpired(false);
+  };
+
   if (sentTo) {
     return (
       <div className="w-full space-y-4" data-testid="sign-in-link-sent">
@@ -227,23 +247,21 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, next }) => {
             <Typography variant="body-sm">{error}</Typography>
           </div>
         )}
-        <Typography variant="body-sm" color="secondary">
-          Nothing there after a minute? Check your spam folder, or{' '}
-          <button
-            type="button"
-            className="button-link underline"
-            onClick={() => {
-              setSentTo(null);
-              setDeviceRequest(null);
-              setCode('');
-              setDeviceExpired(false);
-              setError(null);
-            }}
-          >
-            use a different email
-          </button>
-          .
-        </Typography>
+        <ResendLink
+          onResend={resendLink}
+          onChangeAddress={() => {
+            setSentTo(null);
+            setDeviceRequest(null);
+            setCode('');
+            setDeviceExpired(false);
+            setError(null);
+          }}
+          sentAgainNote={
+            deviceRequest
+              ? 'Type the code from the newest email. A code from an earlier one will not work here.'
+              : 'Open the newest email on this device.'
+          }
+        />
         <DevEmailLinkShortcut email={sentTo} />
       </div>
     );

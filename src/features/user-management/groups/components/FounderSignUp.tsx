@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../../auth/hooks/useAuth';
 import { signInLinkUrl } from '../../auth/utils/email-link';
 import DevEmailLinkShortcut from '../../auth/components/DevEmailLinkShortcut';
+import ResendLink from '../../auth/components/ResendLink';
 import { useInvitations } from '../hooks/useInvitations';
 
 /** Props for {@link FounderSignUp}. */
@@ -62,6 +63,13 @@ const FounderSignUp: React.FC<FounderSignUpProps> = ({ founderToken }) => {
     setReservedFor(address.toLowerCase());
   };
 
+  /**
+   * Email the link that carries the founder token.
+   * @param to Where to send it
+   */
+  const sendLink = (to: string) =>
+    sendSignInLink(to, signInLinkUrl(window.location.origin, { founder: founderToken }));
+
   const handleSendLink = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -69,10 +77,7 @@ const FounderSignUp: React.FC<FounderSignUpProps> = ({ founderToken }) => {
     setError(null);
     try {
       await reserve();
-      await sendSignInLink(
-        address,
-        signInLinkUrl(window.location.origin, { founder: founderToken })
-      );
+      await sendLink(address);
       setSentTo(address);
     } catch (err) {
       setError(describeSignInError(err));
@@ -103,6 +108,18 @@ const FounderSignUp: React.FC<FounderSignUpProps> = ({ founderToken }) => {
     }
   };
 
+  /**
+   * Send the link again. The address is reserved again first, unconditionally:
+   * that renews the reservation the new link will need, and says so here if
+   * the founder link has been used or has expired since the first send.
+   */
+  const resendLink = async () => {
+    if (!sentTo) return;
+    await reserveFounderSignUp(founderToken, sentTo);
+    setReservedFor(sentTo.toLowerCase());
+    await sendLink(sentTo);
+  };
+
   if (sentTo) {
     return (
       <div className="card rounded-lg px-6 py-6 space-y-4" data-testid="founder-link-sent">
@@ -117,17 +134,11 @@ const FounderSignUp: React.FC<FounderSignUpProps> = ({ founderToken }) => {
             and brings you back here to name your group.
           </Typography>
         </div>
-        <Typography variant="body-sm" color="secondary">
-          Nothing there after a minute? Check your spam folder, or{' '}
-          <button
-            type="button"
-            className="button-link underline"
-            onClick={() => setSentTo(null)}
-          >
-            use a different email
-          </button>
-          .
-        </Typography>
+        <ResendLink
+          onResend={resendLink}
+          onChangeAddress={() => setSentTo(null)}
+          sentAgainNote="Open the newest email."
+        />
         <DevEmailLinkShortcut email={sentTo} />
       </div>
     );
