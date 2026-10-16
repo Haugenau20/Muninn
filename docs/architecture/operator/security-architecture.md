@@ -247,6 +247,8 @@ confirmed against the live project in implementation step 4.
   - `roles/iam.serviceAccountUser` on `operator-runtime@` and `operator-builder@` only
   - the right to submit a Cloud Build: Cloud Build Editor and Service Usage Consumer on the
     project, and creating objects in the bucket builds are submitted through
+  - `roles/artifactregistry.reader` on the `operator` repository only, since a deploy resolves the
+    image as the caller
 
   It holds nothing in IAP: it cannot change the access list or the re-authentication settings.
 - **The service exists before the first deploy.** The maintainer creates it, with IAP on, during

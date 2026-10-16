@@ -307,6 +307,16 @@ if ensure "${BUILDER_SA} writes to ${SERVICE}" has_binding roles/artifactregistr
     --project="$PROJECT" --member="serviceAccount:${BUILDER_SA}" \
     --role=roles/artifactregistry.writer --quiet >/dev/null
 fi
+# The deploy resolves the image as the caller, so the deployer reads this one
+# repository: the first deploy was refused
+# `artifactregistry.repositories.downloadArtifacts` here (2026-10-16).
+if ensure "${DEPLOYER_SA} reads ${SERVICE}" has_binding roles/artifactregistry.reader \
+    "serviceAccount:${DEPLOYER_SA}" gcloud artifacts repositories get-iam-policy "$SERVICE" \
+    --location="$REGION" --project="$PROJECT"; then
+  gcloud artifacts repositories add-iam-policy-binding "$SERVICE" --location="$REGION" \
+    --project="$PROJECT" --member="serviceAccount:${DEPLOYER_SA}" \
+    --role=roles/artifactregistry.reader --quiet >/dev/null
+fi
 
 # `gcloud builds submit` uploads the source first. A bucket of its own keeps
 # the deployer off the project's default one; uploads go after a week.
