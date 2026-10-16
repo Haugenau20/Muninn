@@ -419,10 +419,10 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   each main deploy that changed the image's inputs, once the maintainer
   approves the `operator` environment; `operator-verify.yml` runs
   `firebase/functions/operator/infra/verify.sh` after each deploy run and
-  daily; `.github/dependabot.yml` is new. The first run (2026-10-16) built the
-  image and was refused the deploy: the deployer also needs to read the image
-  repository, which `setup.sh` now grants. Re-run `setup.sh`, then approve the
-  next run.
+  daily; `.github/dependabot.yml` is new. Live since 2026-10-16: the deployer
+  needed to read the image repository too (`setup.sh` grants it), and the
+  verification reads IAP's policies from its API, since gcloud's command needs
+  a project read the verifier does not have.
 - **Next**: step 6, the go-live checks (maintainer, with Claude).
 - **Source**: todo.txt, 2026-10-08 (two inbox items, combined)
 
