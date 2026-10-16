@@ -159,3 +159,4 @@ What a run found that the documents should keep. Fill in at step 4b.
 | 2026-10-15 | Part 6: an anonymous request gets a 302 to `accounts.google.com` from IAP; another Google account is refused; the operator account reaches the placeholder |
 | 2026-10-15 | The four `operator-*` service accounts hold no user-managed keys |
 | 2026-10-16 | First pipeline run: the build went through; the deploy was refused `artifactregistry.repositories.downloadArtifacts` on the `operator` repository; the deployer now reads it (part 3) |
+| 2026-10-16 | Second run deployed the image. The first verification failed both IAP policy reads: `gcloud iap web get-iam-policy` looks the project up in Resource Manager, which the verifier may not; `verify.sh` now reads them from the IAP API by project number. Every other check passed against the live service |

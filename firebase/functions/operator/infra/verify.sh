@@ -162,21 +162,37 @@ fi
 # ---------------------------------------------------------------------------
 step "4  The IAP access list is exactly the expected one"
 
-IAP_POLICY="$(gcloud iap web get-iam-policy --resource-type=cloud-run --service="$SERVICE" \
-  --region="$REGION" --project="$PROJECT" --format=json 2>/dev/null || true)"
-if [[ -z "$IAP_POLICY" ]]; then
-  fail "the service's IAP policy could not be read"
-else
+# IAP's policy on RESOURCE, from its API by project number. `gcloud iap web
+# get-iam-policy` first looks the project up in Resource Manager, which the
+# verifier may not: both reads failed in its first run (2026-10-16). Prints
+# the policy, or fails printing the API's error.
+iap_policy() {
+  local body message
+  if body="$(curl -sS --fail-with-body --max-time 20 -X POST \
+      -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      -H "Content-Type: application/json" --data '{"options": {"requestedPolicyVersion": 3}}' \
+      "https://iap.googleapis.com/v1/$1:getIamPolicy" 2>/dev/null)"; then
+    printf '%s' "$body"
+  else
+    message="$(json 'd["error"]["message"]' <<<"$body")"
+    printf '%s' "${message:-${body:-no answer from the IAP API}}" | head -c 300
+    return 1
+  fi
+}
+
+IAP_WEB="projects/${PROJECT_NUMBER}/iap_web"
+if IAP_POLICY="$(iap_policy "${IAP_WEB}/cloud_run-${REGION}/services/${SERVICE}")"; then
   expect "access list" "$(holders roles/iap.httpsResourceAccessor <<<"$IAP_POLICY")" \
     "$(sorted_list <<<"$EXPECTED_MEMBERS")"
+else
+  fail "the service's IAP policy could not be read: ${IAP_POLICY}"
 fi
 # Access granted at the project's IAP level reaches every service under it.
-PROJECT_IAP_POLICY="$(gcloud iap web get-iam-policy --project="$PROJECT" --format=json 2>/dev/null || true)"
-if [[ -z "$PROJECT_IAP_POLICY" ]]; then
-  fail "the project's IAP policy could not be read"
-else
+if PROJECT_IAP_POLICY="$(iap_policy "$IAP_WEB")"; then
   expect "no access granted for the whole project" \
     "$(holders roles/iap.httpsResourceAccessor <<<"$PROJECT_IAP_POLICY")" ""
+else
+  fail "the project's IAP policy could not be read: ${PROJECT_IAP_POLICY}"
 fi
 
 # ---------------------------------------------------------------------------
