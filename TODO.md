@@ -48,7 +48,7 @@ from each entry's summary alone: a judgement, not a measurement.
 
 | Priority | ID | Item | Category | Size | Status | Why here |
 |---|---|---|---|---|---|---|
-| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 5 done; next, step 6, the go-live checks |
+| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 6 done; next, step 7, retiring the old limit fields |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 
@@ -423,7 +423,15 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   needed to read the image repository too (`setup.sh` grants it), and the
   verification reads IAP's policies from its API, since gcloud's command needs
   a project read the verifier does not have.
-- **Next**: step 6, the go-live checks (maintainer, with Claude).
+- **Step 6**: the go-live checks, 2026-10-16, passed but for one (the runbook's record
+  has each). No account but the maintainer's carried `customLimit` or
+  `isUnlimited`, and the maintainer's is now an allowance, so step 7 retires
+  nothing anyone relies on. Open: signing in on the desktop, which showed a
+  blank page after IAP's re-authentication answered 401 (the browser holds
+  several Google accounts; retry in a private window); and why two
+  `allowance.set` attempts were refused as invalid input before the third
+  went through.
+- **Next**: step 7, cleanup and documentation (PR).
 - **Source**: todo.txt, 2026-10-08 (two inbox items, combined)
 
 ### T141 — The site's contact address is a Gmail account, not `muninn.quest`

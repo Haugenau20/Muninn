@@ -160,3 +160,8 @@ What a run found that the documents should keep. Fill in at step 4b.
 | 2026-10-15 | The four `operator-*` service accounts hold no user-managed keys |
 | 2026-10-16 | First pipeline run: the build went through; the deploy was refused `artifactregistry.repositories.downloadArtifacts` on the `operator` repository; the deployer now reads it (part 3) |
 | 2026-10-16 | Second run deployed the image. The first verification failed both IAP policy reads: `gcloud iap web get-iam-policy` looks the project up in Resource Manager, which the verifier may not; `verify.sh` now reads them from the IAP API by project number. Every other check passed against the live service |
+| 2026-10-16 | Step 6, on the phone: Google asked for the security key, then the operator page loaded. On the desktop the page stayed blank: IAP's `handleReauth` answered 401 (`authuser=1`, in a browser with several Google accounts); not yet retried in a private window |
+| 2026-10-16 | Step 6: a founder link issued, listed and revoked; a sign-up with it was refused as expired. The maintainer's account set to unlimited. Each action has its line in `operator-audit`, and both alert emails arrived |
+| 2026-10-16 | Step 6: `admin@muninn.quest` was refused by IAP (`AuthorizeUser`, Permission Denied, in `operator-audit`); both of the service's addresses answer an anonymous request with a 302 to Google's sign-in |
+| 2026-10-16 | Step 6: the verification run by hand with `user:stranger@example.com` in `also_expect` failed check 4 alone, naming the missing member |
+| 2026-10-16 | Step 6: no profile in production carries `customLimit` or `isUnlimited` |
