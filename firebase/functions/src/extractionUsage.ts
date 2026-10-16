@@ -21,10 +21,6 @@ export interface PeriodUsage {
 /**
  * A person's usage as the client sees it: the counters, each period's `limit`
  * set to the limit in force, and whether there are limits at all.
- *
- * `customLimit` used to be sent too, and raised the daily limit only; the
- * client still reads `customLimit ?? daily.limit`, so `daily.limit` carries
- * it now (T137).
  */
 export interface EntityExtractionUsage {
   daily: PeriodUsage;
@@ -211,8 +207,7 @@ export function readUsage(
 
 /**
  * What the extraction transaction writes back: the counters, and nothing of
- * the policy. The old `customLimit` and `isUnlimited` stay as they are stored
- * until an allowance replaces them, and `raisedUntil` is never stored.
+ * the policy. `raisedUntil` is never stored.
  *
  * @param {EntityExtractionUsage} usageData The usage after the call
  * @return {object} The update, for `set` with `merge`

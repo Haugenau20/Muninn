@@ -26,7 +26,6 @@ interface UsageContextValue {
   isExtractionAvailable: () => boolean;
   hasUsageData: boolean;
   isUnlimited: boolean;
-  hasCustomLimit: boolean;
 }
 
 const UsageContext = createContext<UsageContextValue | undefined>(undefined);
@@ -182,7 +181,6 @@ export const UsageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     isExtractionAvailable,
     hasUsageData: !!usageStatus,
     isUnlimited: usageStatus?.usage.isUnlimited ?? false,
-    hasCustomLimit: usageStatus?.usage.customLimit != null,
   };
 
   // Expose the setUsageLimitExceededWithInfo method for extraction errors

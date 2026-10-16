@@ -249,6 +249,21 @@ As built (2026-10-16):
 - **The onboarding plan's D6:** its pointer to this design changes from "proposed" to what was built.
 - **TODO.md:** T137 rewritten to what remains, which is phase 2, the overview.
 
+As built (2026-10-16):
+
+- **The old fields grant nothing.** `effectiveLimits` reads only the allowance, and the operator
+  page no longer deletes `customLimit` and `isUnlimited` when it writes one: step 6 found none
+  left, so there is nothing to move over.
+- **The usage meter** shows each period's limit as the server sends it, and the last day of an
+  allowance that ends ("Your allowance applies until 31 October."; "Unlimited scans until …"). The
+  day is read in UTC, where the server ends it, and written in British English. "Raised" was not
+  used, because an allowance can lower a limit too.
+- **The privacy page** adds "unless raised for you on request" to the caps, dated 2026-10-16. Its
+  changelog lines now carry their dates, so the older ones are not read as this revision's.
+- **CLAUDE.md:** a paragraph in "Verifying a change": the deploy, its approval (any change under
+  `firebase/functions/src` asks for one), the verification and break-glass. `operator:dev` was
+  already in its testing section.
+
 ## Step 8: lock the audit retention (maintainer)
 
 After 30 days of the bucket in use, lock its retention. It cannot be unlocked: from then on no

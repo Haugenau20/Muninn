@@ -184,17 +184,36 @@ describe('UsageMeter', () => {
     });
   });
 
-  describe('admin overrides', () => {
-    test('should use a custom limit in place of the daily limit', () => {
-      setupUsage({ daily: { count: 2, limit: 10 } }, { customLimit: 99 });
+  describe('a raised or lifted allowance', () => {
+    test('shows the limit the server sends, a raised one included', () => {
+      setupUsage({ daily: { count: 2, limit: 99 } });
       render(<UsageMeter />);
       expect(within(row('daily')).getByText('2 of 99')).toBeInTheDocument();
     });
 
-    test('shows a custom limit of zero as zero, the limit the server enforces (AI-003)', () => {
-      setupUsage({ daily: { count: 0, limit: 10 } }, { customLimit: 0 });
+    test('shows a limit of zero as zero, the limit the server enforces (AI-003)', () => {
+      setupUsage({ daily: { count: 0, limit: 0 } });
       render(<UsageMeter />);
       expect(within(row('daily')).getByText('0 of 0')).toBeInTheDocument();
+    });
+
+    test('ignores a customLimit, which no longer means anything', () => {
+      setupUsage({ daily: { count: 2, limit: 10 } }, { customLimit: 99 });
+      render(<UsageMeter />);
+      expect(within(row('daily')).getByText('2 of 10')).toBeInTheDocument();
+    });
+
+    test('says until when it applies, on the day the server ends it (UTC)', () => {
+      // 23:59 UTC on 31 October is already 1 November in Copenhagen.
+      setupUsage({}, { raisedUntil: '2099-10-31T23:59:59.999Z' });
+      render(<UsageMeter />);
+      expect(screen.getByText(/^Your allowance applies until 31 October 2099\.$/)).toBeInTheDocument();
+    });
+
+    test('says nothing of an end when the allowance has none', () => {
+      setupUsage({});
+      render(<UsageMeter />);
+      expect(screen.queryByText(/applies until/)).not.toBeInTheDocument();
     });
 
     test('should say so when usage is unlimited, and show no rows', () => {
@@ -203,6 +222,12 @@ describe('UsageMeter', () => {
 
       expect(screen.getByText('Unlimited scans')).toBeInTheDocument();
       expect(screen.queryByTestId('usage-row-daily')).not.toBeInTheDocument();
+    });
+
+    test('says until when an unlimited allowance applies', () => {
+      setupUsage({}, { isUnlimited: true, raisedUntil: '2099-10-31T23:59:59.999Z' });
+      render(<UsageMeter />);
+      expect(screen.getByText('Unlimited scans until 31 October 2099')).toBeInTheDocument();
     });
   });
 

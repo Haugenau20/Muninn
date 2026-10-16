@@ -271,7 +271,8 @@ const PrivacyPolicyPage: React.FC = () => {
                 : "."}
             </Typography>
             <Typography>
-              Scanning is capped at {EXTRACTION_FACTS.caps}. Don't paste
+              Scanning is capped at {EXTRACTION_FACTS.caps}, unless raised
+              for you on request. Don't paste
               anything into a note that you would not want processed this way.
             </Typography>
           </Section>

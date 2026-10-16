@@ -20,13 +20,17 @@
  * BUMP THIS BY HAND whenever the wording changes, and add a PRIVACY_CHANGELOG
  * line saying what changed. Never derive it from Date.now().
  */
-export const PRIVACY_LAST_UPDATED = "2026-10-10";
+export const PRIVACY_LAST_UPDATED = "2026-10-16";
 
-/** What changed in the revision named by PRIVACY_LAST_UPDATED, newest first. */
+/**
+ * What changed in the recent revisions, newest first, each line dated, so a
+ * line from an earlier revision is not read as part of PRIVACY_LAST_UPDATED's.
+ */
 export const PRIVACY_CHANGELOG: readonly string[] = [
-  "Google Analytics now runs only if you say yes, and reports only which part of the site you visit. This page said there were no analytics, while the site ran them for everyone.",
-  "You can change your answer on this page; saying no deletes the analytics cookies.",
-  "The page now names Google's reCAPTCHA, which checks that requests come from this site.",
+  "16 October 2026: this page now says that the scanning cap can be raised for someone who asks.",
+  "10 October 2026: Google Analytics now runs only if you say yes, and reports only which part of the site you visit. This page said there were no analytics, while the site ran them for everyone.",
+  "10 October 2026: you can change your answer on this page; saying no deletes the analytics cookies.",
+  "10 October 2026: the page now names Google's reCAPTCHA, which checks that requests come from this site.",
 ]
 
 /**

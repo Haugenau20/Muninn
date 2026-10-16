@@ -48,7 +48,7 @@ from each entry's summary alone: a judgement, not a measurement.
 
 | Priority | ID | Item | Category | Size | Status | Why here |
 |---|---|---|---|---|---|---|
-| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 6 done; next, step 7, retiring the old limit fields |
+| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), live since 2026-10-16 (steps 0 to 7 done); left: the overview (phase 2), locking the audit retention (step 8, from 2026-11-15) and two loose ends from go-live |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 
@@ -385,53 +385,33 @@ names "Muninn" (seen 2026-10-15). What is left:
 ### T137 — An operator page: founder links, extraction limits, metrics
 **Category** ops · **Size** L · **Status** open · **Verified** 2026-10-16
 
-One web page for operator work, usable from a phone: issue and revoke founder
-links, and set one person's extraction allowance (their own, since they pay for
-OpenAI, or a player's who asks). Health and traffic figures are phase 2.
+The operator page is live (2026-10-16): a Cloud Run service behind Google's
+Identity-Aware Proxy that issues and revokes founder links and sets one
+person's extraction allowance, from a phone too. The design, the security
+architecture and the plan with what was built are in
+[`docs/architecture/operator/`](docs/architecture/operator/design.md); how to
+run and deploy it is in
+[`firebase/functions/operator/infra/README.md`](firebase/functions/operator/infra/README.md)
+and CLAUDE.md. The old `customLimit` and `isUnlimited` grant nothing any more.
 
-- **Design** (approved by the maintainer 2026-10-08, with every default
-  decision kept):
-  [`docs/architecture/operator/`](docs/architecture/operator/design.md): a
-  design, a security architecture, and a plan in steps 0 to 8. Decided: its own
-  Cloud Run service behind Google's Identity-Aware Proxy, outside the app and its
-  sign-in; code in this repository; security over setup effort.
-- **Done**: steps 1 and 2. `users/{uid}.extractionAllowance` sets all three
-  limits; the old `customLimit` (daily only) and `isUnlimited` still apply
-  where no allowance does, until step 7 retires them. The operator actions
-  exist in `functions/src/operator/`, exported by nothing; founder links now
-  record `issuedBy` and share a budget of 10 a day with the script. Step 3:
-  the service (`functions/src/operator/http/`) runs locally with
-  `npm run operator:dev` in `firebase/functions` (port 4700, against the dev
-  emulators), behind the same identity check it will run with under IAP; its
-  container files (`firebase/functions/operator/`) are first built in step 5.
-- **Step 0** (maintainer): done 2026-10-15. The project is in the
-  `muninn.quest` organization, with `iam.allowedPolicyMemberDomains`
-  overridden to allow all; both of the organization's accounts sign in only
-  with hardware keys. Open: the first functions deploy after the move (the
-  plan's step 0, item 6).
-- **Steps 4a and 4b**: `firebase/functions/operator/infra/setup.sh` and its
-  runbook (`README.md` beside it), run by the maintainer on 2026-10-15: the
-  service exists behind IAP, serving Google's placeholder, refused to an
-  anonymous request and to another Google account, open to the operator
-  account; the GitHub `operator` environment and the repository variables are
-  set. The runbook's record holds what the run found.
-- **Step 5**: the pipeline. `operator-deploy.yml` builds and deploys after
-  each main deploy that changed the image's inputs, once the maintainer
-  approves the `operator` environment; `operator-verify.yml` runs
-  `firebase/functions/operator/infra/verify.sh` after each deploy run and
-  daily; `.github/dependabot.yml` is new. Live since 2026-10-16: the deployer
-  needed to read the image repository too (`setup.sh` grants it), and the
-  verification reads IAP's policies from its API, since gcloud's command needs
-  a project read the verifier does not have.
-- **Step 6**: the go-live checks, 2026-10-16, passed but for one (the runbook's record
-  has each). No account but the maintainer's carried `customLimit` or
-  `isUnlimited`, and the maintainer's is now an allowance, so step 7 retires
-  nothing anyone relies on. Open: signing in on the desktop, which showed a
-  blank page after IAP's re-authentication answered 401 (the browser holds
-  several Google accounts; retry in a private window); and why two
-  `allowance.set` attempts were refused as invalid input before the third
-  went through.
-- **Next**: step 7, cleanup and documentation (PR).
+What remains:
+
+- **Phase 2, the overview**: counts, health and traffic figures on the page
+  ([design, phase 2](docs/architecture/operator/design.md#phase-2-the-overview),
+  a sketch, designed when picked up).
+- **Step 8** (maintainer, from 2026-11-15, 30 days after go-live): lock the
+  `operator-audit` bucket's retention, then set the repository variable
+  `OPERATOR_AUDIT_LOCKED` to `true`.
+- **The first functions build since the move into the organization** (the
+  plan's step 0, item 6): the CLI skips unchanged functions, and none had
+  changed since; the first merge that changes one shows whether the
+  organization's default-service-account policies touch the deploy.
+- **The desktop sign-in**: the page stayed blank after IAP's re-authentication
+  answered 401, in a browser holding several Google accounts (`authuser=1`).
+  The phone signed in. Retry in a private window.
+- **Two refused allowances**: on go-live, two `allowance.set` attempts were
+  refused as invalid input before the third went through. What the page said
+  is not known yet; the form may need a clearer message or field.
 - **Source**: todo.txt, 2026-10-08 (two inbox items, combined)
 
 ### T141 — The site's contact address is a Gmail account, not `muninn.quest`

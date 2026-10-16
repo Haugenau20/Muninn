@@ -167,7 +167,6 @@ describe("UsageContext Behavioral Testing", () => {
 
       expect(typeof result.current.hasUsageData).toBe("boolean");
       expect(typeof result.current.isUnlimited).toBe("boolean");
-      expect(typeof result.current.hasCustomLimit).toBe("boolean");
     });
 
     test("should initialize isUsageLimitExceeded as false before first load", () => {
@@ -579,34 +578,6 @@ describe("UsageContext Behavioral Testing", () => {
       await waitForInitialLoad(result);
 
       expect(result.current.isUnlimited).toBe(false);
-    });
-
-    test("hasCustomLimit should be false when usage has no customLimit", async () => {
-      const status = makeUsageStatus();
-      // makeUsageStatus does not set customLimit
-      mockFetchUsageStatus.mockResolvedValue(status);
-
-      const { result } = renderHook(() => useShownUsage(), { wrapper });
-      await waitForInitialLoad(result);
-
-      expect(result.current.hasCustomLimit).toBe(false);
-    });
-
-    test("hasCustomLimit should be true when usage has a customLimit value", async () => {
-      const status = makeUsageStatus({
-        usage: {
-          daily: { count: 0, lastReset: "2026-05-21T00:00:00Z", limit: 10 },
-          weekly: { count: 0, lastReset: "2026-05-18T00:00:00Z", limit: 30 },
-          monthly: { count: 0, lastReset: "2026-05-01T00:00:00Z", limit: 100 },
-          customLimit: 50,
-        },
-      });
-      mockFetchUsageStatus.mockResolvedValue(status);
-
-      const { result } = renderHook(() => useShownUsage(), { wrapper });
-      await waitForInitialLoad(result);
-
-      expect(result.current.hasCustomLimit).toBe(true);
     });
   });
   describe("waits for auth before fetching", () => {

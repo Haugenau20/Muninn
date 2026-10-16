@@ -155,15 +155,6 @@ async function updateProfile(
 }
 
 /**
- * The fields that came before the allowance, removed whenever it is written,
- * so an account moves over the first time it is touched.
- */
-const OLD_FIELDS = {
-  "entityExtractionUsage.customLimit": FieldValue.delete(),
-  "entityExtractionUsage.isUnlimited": FieldValue.delete(),
-};
-
-/**
  * Set one person's allowance, replacing any they had.
  *
  * @param {Firestore} db Firestore
@@ -183,7 +174,7 @@ export async function setAllowance(
     ...validateAllowance(request, now),
     setAt: Timestamp.fromDate(now),
   };
-  await updateProfile(db, uid, {extractionAllowance: allowance, ...OLD_FIELDS});
+  await updateProfile(db, uid, {extractionAllowance: allowance});
   return allowance;
 }
 
@@ -199,8 +190,5 @@ export async function clearAllowance(
   db: Firestore,
   uid: string
 ): Promise<void> {
-  await updateProfile(db, uid, {
-    extractionAllowance: FieldValue.delete(),
-    ...OLD_FIELDS,
-  });
+  await updateProfile(db, uid, {extractionAllowance: FieldValue.delete()});
 }

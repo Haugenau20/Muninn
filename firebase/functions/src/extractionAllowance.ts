@@ -102,14 +102,10 @@ export function readAllowance(value: unknown): ExtractionAllowance | undefined {
 }
 
 /**
- * The limits that apply to a person now, in this order:
- *
- * 1. Their allowance, while it has not expired.
- * 2. Otherwise the fields that came before it, kept until every profile has
- *    moved over: `entityExtractionUsage.isUnlimited`, and
- *    `entityExtractionUsage.customLimit`, which replaces the daily limit only,
- *    as it always did.
- * 3. Otherwise the defaults.
+ * The limits that apply to a person now: their allowance while it has not
+ * expired, otherwise the defaults. The fields that came before the allowance,
+ * `entityExtractionUsage.isUnlimited` and `customLimit`, are no longer read
+ * (T137 step 7, once no profile in production carried them).
  *
  * @param {DocumentData | undefined} profile `users/{uid}`, if it exists
  * @param {Date} now The moment to decide for
@@ -130,10 +126,5 @@ export function effectiveLimits(
       raisedUntil: allowance.expiresAt?.toDate() ?? null,
     };
   }
-
-  const usage = profile?.entityExtractionUsage;
-  const limits = {...DEFAULT_USAGE_LIMITS};
-  // A custom limit of 0 is a real limit (AI-003).
-  if (isLimit(usage?.customLimit)) limits.daily = usage.customLimit;
-  return {unlimited: usage?.isUnlimited === true, limits, raisedUntil: null};
+  return {unlimited: false, limits: {...DEFAULT_USAGE_LIMITS}, raisedUntil: null};
 }
