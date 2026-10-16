@@ -125,15 +125,18 @@ that starts with `/` into a Windows path, so `OPERATOR_IAP_AUDIENCE` was stored 
 
 ## What setup does not settle
 
-Two open questions from the plan's step 4a need a real deploy, so step 5 settles them:
+Two open questions from the plan's step 4a, for the deploy pipeline (step 5):
 
 - **Whether `roles/run.developer` can switch IAP off.** It holds `run.services.update`, the
   permission `--no-iap` uses, so assume it can. The verification after every deploy fails if IAP
   is off, and the service's own identity check refuses every request either way.
-- **Which roles a Cloud Build submission needs.** The deployer gets the fewest that should do:
-  Cloud Build Editor and Service Usage Consumer on the project; Storage Object Creator and Legacy
-  Bucket Reader on the source bucket; acting as the builder. If the first build is refused, the
-  error names the missing permission; add it here, not by hand.
+- **Which roles a Cloud Build submission needs.** Settled by the first run (2026-10-16): the build
+  went through with Cloud Build Editor and Service Usage Consumer on the project, Storage Object
+  Creator and Legacy Bucket Reader on the source bucket, and acting as the builder. The deploy
+  after it was refused `artifactregistry.repositories.downloadArtifacts` on the repository, so
+  the deployer now also reads it (Artifact Registry Reader, part 3).
+
+The first question is not settled by a deploy, which never tries `--no-iap`; it stays assumed.
 
 ## Undoing it
 
@@ -155,3 +158,4 @@ What a run found that the documents should keep. Fill in at step 4b.
 | 2026-10-15 | `iam.serviceAccountKeyExposureResponse` reads as `denyAll`: WAIT_FOR_ABUSE not chosen, so exposed keys are disabled |
 | 2026-10-15 | Part 6: an anonymous request gets a 302 to `accounts.google.com` from IAP; another Google account is refused; the operator account reaches the placeholder |
 | 2026-10-15 | The four `operator-*` service accounts hold no user-managed keys |
+| 2026-10-16 | First pipeline run: the build went through; the deploy was refused `artifactregistry.repositories.downloadArtifacts` on the `operator` repository; the deployer now reads it (part 3) |
