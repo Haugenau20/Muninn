@@ -84,7 +84,6 @@ const setupUsageContextMock = (overrides: Record<string, unknown> = {}) => {
     isExtractionAvailable: mockIsExtractionAvailable,
     hasUsageData: false,
     isUnlimited: false,
-    hasCustomLimit: false,
     ...overrides,
   });
 };
@@ -547,11 +546,12 @@ describe('useEntityExtractor', () => {
       expect(result.current.getUsagePercentage()).toBe(100);
     });
 
-    test('should use customLimit when set', () => {
+    test('ignores a customLimit: the daily limit the server sends is the one in force', () => {
       const status = makeUsageStatus({
         usage: {
           isUnlimited: false,
-          customLimit: 10,
+          // A field the server no longer sends, as an old cached answer might.
+          ...{ customLimit: 10 },
           daily: makePeriodUsage(5, 20),
           weekly: makePeriodUsage(5, 60),
           monthly: makePeriodUsage(5, 200),
@@ -559,7 +559,7 @@ describe('useEntityExtractor', () => {
       });
       setupUsageContextMock({ usageStatus: status });
       const { result } = renderHook(() => useEntityExtractor());
-      expect(result.current.getUsagePercentage()).toBe(50);
+      expect(result.current.getUsagePercentage()).toBe(25);
     });
   });
 

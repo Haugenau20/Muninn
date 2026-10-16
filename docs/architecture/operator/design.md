@@ -217,15 +217,15 @@ users/{uid}.extractionAllowance = {
 **`effectiveLimits(profile, now)`** in `src/extractionAllowance.ts` decides which limits apply:
 
 1. An allowance that has not expired: its limits, or unlimited.
-2. Otherwise the old fields, until the cleanup step removes them: `isUnlimited` means unlimited, and
-   `customLimit` replaces the daily limit only, as it does today.
-3. Otherwise the defaults, 3 / 5 / 10 (`DEFAULT_USAGE_LIMITS`, `entityExtraction.ts:102`).
+2. Otherwise the defaults, 3 / 5 / 10 (`DEFAULT_USAGE_LIMITS`).
 
-`readUsage` writes the effective limits into each period's `limit`, sets `isUnlimited`, drops
-`customLimit` from what it returns, and adds `raisedUntil` when an expiring allowance applies.
-**The app needs no change:** it reads `customLimit ?? daily.limit`, and `customLimit` is no longer
-sent. Setting an allowance deletes the old fields in the same update, so accounts move over as they
-are touched. An expired allowance stays on the profile, ignored and shown as expired, until it is
+Until the cleanup step (step 7, 2026-10-16) the old fields came between the two: `isUnlimited`
+meant unlimited, and `customLimit` replaced the daily limit only. No profile in production
+carried them by then, and they now grant nothing.
+
+`readUsage` writes the effective limits into each period's `limit`, sets `isUnlimited`, and adds
+`raisedUntil` when an expiring allowance applies. The app shows each period's `limit` as sent, and
+the date from `raisedUntil` ("Your allowance applies until 31 October."). An expired allowance stays on the profile, ignored and shown as expired, until it is
 reset or replaced. Lowering a limit below what someone has already used leaves them out of calls
 until the period resets.
 

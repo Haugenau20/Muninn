@@ -26,8 +26,7 @@ export const useEntityExtractor = () => {
     clearUsageStatus,
     isExtractionAvailable,
     hasUsageData,
-    isUnlimited,
-    hasCustomLimit
+    isUnlimited
   } = usageContext;
 
   /**
@@ -110,8 +109,7 @@ export const useEntityExtractor = () => {
     if (usageStatus.usage.isUnlimited) return 0; // Unlimited users show 0%
     
     const { daily } = usageStatus.usage;
-    const dailyLimit = usageStatus.usage.customLimit ?? daily.limit;
-    return Math.min((daily.count / dailyLimit) * 100, 100);
+    return Math.min((daily.count / daily.limit) * 100, 100);
   }, [usageStatus]);
 
   /**
@@ -122,8 +120,7 @@ export const useEntityExtractor = () => {
     if (usageStatus.usage.isUnlimited) return Infinity;
     
     const { daily } = usageStatus.usage;
-    const dailyLimit = usageStatus.usage.customLimit ?? daily.limit;
-    return Math.max(0, dailyLimit - daily.count);
+    return Math.max(0, daily.limit - daily.count);
   }, [usageStatus]);
 
   return {
@@ -150,7 +147,6 @@ export const useEntityExtractor = () => {
     // Usage display helpers (from context)
     hasUsageData,
     isUnlimited,
-    hasCustomLimit,
     
     // Loading state for UI
     isReady: hasUsageData && !isLoadingUsage

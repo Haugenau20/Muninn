@@ -47,6 +47,28 @@ function formatReset(iso: string): string | null {
 }
 
 /**
+ * The last day a raised allowance applies, phrased for a footnote. The server
+ * ends an allowance at the end of its day in UTC, so the day is read in UTC:
+ * read locally, 23:59 UTC on 31 October is already 1 November east of London.
+ * The year is named only when it is not this one. British English, like the
+ * sentence it sits in, rather than the browser's locale ("31. oktober").
+ */
+function formatRaisedUntil(iso: string | undefined): string | null {
+  if (!iso) return null;
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const sameYear = date.getUTCFullYear() === new Date().getUTCFullYear();
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    ...(sameYear ? {} : { year: "numeric" }),
+    timeZone: "UTC",
+  });
+}
+
+/**
  * Smart Detection usage, as a labelled block at the foot of the note rail.
  *
  * Shows all three allowances — daily, weekly and monthly — because a scan is
@@ -95,13 +117,16 @@ const UsageMeter: React.FC = () => {
   }
 
   const { usage, exceededPeriod, nextReset } = usageStatus;
-  const { isUnlimited, customLimit } = usage;
+  const { isUnlimited } = usage;
+  // A raised (or lifted) allowance that runs out says when; one that does not
+  // run out says nothing more than its numbers.
+  const raisedUntil = formatRaisedUntil(usage.raisedUntil);
 
   if (isUnlimited) {
     return (
       <Shell>
         <Typography variant="caption" color="secondary" className="block mt-0.5">
-          Unlimited scans
+          {raisedUntil ? `Unlimited scans until ${raisedUntil}` : "Unlimited scans"}
         </Typography>
       </Shell>
     );
@@ -109,10 +134,8 @@ const UsageMeter: React.FC = () => {
 
   const rows = PERIODS.map(({ key, label, allowance }) => {
     const period = usage[key];
-    // An admin's custom limit overrides the daily allowance only. `??`, as the
-    // server reads it: a custom limit of 0 is a limit, not an absent one
-    // (AI-003).
-    const limit = key === "daily" ? customLimit ?? period.limit : period.limit;
+    // The server sends each period's limit in force, a raised one included.
+    const limit = period.limit;
     const ratio = limit > 0 ? period.count / limit : 0;
 
     // Every row carries its own reset, so the two periods that aren't binding
@@ -178,6 +201,12 @@ const UsageMeter: React.FC = () => {
       {bindingReset && (
         <Typography variant="caption" color="muted" className="block mt-2">
           {bindingReset}
+        </Typography>
+      )}
+
+      {raisedUntil && (
+        <Typography variant="caption" color="muted" className="block mt-1">
+          {`Your allowance applies until ${raisedUntil}.`}
         </Typography>
       )}
     </Shell>

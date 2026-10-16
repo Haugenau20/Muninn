@@ -44,8 +44,6 @@ beforeEach(async () => {
       daily: {count: 2, lastReset: new Date().toISOString(), limit: 3},
       weekly: {count: 2, lastReset: new Date().toISOString(), limit: 5},
       monthly: {count: 2, lastReset: new Date().toISOString(), limit: 10},
-      customLimit: 20,
-      isUnlimited: false,
     },
   });
 });
@@ -111,7 +109,7 @@ describe("the bounds", () => {
 });
 
 describe("setting an allowance", () => {
-  it("stores it, and removes the old fields in the same write", async () => {
+  it("stores it, and leaves the rest of the profile alone", async () => {
     const until = new Date(Date.now() + 7 * DAY);
     const stored = await setAllowance(db, "frodo", {unlimited: false, limits: RAISED, expiresAt: until});
 
@@ -120,8 +118,6 @@ describe("setting an allowance", () => {
     expect(data?.extractionAllowance.limits).toEqual(RAISED);
     expect(data?.extractionAllowance.expiresAt.toDate()).toEqual(until);
     expect(data?.extractionAllowance.setAt).toBeInstanceOf(Timestamp);
-    expect(data?.entityExtractionUsage).not.toHaveProperty("customLimit");
-    expect(data?.entityExtractionUsage).not.toHaveProperty("isUnlimited");
     expect(data?.entityExtractionUsage.daily.count).toBe(2);
     expect(data?.groups).toEqual(["fellowship"]);
   });
@@ -165,15 +161,13 @@ describe("setting an allowance", () => {
 });
 
 describe("clearing an allowance", () => {
-  it("puts the person back on the defaults, old fields included", async () => {
+  it("puts the person back on the defaults", async () => {
     await setAllowance(db, "frodo", {unlimited: true});
-    await profile().update({"entityExtractionUsage.customLimit": 30});
 
     await clearAllowance(db, "frodo");
 
     const data = (await profile().get()).data();
     expect(data).not.toHaveProperty("extractionAllowance");
-    expect(data?.entityExtractionUsage).not.toHaveProperty("customLimit");
     expect(data?.entityExtractionUsage.daily.count).toBe(2);
   });
 

@@ -290,6 +290,17 @@ and `test / bundle`, so a red PR cannot merge; a new job in `test.yml` gates not
 maintainer adds it there (`test / e2e`, the browser journeys, is not in it yet). Changed a function? Run
 `npm --prefix firebase run test:functions` too; changed a page or a flow, `npm --prefix firebase run test:e2e`.
 
+**The operator page deploys on its own track** (T137). After each main deploy, `operator-deploy.yml`
+rebuilds it only if its image's inputs changed (`firebase/functions`'s `src/`, package files and
+`tsconfig.json`, and the image's `Dockerfile` and `cloudbuild.yaml`), then waits for the maintainer
+to approve the GitHub `operator` environment. So **any change under `firebase/functions/src` asks
+for that approval after merging**: say so in the PR. `operator-verify.yml` runs
+`operator/infra/verify.sh` after every deploy run and daily; when it fails, the page's protection
+changed (IAP, its access list, the audit trail), not the code. Deploy it only through the workflow
+(*Run workflow* on `main` always deploys), never with `gcloud` by hand. Break-glass when IAP or the
+service is down: `scripts/issue-founder-invitation.js` for founder links, and
+`users/{uid}.extractionAllowance` in the console for allowances.
+
 **A PR's preview site is signed out on purpose**: it runs unmerged code against production data, so the
 preview build sets `REACT_APP_PREVIEW` and `/signin` and `/join` say sign-in is off. Check signed-in
 screens on the dev server; never set that variable in the live deploy.

@@ -27,10 +27,10 @@ export interface EntityExtractionUsage {
   weekly: PeriodUsage;
   /** Monthly usage tracking */
   monthly: PeriodUsage;
-  /** Custom limit override (set by admin) */
-  customLimit?: number;
-  /** Whether user has unlimited access (set by admin) */
+  /** Whether the user's allowance lifts every limit (set on the operator page) */
   isUnlimited?: boolean;
+  /** When a raised allowance runs out, if it does (ISO 8601) */
+  raisedUntil?: string;
   /** Last extraction timestamp */
   lastExtraction?: string;
 }
