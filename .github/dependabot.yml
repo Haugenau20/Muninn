@@ -1,0 +1,42 @@
+# .github/dependabot.yml
+#
+# Keeps current what the operator page pins (T137; security architecture,
+# section 8): the functions' npm packages, which its image carries; the two
+# base images in its Dockerfile, pinned by digest; and the GitHub Actions,
+# which the operator workflows pin by commit. Weekly, grouped, so a week's
+# updates arrive as one PR per ecosystem. Every PR runs the full CI.
+#
+# Not covered: the Cloud Build step image in operator/cloudbuild.yaml, which
+# Dependabot does not read; its digest is renewed by hand.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /firebase/functions
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      functions-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Digest updates within the tags the Dockerfile names; a new Node major
+  # (mise.toml, engines.node) is a decision, not an update.
+  - package-ecosystem: docker
+    directory: /firebase/functions/operator
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major, version-update:semver-minor]
+
+  # The workflows, and the composite action they share.
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/toolchain
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

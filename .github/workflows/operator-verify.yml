@@ -1,0 +1,75 @@
+# .github/workflows/operator-verify.yml
+#
+# Checks that the operator page is still set up as designed (T137; security
+# architecture, section 10): after every run of operator-deploy.yml, daily,
+# and by hand. A failed run is how the maintainer hears of drift: GitHub
+# emails them. The checks are operator/infra/verify.sh, which reads and
+# changes nothing.
+#
+# Keyless, as operator-verifier@, whose one role reads the service, its IAP
+# settings and access list, and the audit sink and bucket. The
+# `operator-verify` pool admits this file on `main` only (setup.sh, part 5).
+#
+# To prove a check catches something (security architecture, "How each
+# control is known to work"): run it by hand with a stranger in `also_expect`.
+# The access-list check must fail.
+
+name: Verify the operator page
+on:
+  workflow_run:
+    workflows: ["Deploy the operator page"]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      also_expect:
+        description: "Members to add to the expected IAP access list, e.g. user:stranger@example.com (go-live check)"
+        required: false
+        default: ""
+concurrency:
+  group: operator-verify
+  cancel-in-progress: false
+permissions: {}
+
+jobs:
+  verify:
+    # After a deploy run that failed there is nothing new to check; the
+    # daily run still does.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.OPERATOR_VERIFY_PROVIDER }}
+          service_account: ${{ vars.OPERATOR_VERIFIER }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      - name: Verify
+        env:
+          PROJECT: ${{ vars.OPERATOR_PROJECT }}
+          REGION: ${{ vars.OPERATOR_REGION }}
+          RUNTIME_SA: ${{ vars.OPERATOR_RUNTIME }}
+          IAP_AUDIENCE: ${{ vars.OPERATOR_IAP_AUDIENCE }}
+          EXPECTED_MEMBERS: ${{ vars.OPERATOR_IAP_MEMBERS }}
+          ALSO_EXPECT: ${{ inputs.also_expect }}
+          # Set to true once the audit bucket is locked (plan, step 8).
+          AUDIT_LOCKED: ${{ vars.OPERATOR_AUDIT_LOCKED || 'false' }}
+        run: |
+          # The verifier cannot read the project; the audience names its number.
+          [[ "$IAP_AUDIENCE" =~ ^/projects/([0-9]+)/ ]] || { echo "OPERATOR_IAP_AUDIENCE is '${IAP_AUDIENCE}'"; exit 1; }
+          export PROJECT_NUMBER="${BASH_REMATCH[1]}"
+          [[ -n "$ALSO_EXPECT" ]] && export EXPECTED_MEMBERS="${EXPECTED_MEMBERS},${ALSO_EXPECT}"
+          bash firebase/functions/operator/infra/verify.sh

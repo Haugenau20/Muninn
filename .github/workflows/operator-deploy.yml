@@ -1,0 +1,199 @@
+# .github/workflows/operator-deploy.yml
+#
+# Deploys the operator page (T137; implementation plan, step 5; security
+# architecture, sections 8 and 9). After every successful run of the main
+# deploy, it builds the image with Cloud Build as operator-builder@ and rolls
+# it out to the `operator` Cloud Run service by digest, as operator-deployer@,
+# once the maintainer approves the `operator` environment.
+#
+# - Keyless: the `operator-deploy` Workload Identity pool admits this file on
+#   `main` of this repository, in the `operator` environment, and nothing else
+#   (operator/infra/setup.sh, part 5). A copy under another name, or on a
+#   branch, gets no token.
+# - Skips, without asking for approval, when nothing the image is built from
+#   changed since the last successful run. A configuration change (the
+#   variables, a new CSRF key version) changes no file: run it by hand
+#   (Actions, "Run workflow" on `main`), which always deploys.
+# - The service, its IAP settings and who may reach it are setup.sh's, not
+#   this workflow's: the deployer can roll out revisions of this one service
+#   and nothing else. operator-verify.yml checks the result after every run.
+#
+# Actions are pinned by commit, not tag; Dependabot keeps them current.
+
+name: Deploy the operator page
+# The commit this run builds, which the next run compares against.
+run-name: Operator page @ ${{ github.event.workflow_run.head_sha || github.sha }}
+on:
+  workflow_run:
+    workflows: ["Deploy to Firebase Hosting on merge"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+# Its own group, so a deploy waiting for approval never holds up the site's.
+concurrency:
+  group: operator-deploy
+  cancel-in-progress: false
+permissions: {}
+
+jobs:
+  # Whether anything the image is built from changed since the last successful
+  # run. Holds no credentials; the deploy job below only starts when it says
+  # so, which is when the approval is asked for.
+  changes:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      sha: ${{ steps.head.outputs.sha }}
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      # What the main deploy shipped, not whatever `main` is now: a later merge
+      # may still be on its way through the functions and rules.
+      - id: head
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: echo "sha=${SHA}" >>"$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.head.outputs.sha }}
+          persist-credentials: false
+
+      # The last successful run, deployed or skipped, names the commit the
+      # live image was built from (its run-name). Every path the image is
+      # built from (operator/Dockerfile, .dockerignore), and this file, whose
+      # deploy flags shape the service.
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HEAD_SHA: ${{ steps.head.outputs.sha }}
+        run: |
+          paths=(
+            firebase/functions/package.json
+            firebase/functions/package-lock.json
+            firebase/functions/tsconfig.json
+            firebase/functions/.dockerignore
+            firebase/functions/src
+            firebase/functions/operator/Dockerfile
+            firebase/functions/operator/cloudbuild.yaml
+            .github/workflows/operator-deploy.yml
+          )
+          base="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/operator-deploy.yml/runs?branch=main&status=success&per_page=50" \
+            --jq '[.workflow_runs[].display_title | capture("@ (?<sha>[0-9a-f]{40})$").sha][0] // empty')"
+          if [[ "$EVENT" == "workflow_dispatch" ]]; then
+            changed=true; why="run by hand"
+          elif [[ -z "$base" ]]; then
+            changed=true; why="no earlier successful run"
+          elif ! git fetch --no-tags --depth=1 origin "$base"; then
+            changed=true; why="the last deployed commit ${base} cannot be fetched"
+          elif git diff --quiet "$base" "$HEAD_SHA" -- "${paths[@]}"; then
+            changed=false; why="nothing the image is built from changed since ${base}"
+          else
+            changed=true; why="changed since ${base}"
+          fi
+          echo "changed=${changed}" >>"$GITHUB_OUTPUT"
+          echo "Deploy: ${changed} (${why})" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The maintainer's approval, `main` only (security architecture, 9).
+    environment:
+      name: operator
+      url: ${{ steps.deploy.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROJECT: ${{ vars.OPERATOR_PROJECT }}
+      REGION: ${{ vars.OPERATOR_REGION }}
+      SERVICE: operator
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.changes.outputs.sha }}
+          persist-credentials: false
+
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.OPERATOR_DEPLOY_PROVIDER }}
+          service_account: ${{ vars.OPERATOR_DEPLOYER }}
+
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+
+      # Submitted and then polled, not streamed: the build logs to Cloud
+      # Logging only, which the deployer cannot read, and `gcloud builds
+      # submit` fails when it cannot stream. The source goes through the
+      # bucket setup.sh made for it; `.gitignore` keeps node_modules and lib
+      # out of the upload, `.dockerignore` keeps the dev entry point out of
+      # the image. Only `firebase/functions` is uploaded, so the auth step's
+      # credentials file, at the workspace root, never is.
+      - id: build
+        env:
+          BUILDER: ${{ vars.OPERATOR_BUILDER }}
+          SOURCE_BUCKET: ${{ vars.OPERATOR_SOURCE_BUCKET }}
+          SHA: ${{ needs.changes.outputs.sha }}
+        run: |
+          repository="${REGION}-docker.pkg.dev/${PROJECT}/operator/operator"
+          id="$(gcloud builds submit firebase/functions --async --format='value(id)' \
+            --config=firebase/functions/operator/cloudbuild.yaml \
+            --substitutions="_IMAGE=${repository}:${SHA}" \
+            --service-account="projects/${PROJECT}/serviceAccounts/${BUILDER}" \
+            --gcs-source-staging-dir="gs://${SOURCE_BUCKET}/source" \
+            --region="$REGION" --project="$PROJECT")"
+          echo "Build ${id}"
+          for _ in $(seq 120); do
+            status="$(gcloud builds describe "$id" --region="$REGION" --project="$PROJECT" --format='value(status)')"
+            case "$status" in
+              QUEUED|PENDING|WORKING) sleep 10 ;;
+              *) break ;;
+            esac
+          done
+          if [[ "$status" != "SUCCESS" ]]; then
+            echo "Build ${id} ended ${status}:"
+            gcloud builds describe "$id" --region="$REGION" --project="$PROJECT" \
+              --format='yaml(statusDetail,failureInfo,logUrl)'
+            exit 1
+          fi
+          digest="$(gcloud builds describe "$id" --region="$REGION" --project="$PROJECT" \
+            --format='value(results.images[0].digest)')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "Build ${id} reported no digest: '${digest}'"; exit 1; }
+          echo "image=${repository}@${digest}" >>"$GITHUB_OUTPUT"
+
+      # By digest, as operator-runtime@. Environment and secrets are replaced
+      # whole, so a value removed here is gone from the service. The settings
+      # repeat the design's (design, "The service"); IAP and the invoker check
+      # are left as setup.sh set them.
+      - id: deploy
+        env:
+          IMAGE: ${{ steps.build.outputs.image }}
+          RUNTIME: ${{ vars.OPERATOR_RUNTIME }}
+          OPERATOR_SUBJECTS: ${{ vars.OPERATOR_SUBJECTS }}
+          IAP_AUDIENCE: ${{ vars.OPERATOR_IAP_AUDIENCE }}
+          # Where founder links point (scripts/issue-founder-invitation.js).
+          SITE_ORIGIN: https://muninn.quest
+          # For firebase-admin, which otherwise asks the metadata server.
+          GOOGLE_CLOUD_PROJECT: ${{ vars.OPERATOR_PROJECT }}
+        run: |
+          # JSON is YAML: every value quoted, whatever it holds.
+          python3 -c 'import json, os; print(json.dumps({k: os.environ[k] for k in
+            ("OPERATOR_SUBJECTS", "IAP_AUDIENCE", "SITE_ORIGIN", "GOOGLE_CLOUD_PROJECT")}))' \
+            >"$RUNNER_TEMP/env.yaml"
+          gcloud run deploy "$SERVICE" --image="$IMAGE" --region="$REGION" --project="$PROJECT" \
+            --service-account="$RUNTIME" \
+            --env-vars-file="$RUNNER_TEMP/env.yaml" \
+            --set-secrets=OPERATOR_CSRF_KEY=operator-csrf-key:latest \
+            --ingress=all --min-instances=0 --max-instances=1 --concurrency=20 --timeout=30 \
+            --quiet
+          url="$(gcloud run services describe "$SERVICE" --region="$REGION" --project="$PROJECT" \
+            --format='value(status.url)')"
+          echo "url=${url}" >>"$GITHUB_OUTPUT"
+          echo "Deployed ${IMAGE} to ${url}" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -202,6 +202,27 @@ way (#386, #387); the runbook's record has the findings.
   It is new to the repository, so its scope is the maintainer's call when the PR is reviewed.
 - **Live effect:** the first merge asks for approval, then puts the operator page up behind IAP.
 
+As built (2026-10-16):
+
+- **What "changed" means:** each run is named after the commit it builds (`Operator page @ <sha>`),
+  and the last successful run, deployed or skipped, names the commit the live image came from. The
+  deploy runs, and asks for approval, only when the image's inputs differ from that commit: the
+  functions' `src/`, manifests and `tsconfig.json`, `.dockerignore`, the Dockerfile, the build
+  config, and the workflow itself. A change to a variable or a new CSRF key version changes no file,
+  so it is deployed by running the workflow by hand on `main`, which always deploys.
+- **The build** is submitted and then polled, not streamed: it logs to Cloud Logging only, which
+  the deployer cannot read.
+- **The checks** live in `firebase/functions/operator/infra/verify.sh`, so the maintainer can run
+  them in Cloud Shell too. Beyond the six, it tries every address the service has, and refuses
+  access granted at the project's IAP level. Each check was broken on purpose against a stand-in
+  gcloud before the PR (a stranger expected, IAP off, the invoker check off, another account, an
+  image by tag, traffic pinned to an old revision, `allUsers`, a disabled sink, a weaker
+  re-authentication); the go-live run with a stranger (step 6) is still the real one.
+- **Dependabot:** weekly and grouped, one PR per ecosystem: npm in `firebase/functions`, digest
+  updates for the Dockerfile's two base images (no new majors), and the actions in every workflow
+  and the toolchain action. The Cloud Build step image is renewed by hand; Dependabot does not read
+  `cloudbuild.yaml`.
+
 ## Step 6: go-live checks (maintainer, with Claude)
 
 1. Sign in as the operator on a desktop and on a phone; IAP asks for the key.
@@ -231,7 +252,8 @@ way (#386, #387); the runbook's record has the findings.
 ## Step 8: lock the audit retention (maintainer)
 
 After 30 days of the bucket in use, lock its retention. It cannot be unlocked: from then on no
-entry can be deleted before its 400 days are up, including by the owner.
+entry can be deleted before its 400 days are up, including by the owner. Then set the repository
+variable `OPERATOR_AUDIT_LOCKED` to `true`, so the verification checks the lock from then on.
 
 ## Rolling back
 
