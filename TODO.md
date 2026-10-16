@@ -48,7 +48,7 @@ from each entry's summary alone: a judgement, not a measurement.
 
 | Priority | ID | Item | Category | Size | Status | Why here |
 |---|---|---|---|---|---|---|
-| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 4b done; next, step 5, the pipeline |
+| low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), steps 0 to 5 done; next, step 6, the go-live checks |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
 
@@ -383,7 +383,7 @@ names "Muninn" (seen 2026-10-15). What is left:
   moved 2026-10-07
 
 ### T137 — An operator page: founder links, extraction limits, metrics
-**Category** ops · **Size** L · **Status** open · **Verified** 2026-10-15
+**Category** ops · **Size** L · **Status** open · **Verified** 2026-10-16
 
 One web page for operator work, usable from a phone: issue and revoke founder
 links, and set one person's extraction allowance (their own, since they pay for
@@ -415,7 +415,14 @@ OpenAI, or a player's who asks). Health and traffic figures are phase 2.
   anonymous request and to another Google account, open to the operator
   account; the GitHub `operator` environment and the repository variables are
   set. The runbook's record holds what the run found.
-- **Next**: step 5, the pipeline (a PR).
+- **Step 5**: the pipeline. `operator-deploy.yml` builds and deploys after
+  each main deploy that changed the image's inputs, once the maintainer
+  approves the `operator` environment; `operator-verify.yml` runs
+  `firebase/functions/operator/infra/verify.sh` after each deploy run and
+  daily; `.github/dependabot.yml` is new. Its first run settles the runbook's
+  two open questions (the deployer's roles, and whether `run.developer` can
+  switch IAP off).
+- **Next**: step 6, the go-live checks (maintainer, with Claude).
 - **Source**: todo.txt, 2026-10-08 (two inbox items, combined)
 
 ### T141 — The site's contact address is a Gmail account, not `muninn.quest`

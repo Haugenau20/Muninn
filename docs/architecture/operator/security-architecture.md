@@ -225,9 +225,9 @@ confirmed against the live project in implementation step 4.
   Registry repository and its own logs, and nothing else. It is not the default build or compute
   account.
 - **The deploy names the image by digest**, and the repository has a cleanup policy.
-- **Updates:** Dependabot keeps the functions' npm packages, the base image digest and the pinned
-  actions current. None is configured in the repository today
-  ([implementation plan](implementation-plan.md), step 5).
+- **Updates:** Dependabot (`.github/dependabot.yml`) keeps the functions' npm packages, the base
+  image digests and the pinned actions current. The Cloud Build step image's digest is renewed by
+  hand.
 
 ### 9. The deploy path (B4; T8)
 
@@ -263,12 +263,14 @@ confirmed against the live project in implementation step 4.
 without also changing them. It fails, and GitHub emails the
 maintainer, unless all of these hold:
 
-1. **A request without sign-in is turned away.** An anonymous GET is redirected to Google's sign-in
-   or refused; it never gets a 200.
+1. **A request without sign-in is turned away.** An anonymous GET, to every address the service
+   has, is redirected to Google's sign-in or refused; it never gets a 200.
 2. **The service is set up as designed.** IAP is on, the invoker check is on, the live revision runs
    as `operator-runtime@`, and its image comes from our repository.
 3. **Only IAP may invoke it.** The invoker policy is exactly the IAP service agent.
-4. **The IAP access list is exactly the expected one**, held in a repository variable.
+4. **The IAP access list is exactly the expected one**, held in a repository variable, and the
+   project's own IAP level grants nobody access. The project's IAM policy, which could grant the
+   same role, is not read: the verifier holds no project-wide read.
 5. **Re-authentication** is set as above.
 6. **The audit trail is intact.** The sink exists, and so do the bucket and, once set, its lock.
 
@@ -319,12 +321,13 @@ Accepted, and named so they are not forgotten:
 - **Add an operator:**
   1. Set up a Google account for it, with a passkey.
   2. The maintainer adds it to IAP's access list.
-  3. Add its `sub` to the `OPERATOR_SUBJECTS` variable, then deploy.
-  4. Update the verification's expected list.
-- **Remove an operator:** take them off IAP's list first, which works at once, then remove the
-  variable entry and deploy.
-- **Rotate the CSRF key:** add a new version of the secret, then deploy. Forms open at that moment
-  fail once.
+  3. Add its `sub` to the `OPERATOR_SUBJECTS` variable, and the account to `OPERATOR_IAP_MEMBERS`,
+     the verification's expected list.
+  4. Run `operator-deploy.yml` by hand; the verification follows it.
+- **Remove an operator:** take them off IAP's list first, which works at once, then remove both
+  variables' entries and run `operator-deploy.yml` by hand.
+- **Rotate the CSRF key:** add a new version of the secret, then run `operator-deploy.yml` by
+  hand. Forms open at that moment fail once.
 - **Suspected compromise:**
   1. Take the account off IAP's list.
   2. Sign the Google account out everywhere and replace its keys.

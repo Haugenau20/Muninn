@@ -108,6 +108,21 @@ which runs without the environment, reads them too.
 that starts with `/` into a Windows path, so `OPERATOR_IAP_AUDIENCE` was stored as
 `C:/Program Files/Git/projects/…` (2026-10-15). Check with `gh variable list` afterwards.
 
+## The pipeline (step 5)
+
+- **Deploys:** `.github/workflows/operator-deploy.yml` runs after every successful main deploy. When
+  the image's inputs changed since the last successful run, it waits for your approval in the
+  `operator` environment (GitHub emails you; approve under the run, from a phone too). A run whose
+  inputs did not change says so in its summary and asks nothing.
+- **Deploying by hand:** after changing `OPERATOR_SUBJECTS`, the audience or the CSRF key, nothing
+  in the repository changed: Actions → *Deploy the operator page* → *Run workflow* on `main`, which
+  always deploys.
+- **Checks:** `.github/workflows/operator-verify.yml` runs `verify.sh` beside this file after every
+  deploy run and daily; a failure emails you. To run the same checks yourself, in Cloud Shell from
+  this directory: `bash verify.sh`. It only reads.
+- **A refused build or deploy** names the missing permission in the run's log. Add it to
+  `setup.sh`, run `bash setup.sh`, and re-run the failed job; never grant it by hand.
+
 ## What setup does not settle
 
 Two open questions from the plan's step 4a need a real deploy, so step 5 settles them:
