@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/toolchain
 
@@ -38,7 +38,7 @@ jobs:
       - name: Install function dependencies
         run: npm ci --prefix firebase/functions
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_FUNCTIONS_DEPLOY_SA }}
 
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/toolchain
 
@@ -90,7 +90,7 @@ jobs:
             }
           '
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_FUNCTIONS_DEPLOY_SA }}
 
@@ -103,7 +103,7 @@ jobs:
     needs: [test, deploy_functions, deploy_rules]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/toolchain
 

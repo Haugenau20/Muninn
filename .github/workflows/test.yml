@@ -34,7 +34,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/toolchain
 
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The Firestore and Storage-rules emulators are Java.
       - uses: ./.github/actions/toolchain
@@ -68,7 +68,7 @@ jobs:
           tools: node java
 
       # The emulator jars are downloaded on first start; they change only with the CLI.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ hashFiles('firebase/package-lock.json') }}
@@ -90,7 +90,7 @@ jobs:
   bundle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/toolchain
 
@@ -107,14 +107,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The emulators are Java.
       - uses: ./.github/actions/toolchain
         with:
           tools: node java
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ hashFiles('firebase/package-lock.json') }}
@@ -134,7 +134,7 @@ jobs:
         run: npm ci --prefix firebase/functions
 
       # The browser build follows the pinned @playwright/test version.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('e2e/package-lock.json') }}
@@ -163,7 +163,7 @@ jobs:
         run: npm --prefix firebase run test:e2e
 
       # Screenshots, traces (`npx playwright show-trace <zip>`) and the report.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-results
