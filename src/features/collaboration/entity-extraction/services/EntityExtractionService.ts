@@ -14,6 +14,16 @@ interface ExtractEntitiesResponse {
   error?: string;
 }
 
+/**
+ * How long the browser waits for an extraction, in milliseconds (T155).
+ *
+ * Longer than the function's own `timeoutSeconds` (90 s, `entityExtraction.ts`),
+ * with room for a cold start. The SDK's default is 70 s, so a slow call would
+ * otherwise be abandoned here while the function finished it -- counted
+ * against the player's allowance, and its result thrown away.
+ */
+export const EXTRACTION_TIMEOUT_MS = 100_000;
+
 interface GetUsageStatusResponse {
   success: boolean;
   usage?: UsageStatus;
@@ -88,7 +98,9 @@ class EntityExtractionService extends BaseFirebaseService {
       }
 
       // Use Firebase SDK httpsCallable - automatically handles CORS and routing
-      const extractEntitiesFunction = httpsCallable(this.functions, 'extractEntities');
+      const extractEntitiesFunction = httpsCallable(this.functions, 'extractEntities', {
+        timeout: EXTRACTION_TIMEOUT_MS,
+      });
       
       // The active group, so the function can read its members' characters
       // and keep the party out of the NPC suggestions (T019). The roster is

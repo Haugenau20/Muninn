@@ -508,3 +508,38 @@ describe("the confidence the model reports", () => {
     }
   });
 });
+
+// T155: gpt-4.1-mini is shut down on 2027-01-14. OpenAI is stubbed, so these
+// hold the request to the shape the real API accepted for gpt-6-luna
+// (2026-10-26); the stub itself would accept anything.
+describe("the request sent to OpenAI", () => {
+  it("asks for gpt-6-luna, whatever the caller sends", async () => {
+    modelReturns([]);
+    await extract({content: CONTENT, groupId: GROUP, model: "gpt-5.2-pro"}, "frodo");
+
+    expect(mockCreate.mock.calls[0][0].model).toBe("gpt-6-luna");
+  });
+
+  it("turns reasoning off, without which gpt-6-luna refuses the tool", async () => {
+    modelReturns([]);
+    await extract({content: CONTENT, groupId: GROUP}, "frodo");
+
+    expect(mockCreate.mock.calls[0][0].reasoning_effort).toBe("none");
+  });
+
+  it("forces the one strict tool, at temperature 0", async () => {
+    modelReturns([]);
+    await extract({content: CONTENT, groupId: GROUP}, "frodo");
+
+    const request = mockCreate.mock.calls[0][0];
+    expect(request.tool_choice).toEqual({type: "function", function: {name: "extract_entities"}});
+    expect(request.tools).toHaveLength(1);
+    expect(request.tools[0].function.strict).toBe(true);
+    expect(request.temperature).toBe(0);
+  });
+
+  it("lets the function run 90 seconds, not the 60 s default", () => {
+    const endpoint = (extractEntities as unknown as {__endpoint: {timeoutSeconds?: number}}).__endpoint;
+    expect(endpoint.timeoutSeconds).toBe(90);
+  });
+});

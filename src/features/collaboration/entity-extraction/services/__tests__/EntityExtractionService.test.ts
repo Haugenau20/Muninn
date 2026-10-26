@@ -433,6 +433,22 @@ describe('EntityExtractionService', () => {
       expect(JSON.stringify(mockFn.mock.calls[0][0])).not.toContain('gpt-5.2-pro');
     });
 
+    // T155: the function may run for 90 s. The SDK gives up after 70 s by
+    // default, which would drop a call that is still being served and counted.
+    test('waits longer for the extraction than the function may take', async () => {
+      const mockFn = jest.fn().mockResolvedValueOnce({
+        data: { success: true, entities: [makeOpenAIEntity()] },
+      });
+      mockHttpsCallable.mockReturnValueOnce(mockFn);
+
+      const svc = EntityExtractionService.getInstance();
+      await svc.extractEntities('Content');
+
+      const [, name, options] = mockHttpsCallable.mock.calls[0];
+      expect(name).toBe('extractEntities');
+      expect(options?.timeout).toBeGreaterThan(90_000);
+    });
+
     // T019: the function reads the group's characters to keep the party out
     // of the NPC suggestions, so it needs to know which group. Only the id
     // travels -- the roster is read on the server.

@@ -3,6 +3,7 @@ import * as functions from "firebase-functions/v2/https";
 import { HttpsError } from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import OpenAI from "openai";
+import type {ReasoningEffort} from "openai/resources/shared";
 import {rethrowHttpsError} from "./shared/httpsErrors";
 import {dropPartyCharacters, partyPrompt, readPartyNames} from "./partyCharacters";
 import {USAGE_PERIODS} from "./extractionAllowance";
@@ -40,22 +41,36 @@ interface ExtractEntitiesRequest {
  * belongs to the deployment, so it is pinned here and the request field is
  * gone rather than merely ignored.
  *
- * **Why `gpt-4.1-mini`** (T050), replacing `gpt-3.5-turbo`. Its headline output
- * rate is $1.60/1M against $1.50, which reads like a rise and is not one: this
- * call is dominated by *input* -- the ~1,500-token function schema below plus
- * the system prompt, on every request, against a note capped at 10,000
- * characters -- and input drops from $0.50 to $0.40. The schema is a fixed
- * prefix comfortably over OpenAI's 1,024-token caching minimum, so it bills at
- * the $0.10 cached rate; `gpt-3.5-turbo` had no cached rate at all. A
- * representative call is cheaper before caching and materially cheaper after.
- * **Do not re-open this from the output column alone.**
+ * **Why `gpt-6-luna`** (T155), replacing `gpt-4.1-mini` (T050), which OpenAI
+ * shuts down on 2027-01-14 and names this as its replacement. Compared on the
+ * sample campaigns' notes (2026-10-26, both models, each note twice), it found
+ * every person and place `gpt-4.1-mini` found, and was the only one of the two
+ * to file quests and rumours reliably: `gpt-4.1-mini` returned a rumour in none
+ * of eight runs. A call cost about a third as much (list prices $0.10 in and
+ * $0.50 out per 1M, against $0.40 and $1.60) and took about 1.5 times as long,
+ * up to 16 s on a 2,000-character note; hence `timeoutSeconds` below.
  *
- * It is deliberately **not** a `gpt-5`-family or o-series model. Those reject a
- * non-default `temperature` on chat completions, so adopting one would mean
- * dropping the `temperature: 0` below -- and determinism is worth keeping in an
- * extractor whose output is written straight into campaign records.
+ * Neither model is deterministic here. `temperature: 0` is kept, but in that
+ * comparison both models' second runs added or dropped an entity, so it is no
+ * reason to prefer one model over another. Nor is prompt caching: the fixed
+ * prefix (system prompt and tool schema) counts under OpenAI's 1,024-token
+ * minimum for both, so each note is billed in full.
+ *
+ * `gpt-6-luna` takes a reasoning effort, and on chat completions it refuses a
+ * function tool unless that is off: hence `REASONING_EFFORT`.
  */
-const EXTRACTION_MODEL = "gpt-4.1-mini";
+const EXTRACTION_MODEL = "gpt-6-luna";
+
+/**
+ * Reasoning off, which `gpt-6-luna` requires before it accepts the forced tool
+ * on chat completions ("Function tools with reasoning_effort are not supported
+ * ... set reasoning_effort to 'none'"; checked against the API 2026-10-26).
+ *
+ * Cast because the `openai` SDK this package pins (4.104) predates the value:
+ * its type allows only low, medium and high. The SDK sends the field as given.
+ * An SDK upgrade that knows `"none"` makes the cast unnecessary.
+ */
+const REASONING_EFFORT = "none" as unknown as ReasoningEffort;
 
 /**
  * The scale of `confidence`, told to the model in the tool schema. The client
@@ -212,6 +227,11 @@ export const extractEntities = functions.onCall(
   {
     region: "europe-west1",
     secrets: ["OPENAI_API_KEY"], // Secret for API key
+    // Above the 60 s default (T155): `gpt-6-luna` took up to 16 s on a
+    // 2,000-character note, and a note may run to 10,000. The client waits
+    // longer still (`EntityExtractionService`), so it never gives up on a call
+    // that is still being served and has been counted.
+    timeoutSeconds: 90,
   },
   async (request: functions.CallableRequest<ExtractEntitiesRequest>) => {
     try {
@@ -507,7 +527,8 @@ Do not output any text yourself—*only* invoke the function with correct JSON.
         // exactly one acceptable answer, so name it. The old `function_call`
         // did the same thing under the deprecated spelling.
         tool_choice: { type: "function", function: { name: "extract_entities" } },
-        temperature: 0
+        temperature: 0,
+        reasoning_effort: REASONING_EFFORT
       }).catch(async (error: unknown) => {
         // The account is prepaid with no top-up: when it runs dry every call
         // fails here until it is topped up. Say so, and do not charge the
