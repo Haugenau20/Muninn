@@ -120,7 +120,7 @@ console after a month of real use.
 
 | Cost | What drives it | Today's bound | At 30 groups × 6 players |
 |---|---|---|---|
-| AI extraction | `gpt-4.1-mini`: a cached schema of about 1,500 tokens plus a note of up to 10,000 characters (`entityExtraction.ts:32`), so roughly 4,000 tokens in; output assumed at up to 1,000 tokens | 10 calls/day, 30/week, 100/month per user (`entityExtraction.ts:94`) | at most about **$0.30 per user per month**, so **about $54/month** if everyone spends their full quota (an estimate: about $0.003 a call) |
+| AI extraction | `gpt-6-luna` (`EXTRACTION_MODEL`), $0.10 in and $0.50 out per 1M tokens: a prompt and schema of about 700 tokens, too short to be cached, plus a note of up to 10,000 characters, so at most about 3,200 tokens in; output measured at about 1,200 tokens for a 2,000-character note (T155), assumed at up to 5,000 for the longest | 3 calls/day, 5/week, 10/month per user (`DEFAULT_USAGE_LIMITS`, `extractionAllowance.ts`) | at most about **$0.03 per user per month**, so **about $5/month** if everyone spends their full quota (an estimate: about $0.003 a call at the longest note, $0.0007 at a typical one) |
 | Firestore reads | whole-collection listeners and no persistent cache (T119 F2) | none | grows with campaign size times page loads. Fixing T119 F2 first is the real control. |
 | Storage | pictures, at most 2 MiB each after resizing (`prepare-image.ts:10`) | none per group | small per group; nothing bounds how many |
 | Auth | Identity Platform | free up to 50,000 monthly active users (T057's note) | free |

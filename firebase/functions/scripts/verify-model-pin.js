@@ -139,6 +139,8 @@ async function runCase(label, sourcePath) {
     "uses anyOf, which strict requires (oneOf is rejected)":
       Array.isArray(variants.anyOf) && variants.oneOf === undefined,
     "keeps temperature: 0": a.temperature === 0,
+    // gpt-6-luna refuses a function tool on chat completions without it (T155)
+    "turns reasoning off (reasoning_effort: none)": a.reasoning_effort === "none",
   };
   // strict also demands every property be listed in `required`
   const notRequired = [];
@@ -157,9 +159,9 @@ async function runCase(label, sourcePath) {
   const okShape = Object.keys(shape).every((k) => shape[k]);
 
   console.log("");
-  const okFixed = fixed === "gpt-4.1-mini";
+  const okFixed = fixed === "gpt-6-luna";
   const okControl = control === "gpt-5.2-pro";
-  console.log(`  FIXED   pinned to gpt-4.1-mini ................ ${okFixed ? "PASS" : "FAIL"}`);
+  console.log(`  FIXED   pinned to gpt-6-luna .................. ${okFixed ? "PASS" : "FAIL"}`);
   console.log(`  CONTROL took the injected model (proves the`);
   console.log(`          script would have caught a regression) ${okControl ? "PASS" : "FAIL"}`);
   process.exit(okFixed && okControl && okShape ? 0 : 1);

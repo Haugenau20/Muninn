@@ -303,7 +303,7 @@ real defect.
 ### Current Core Stack
 - **Frontend**: React 18.2.0 with TypeScript, TailwindCSS with custom theme system
 - **Backend**: Firebase (Auth, Firestore, Functions, Hosting, Analytics)
-- **AI Integration**: OpenAI (GPT-3.5-turbo/GPT-4) for entity extraction with usage tracking
+- **AI Integration**: OpenAI (`gpt-6-luna`, pinned in the function) for entity extraction with usage tracking
 - **Development**: Jest + React Testing Library, ESLint, PowerShell automation scripts
 - **Icons**: Lucide React (91+ usages throughout application)
 
