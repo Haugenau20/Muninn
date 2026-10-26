@@ -11,8 +11,14 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
+  # Needs the repository's secrets, which a fork's PR does not get, and nor does
+  # a run Dependabot started: it is handed the separate Dependabot secrets, so
+  # the deploy found no service account and failed every update PR. Dependabot
+  # changes no page (only the functions' packages and the workflows), and its
+  # code is not to hold the deploy key, so its PRs go without a preview. A push
+  # to its branch by a person runs this job as usual.
   build_and_preview:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
