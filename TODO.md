@@ -51,6 +51,8 @@ from each entry's summary alone: a judgement, not a measurement.
 | low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), live since 2026-10-16 (steps 0 to 7 done); left: the overview (phase 2), locking the audit retention (step 8, from 2026-11-15) and two loose ends from go-live |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
+| low | T157 | Upgrade the `openai` SDK in the functions | ops | M | open | Removes T155's cast on `reasoning_effort`; the pinned 4.104 works meanwhile |
+| nit | T156 | `verify-model-pin.js` no longer runs; delete it | ops | S | open | The functions suite covers most of it; port its two remaining checks first |
 
 ### Ideas and parked
 
@@ -440,6 +442,49 @@ for T137 step 0); it cannot send yet.
   subdomain, outside this budget. The privacy page names no processor for
   contact mail today (`PrivacyPolicyPage.tsx:318`), Gmail included.
 - **Source**: maintainer, 2026-10-08, during T137 step 0
+
+### T156 — `verify-model-pin.js` no longer runs; delete it
+**Category** ops · **Size** S · **Status** open · **Verified** 2026-10-26
+
+The hand-run check of the extraction call predates the functions jest suite,
+and has been broken since `extractEntities` moved to the modular admin API.
+PR #401 (T155) updated its expected model but left it broken, deferring the
+deletion.
+
+- **Where**: `firebase/functions/scripts/verify-model-pin.js:63-84` stubs
+  only `firebase-admin` and `firebase-admin/app`, while
+  `src/entityExtraction.ts:4` imports `getFirestore` from
+  `firebase-admin/firestore`, which reaches the real SDK. Read, not run (no
+  `node_modules` in this checkout). Its header (`:7-10`) still says the
+  package has no jest, and its fake user grants `isUnlimited`, which grants
+  nothing since T137.
+- **Touches**: the script; nothing else names it.
+- **Catch**: `test/extractEntities.test.ts:512-545` covers the model pin,
+  `reasoning_effort`, the forced strict tool and temperature, but not two of
+  the script's checks: every schema property listed in `required` (strict
+  mode's rule), and no deprecated `functions` / `function_call`. Port those
+  into the suite before deleting, or the deletion loses them.
+- **Source**: PR #401 notes, 2026-10-26
+
+### T157 — Upgrade the `openai` SDK in the functions
+**Category** ops · **Size** M · **Status** open · **Verified** 2026-10-26
+
+The functions pin `openai` `^4.104.0` (lockfile 4.104.0); npm's latest is
+7.45.0. 4.104's `ReasoningEffort` type does not know `"none"`, which
+`gpt-6-luna` requires, so T155 casts it. PR #401 left the upgrade to its own
+PR.
+
+- **Where**: `firebase/functions/src/entityExtraction.ts:64-73` holds the cast
+  (`REASONING_EFFORT`); `:519-532` is the only `chat.completions.create` call
+  in the package.
+- **Touches**: `firebase/functions/package.json` and its lockfile, the call,
+  `test/extractEntities.test.ts` (it stubs the SDK with `jest.mock("openai")`).
+- **Catch**: three major versions; their breaking changes were not read. If
+  the new SDK is ES-module-only, jest needs it in `ESM_PACKAGES`
+  (`firebase/functions/jest.config.js`), per CLAUDE.md. The stubbed suite
+  cannot show that the real API still accepts the request, so try one real
+  extraction on the dev emulators after the upgrade.
+- **Source**: PR #401 notes, 2026-10-26
 
 ---
 
