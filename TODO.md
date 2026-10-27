@@ -43,6 +43,7 @@ from each entry's summary alone: a judgement, not a measurement.
 | medium | T141 | The site's contact address is a Gmail account | ops | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
 | medium | T152 | Anyone can spend the site's sign-in emails for the day | security | M | open | The quota is the project's, 25,000 a day, and the browser asks Firebase directly; spent, nobody can sign in by email until the next day |
 | medium | T154 | Backups of the data, inside and outside the project | reliability | M | open | A mistake that deletes data needs a way back, and the project a copy to rebuild from |
+| medium | T158 | Private notes of players deleted before 2026-10-01 may still exist | security | M | needs investigation | The privacy page promises they are deleted; nobody has looked whether old ones survive |
 
 ### Backlog
 
@@ -51,6 +52,12 @@ from each entry's summary alone: a judgement, not a measurement.
 | low | T137 | An operator page: founder links, extraction limits, metrics | ops | L | open | The script and the console work meanwhile; design approved 2026-10-08 (`docs/architecture/operator/`), live since 2026-10-16 (steps 0 to 7 done); left: the overview (phase 2), locking the audit retention (step 8, from 2026-11-15) and two loose ends from go-live |
 | low | T118 | Finish the move to `muninn.quest` | ops | S | open | Everything runs on `muninn.quest`; left: a leftover OAuth client to delete |
 | low | T149 | Both Hosting sites keep every release | performance | S | open | About 220 MB of old releases, growing with every merge; a console setting, no one is hurt meanwhile |
+| low | T159 | A player in no group is offered "Leave this group" on the profile page | bug | S | open | Confusing copy and a dead button, for players in no group only |
+| low | T160 | A rumour test cannot fail | bug | S | open | Its assertion runs during the next test; no one is hurt until the code it guards breaks |
+| low | T161 | Two tests fail with no defect behind them | ops | S | open | Real failures there get waved off as "the known flake" |
+| low | T157 | Upgrade the `openai` SDK in the functions | ops | M | open | Removes T155's cast on `reasoning_effort`; the pinned 4.104 works meanwhile |
+| nit | T156 | `verify-model-pin.js` no longer runs; delete it | ops | S | open | The functions suite covers most of it; port its two remaining checks first |
+| nit | T162 | `AGENTS.md` and `database-field-alignment.md` describe a past tree | ops | S | open | Misleads an agent or a reader; nothing breaks |
 
 ### Ideas and parked
 
@@ -120,6 +127,42 @@ not copied.
 ## Bugs
 
 Bugs the behavioural suites find live in `docs/testing/bug-tracking/README.md`.
+
+### T159 — A player in no group is offered "Leave this group" on the profile page
+**Category** bug · **Size** S · **Status** open · **Verified** 2026-10-26
+
+A signed-in player who belongs to no group sees "Leave this group" and
+"You'll lose access to 0 campaigns in this group" on `/profile`, with a Leave
+group button that opens a dialog whose confirm does nothing.
+
+- **Where**: `src/pages/profile/ProfilePage.tsx:73-77` renders
+  `DangerZoneCard` with or without a group, on purpose, for the account
+  deletion. The card's leave half (`DangerZoneCard.tsx:78-89`) is not guarded:
+  `groupName` falls back to "this group" and `campaigns` is `[]`
+  (`FirebaseContext.tsx:86`), so the sentence counts 0. The dialog's confirm
+  returns early without an `activeGroup` (`LeaveGroupDialog.tsx:39`). Read in
+  the code, not seen in the browser (`player9@example.com` is the seeded
+  account in no group).
+- **Touches**: the card and its test file.
+- **Catch**: none found.
+- **Source**: PR #299 ("Found on the way, not fixed here"), 2026-10-07
+
+### T160 — A rumour test cannot fail
+**Category** bug · **Size** S · **Status** open · **Verified** 2026-10-26
+
+`useCreateRumor`'s "invents no placeholder title" returns
+`act(...).then(...)`. React's `act` thenable returns nothing from `then`, so
+jest does not wait. The assertion runs during the next test, and that test
+takes the blame when it fails.
+
+- **Where**:
+  `src/features/campaign-entities/rumors/hooks/__tests__/useCreateRumor.test.ts:50-58`.
+  **Measured**: with the expectation changed to a wrong value, the test still
+  passed and "leaves the source unasked rather than defaulting it" failed with
+  its message. No other test in `src/` returns `act(...).then(...)`.
+- **Touches**: that one test.
+- **Catch**: none found.
+- **Source**: PR #215 ("worth an `await` someday"), 2026-10-04
 
 ---
 
@@ -247,6 +290,29 @@ to an address the script chose.
   callable is also where T057 would put the code. Measure first how far App
   Check alone goes.
 - **Source**: review of the resend button, 2026-10-15
+
+### T158 — Private notes of players deleted before 2026-10-01 may still exist
+**Category** security · **Size** M · **Status** needs investigation · **Verified** 2026-10-26
+
+Until #176 (bug #1405, merged 2026-10-01), deleting an account or leaving a
+group deleted the group profile with a batched delete. Firestore does not cascade, so
+its `notes` and `story-progress` subcollections stayed. The privacy page
+promises that a player who leaves or deletes their account has "your private
+notes and your place in the story" deleted (`PrivacyPolicyPage.tsx:234-237`).
+
+- **Where**: the fix is `deleteGroupUserDocument`'s `recursiveDelete`
+  (`firebase/functions/src/userManagement/accountDeletion.ts:167-172`). It
+  covers new deletions only. Nothing looks for older leftovers: no script in
+  `firebase/functions/scripts/` lists `groups/{g}/users` documents that are
+  missing but still hold subcollections (`listDocuments()` returns those).
+  Whether production has any is **unknown**; #176 said so and no audit has
+  run.
+- **Touches**: a new read-only operator script with an `--apply`, in the
+  shape of `audit-membership.js`, and its test.
+- **Catch**: a deletion has no revert file to fall back on. Make the
+  read-only listing the first deliverable.
+- **Source**: PR #176 ("Not done: a one-off pass for notes orphaned before
+  the fix"), 2026-10-01; bug #1405's file asked for the same
 
 ---
 
@@ -440,6 +506,87 @@ for T137 step 0); it cannot send yet.
   subdomain, outside this budget. The privacy page names no processor for
   contact mail today (`PrivacyPolicyPage.tsx:318`), Gmail included.
 - **Source**: maintainer, 2026-10-08, during T137 step 0
+
+### T156 — `verify-model-pin.js` no longer runs; delete it
+**Category** ops · **Size** S · **Status** open · **Verified** 2026-10-26
+
+The hand-run check of the extraction call predates the functions jest suite,
+and has been broken since `extractEntities` moved to the modular admin API.
+PR #401 (T155) updated its expected model but left it broken, deferring the
+deletion.
+
+- **Where**: `firebase/functions/scripts/verify-model-pin.js:63-84` stubs
+  only `firebase-admin` and `firebase-admin/app`, while
+  `src/entityExtraction.ts:4` imports `getFirestore` from
+  `firebase-admin/firestore`, which reaches the real SDK. Read, not run (no
+  `node_modules` in this checkout). Its header (`:7-10`) still says the
+  package has no jest, and its fake user grants `isUnlimited`, which grants
+  nothing since T137.
+- **Touches**: the script; nothing else names it.
+- **Catch**: `test/extractEntities.test.ts:512-545` covers the model pin,
+  `reasoning_effort`, the forced strict tool and temperature, but not two of
+  the script's checks: every schema property listed in `required` (strict
+  mode's rule), and no deprecated `functions` / `function_call`. Port those
+  into the suite before deleting, or the deletion loses them.
+- **Source**: PR #401 notes, 2026-10-26
+
+### T157 — Upgrade the `openai` SDK in the functions
+**Category** ops · **Size** M · **Status** open · **Verified** 2026-10-26
+
+The functions pin `openai` `^4.104.0` (lockfile 4.104.0); npm's latest is
+7.45.0. 4.104's `ReasoningEffort` type does not know `"none"`, which
+`gpt-6-luna` requires, so T155 casts it. PR #401 left the upgrade to its own
+PR.
+
+- **Where**: `firebase/functions/src/entityExtraction.ts:64-73` holds the cast
+  (`REASONING_EFFORT`); `:519-532` is the only `chat.completions.create` call
+  in the package.
+- **Touches**: `firebase/functions/package.json` and its lockfile, the call,
+  `test/extractEntities.test.ts` (it stubs the SDK with `jest.mock("openai")`).
+- **Catch**: three major versions; their breaking changes were not read. If
+  the new SDK is ES-module-only, jest needs it in `ESM_PACKAGES`
+  (`firebase/functions/jest.config.js`), per CLAUDE.md. The stubbed suite
+  cannot show that the real API still accepts the request, so try one real
+  extraction on the dev emulators after the upgrade.
+- **Source**: PR #401 notes, 2026-10-26
+
+### T161 — Two tests fail with no defect behind them
+**Category** ops · **Size** S · **Status** open · **Verified** 2026-10-26
+
+Two tests fail on loaded or cold machines, and PRs keep explaining them away
+as "the known flake". Neither is tracked anywhere, so a real failure in
+either would be dismissed the same way.
+
+- **Where**: `e2e/tests/founder.spec.ts:63` waits the default 5 s for "Start
+  your first campaign" after the `createGroup` callable, while the waits
+  around it allow 15 s (`:58`, `:104`). It failed in #344, #356 (on `main`
+  too), #374, #375 and #377. `AdminPeoplePage.test.tsx:387-397` types 205
+  characters with `userEvent.type` and timed out in full runs in #377 and
+  #401 (it passes alone).
+- **Touches**: those two tests.
+- **Catch**: `QuickAddForm.test.tsx` already has a CLAUDE.md note about
+  spurious timeouts under CPU load; check it in the same pass.
+- **Source**: PRs #344–#377 and #401 test notes, 2026-10-09 to 2026-10-26
+
+### T162 — `AGENTS.md` and `database-field-alignment.md` describe a past tree
+**Category** ops · **Size** S · **Status** open · **Verified** 2026-10-26
+
+Two documents still read as current but describe a past state.
+
+- **Where**: `AGENTS.md` (372 lines, a near-copy of an older `CLAUDE.md`)
+  gives the test baseline as 4,227 passed across 185 suites (`:267`; CLAUDE.md
+  has 6,049 across 315), and its status as of 2026-07-28 (`:241`). #192
+  flagged it, and since then it has only had names fixed.
+  `docs/architecture/migration/database-field-alignment.md:1-4` says its
+  rename (`dateAdded` → `createdAt`, `dateModified` → `modifiedAt`, required
+  `modifiedBy*`) is undone. T132 did it (`core/attribution/attribution.ts:28-29`).
+  `data-model-review.md:245` still points to it as planned.
+- **Touches**: the two files, and the one mention.
+- **Catch**: whether other agents rely on `AGENTS.md` is the maintainer's
+  call. Pointing it at `CLAUDE.md` or deleting it are both options.
+- **Source**: PR #192 ("Not touched, worth a look"), 2026-10-03; PR #295
+  (field-alignment doc "stays until the maintainer files it or drops it"),
+  2026-10-07
 
 ---
 
