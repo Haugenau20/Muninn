@@ -38,7 +38,7 @@
     "firebase": "^13.1.0",
     "jest": "^30.5.2",
     "ts-jest": "^29.4.15",
-    "typescript": "^5.8.2"
+    "typescript": "^7.0.2"
   },
   "private": true
 }
