@@ -22,7 +22,7 @@
     "firebase-functions": "^7.4.0",
     "google-auth-library": "^10.9.1",
     "nodemailer": "^10.1.7",
-    "openai": "^4.104.0"
+    "openai": "^7.45.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",
