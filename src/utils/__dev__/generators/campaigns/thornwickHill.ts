@@ -118,7 +118,11 @@ export const THORNWICK_HILL: CampaignSeed = {
     { id: "stop-mirela-voss", title: "Stop Mirela Voss", status: "active",
       description: "She got away through the other way in. She knows what is behind the door, and she still wants it open.",
       objectives: objectives(0, "Find where she went", "Find out why she wants the door open"),
-      people: ["mirela-voss"] },
+      people: ["mirela-voss"],
+      notes: [
+        "Her boot prints go into the copse and do not come out.",
+        "Agna Bell says a woman bought a lantern and three days' bread the morning after.",
+      ] },
     { id: "the-hermit-s-bargain", title: "The hermit's bargain", status: "active",
       description: "The hermit of Hangman's Copse offered us something for something. We have not decided.",
       objectives: [], people: ["the-hermit"], locationId: "hangman-s-copse" },

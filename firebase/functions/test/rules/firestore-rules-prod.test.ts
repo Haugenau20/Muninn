@@ -1129,18 +1129,21 @@ describe("a campaign holds the app's records, each with its name (T119)", () => 
 });
 
 // T133: a person's, a place's and a rumour's notes are documents of their
-// own, `{record}/{id}/notes/{noteId}`, each capped alone (F3, F4).
+// own, `{record}/{id}/notes/{noteId}`, each capped alone (F3, F4); a quest's
+// too since T163.
 describe("a record's notes are documents of their own (T133)", () => {
   const C = `groups/${G}/campaigns/c1`;
 
   beforeEach(() => env.withSecurityRulesDisabled(async (context) => {
     await context.firestore().doc(`${C}/locations/bree`).set({name: "Bree", parentId: ""});
     await context.firestore().doc(`${C}/rumors/r1`).set({title: "Smoke", content: ""});
+    await context.firestore().doc(`${C}/quests/q1`).set({title: "The ring", objectives: []});
   }));
 
   it.each([
     ["an NPC's", "npcs/n1", {date: "2026-10-09", text: "Owes us a sword"}],
     ["a location's", "locations/bree", {date: "2026-10-09", text: "The Prancing Pony"}],
+    ["a quest's", "quests/q1", {date: "2026-10-31", text: "Took the long road"}],
     ["a rumour's", "rumors/r1", {content: "Rangers about"}],
   ])("control: a member adds, reads, edits and deletes %s note", async (_whose, record, note) => {
     const db = as("frodo");
@@ -1165,9 +1168,9 @@ describe("a record's notes are documents of their own (T133)", () => {
 
   it("refuses notes under a record of a kind that keeps none", async () => {
     await env.withSecurityRulesDisabled((context) =>
-      context.firestore().doc(`${C}/quests/q1`).set({title: "The ring"})
+      context.firestore().doc(`${C}/chapters/ch1`).set({title: "Chapter one", order: 1})
     );
-    await assertFails(as("frodo").doc(`${C}/quests/q1/notes/x1`).set({text: "Junk"}));
+    await assertFails(as("frodo").doc(`${C}/chapters/ch1/notes/x1`).set({text: "Junk", ...created("frodo")}));
     await assertFails(as("frodo").doc(`${C}/anything/a1/notes/x1`).set({text: "Junk"}));
   });
 

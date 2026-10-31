@@ -1,6 +1,6 @@
 // src/features/campaign-entities/quests/context/QuestContext.tsx
 import React, { createContext, useContext, useCallback, useRef } from 'react';
-import { Quest, QuestStatus, QuestContextValue } from '../types';
+import { Quest, QuestStatus, QuestContextValue, QuestNote } from '../types';
 import { DomainData, RecordChange, CreateAlongside } from 'core/types/common';
 import { useQuestData } from '../hooks/useQuestData';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
@@ -14,6 +14,7 @@ import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlin
 import { keyPlaceIsLocation, referencesLocation } from '../../locations/utils/location-display';
 import { moveObjective } from '../utils/quest-presentation';
 import { normaliseObjectives } from '../utils/quest-objectives';
+import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertUnchanged } from 'shared/utils/edit-conflict';
 import { Location } from '../../locations/types';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
@@ -252,6 +253,26 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await writeObjectives(questId, (objectives) => moveObjective(objectives, objectiveId, direction));
   }, [questForObjectiveWrite, writeObjectives]);
 
+  /**
+   * Add a note to the quest, as a document of its own under it (T163), the
+   * way a person's and a place's are (T133).
+   */
+  const addQuestNote = useCallback(async (questId: string, note: QuestNote) => {
+    if (!user || !userProfile) {
+      throw new Error('User must be authenticated to add notes');
+    }
+
+    if (!activeGroupId || !activeCampaignId || !questsPath) {
+      throw new Error('Group and campaign context must be set to add notes');
+    }
+
+    if (!getQuestById(questId)) {
+      throw new Error('Quest not found');
+    }
+
+    await addRecordNote(questsPath, questId, { ...note });
+  }, [user, userProfile, activeGroupId, activeCampaignId, questsPath, getQuestById]);
+
   // Add quest
   const addQuest = useCallback(async (questData: DomainData<Quest>, alongside?: CreateAlongside) => {
     if (!user || !userProfile) {
@@ -312,10 +333,12 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('Group and campaign context must be set to delete quests');
     }
 
+    // Its notes first: a record's subcollection outlives the record.
+    if (questsPath) await deleteRecordNotes(questsPath, [questId]);
     await deleteData(questId);
     // And out of the old halves that still name it (T131).
     await unlinkDeletedQuietly(recordPaths, 'quest', [questId]);
-  }, [user, activeGroupId, activeCampaignId, deleteData, recordPaths]);
+  }, [user, activeGroupId, activeCampaignId, deleteData, recordPaths, questsPath]);
 
   /**
    * Sets the status of several quests in one batch (T017): one round trip, and
@@ -358,6 +381,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('Group and campaign context must be set to delete quests');
     }
 
+    if (questsPath) await deleteRecordNotes(questsPath, questIds);
     await commitEntityWrites<Quest>(questsPath, 'quests', questIds.map(id => ({ type: 'delete' as const, id })));
     await unlinkDeletedQuietly(recordPaths, 'quest', questIds);
   }, [user, activeGroupId, activeCampaignId, questsPath, recordPaths]);
@@ -432,6 +456,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addQuestObjective,
     editQuestObjective,
     moveQuestObjective,
+    addQuestNote,
     addQuest,
     updateQuest,
     deleteQuest,

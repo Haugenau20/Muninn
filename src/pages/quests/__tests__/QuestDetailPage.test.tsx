@@ -101,6 +101,16 @@ const QUEST = {
   dateAdded: '2025-05-31T19:27:30.387Z',
 };
 
+/**
+ * The quest's notes, as their documents (T163). Not in date order, so a page
+ * that shows them as stored would put them the wrong way round.
+ */
+const QUEST_NOTES = [
+  { noteId: 'n-may', date: '2025-05-31', text: 'Found the keyhole at last.', author: 'Zendikarr' },
+  { noteId: 'n-april', date: '2025-04-02', text: 'Thorin will not wait for Durin’s Day.' },
+];
+let mockQuestNotes: any[] | undefined = QUEST_NOTES;
+
 /** A quest made through quick add: a title, a line, and nothing else. */
 const NEW_QUEST = {
   id: 'new-quest',
@@ -146,6 +156,7 @@ const mockAddQuestObjective = jest.fn().mockResolvedValue(undefined);
 const mockEditQuestObjective = jest.fn().mockResolvedValue(undefined);
 const mockMoveQuestObjective = jest.fn().mockResolvedValue(undefined);
 const mockMarkQuestCompleted = jest.fn().mockResolvedValue(undefined);
+const mockAddQuestNote = jest.fn().mockResolvedValue(undefined);
 const mockDeleteQuest = jest.fn().mockResolvedValue(undefined);
 const mockRefreshQuests = jest.fn().mockResolvedValue(undefined);
 const mockCreateLocation = jest.fn().mockResolvedValue('secret-door');
@@ -174,6 +185,7 @@ jest.mock('features/campaign-entities', () => {
       editQuestObjective: mockEditQuestObjective,
       moveQuestObjective: mockMoveQuestObjective,
       markQuestCompleted: mockMarkQuestCompleted,
+      addQuestNote: mockAddQuestNote,
       deleteQuest: mockDeleteQuest,
     }),
     useNPCs: () => ({
@@ -204,6 +216,11 @@ jest.mock('features/campaign-entities', () => {
     DeleteQuestDialog: jest.requireActual(
       'features/campaign-entities/quests/components/DeleteQuestDialog'
     ).default,
+    // A quest's notes are documents of their own (T163); see the mock.
+    ...require('@/test-utils/record-notes-mock').recordNotesMock(),
+    useRecordNotes: jest.fn((_path: string, id?: string) =>
+      id === 'reclaim-erebor' ? mockQuestNotes : undefined
+    ),
   };
 });
 
@@ -258,6 +275,7 @@ beforeEach(() => {
   mockQuestId = 'reclaim-erebor';
   mockRouterState = null;
   mockQuests = [QUEST];
+  mockQuestNotes = QUEST_NOTES;
   mockUser = { uid: 'user-1' };
   mockActiveGroupId = 'group-1';
   mockActiveCampaignId = 'campaign-1';
@@ -1041,5 +1059,93 @@ describe('refreshing after a write', () => {
     });
 
     expect(mockRefreshQuests).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Notes (T163): a quest keeps them as a person and a place do
+// ---------------------------------------------------------------------------
+describe('notes', () => {
+  const notesModule = jest.requireMock('features/campaign-entities');
+  const QUESTS_PATH = 'groups/group-1/campaigns/campaign-1/quests';
+  const composer = () => screen.getByLabelText('Add a note');
+
+  it('reads the notes under this quest', () => {
+    renderPage();
+    expect(notesModule.useRecordNotes).toHaveBeenCalledWith(QUESTS_PATH, 'reclaim-erebor');
+  });
+
+  it('shows each note’s date, text and author, oldest first', () => {
+    renderPage();
+    expect(screen.getByText('Found the keyhole at last.')).toBeInTheDocument();
+    expect(screen.getByText('Zendikarr')).toBeInTheDocument();
+    const dates = screen.getAllByText(/^\d{2}\/\d{2}\/\d{4}$/).map((n) => n.textContent);
+    expect(dates).toEqual(['02/04/2025', '31/05/2025']);
+    expect(screen.getByText(/oldest first/)).toBeInTheDocument();
+  });
+
+  it('offers somewhere to write the first one on a quest with none', () => {
+    mockQuestNotes = [];
+    renderPage();
+    expect(composer()).toBeInTheDocument();
+  });
+
+  it('adds one, dated today and credited to the acting character', async () => {
+    renderPage();
+    fireEvent.change(composer(), { target: { value: 'The thrush knocked.' } });
+    fireEvent.click(screen.getByText('Add note'));
+
+    await waitFor(() => expect(mockAddQuestNote).toHaveBeenCalled());
+    const [questId, note] = mockAddQuestNote.mock.calls[0];
+    expect(questId).toBe('reclaim-erebor');
+    expect(note).toEqual({
+      date: new Date().toISOString().split('T')[0],
+      text: 'The thrush knocked.',
+      author: 'Zendikarr',
+    });
+    // The quest itself is not rewritten, and the listener carries the note.
+    expect(mockUpdateQuest).not.toHaveBeenCalled();
+    expect(mockRefreshQuests).not.toHaveBeenCalled();
+  });
+
+  it('keeps the note and says why when the write is refused', async () => {
+    mockAddQuestNote.mockRejectedValueOnce(new Error('Write refused'));
+    renderPage();
+    fireEvent.change(composer(), { target: { value: 'The thrush knocked.' } });
+    fireEvent.click(screen.getByText('Add note'));
+
+    expect(await screen.findByText('Write refused')).toBeInTheDocument();
+    expect(composer()).toHaveValue('The thrush knocked.');
+  });
+
+  it('edits a note in its own document, from the text it was opened with', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit the note from 31/05/2025' }));
+    fireEvent.change(screen.getByLabelText('Note from 31/05/2025'), {
+      target: { value: 'Found the keyhole on Durin’s Day.' },
+    });
+    fireEvent.click(screen.getByText('Save note'));
+
+    await waitFor(() => expect(notesModule.editRecordNote).toHaveBeenCalled());
+    expect(notesModule.editRecordNote).toHaveBeenCalledWith(
+      QUESTS_PATH,
+      'reclaim-erebor',
+      'n-may',
+      'text',
+      'Found the keyhole at last.',
+      'Found the keyhole on Durin’s Day.'
+    );
+    expect(mockUpdateQuest).not.toHaveBeenCalled();
+  });
+
+  it('deletes a note only once the delete is confirmed', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete the note from 02/04/2025' }));
+    expect(notesModule.deleteRecordNote).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete note' }));
+    await waitFor(() => expect(notesModule.deleteRecordNote).toHaveBeenCalled());
+    expect(notesModule.deleteRecordNote).toHaveBeenCalledWith(QUESTS_PATH, 'reclaim-erebor', 'n-april');
+    expect(mockDeleteQuest).not.toHaveBeenCalled();
   });
 });

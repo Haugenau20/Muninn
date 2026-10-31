@@ -1,6 +1,7 @@
 // src/features/campaign-entities/quests/types.ts
 import { BaseContent, DomainData, RecordChange, CreateAlongside } from 'core/types/common';
 import { Location } from '../locations/types';
+import type { EntityNote } from 'shared/utils/entity-notes';
 
 export type QuestStatus = 'active' | 'completed' | 'failed';
 
@@ -24,6 +25,12 @@ export interface QuestLocation {
    */
   locationId?: string;
 }
+
+/**
+ * A note on a quest, a document of its own under it (`quests/{id}/notes`,
+ * T163), in the shape a person's and a place's notes take.
+ */
+export type QuestNote = EntityNote;
 
 /**
  * Represents a quest in the game world
@@ -98,6 +105,8 @@ export interface QuestContextValue extends QuestContextState {
    */
   editQuestObjective: (questId: string, objectiveId: string, description: string, openedWith?: string) => Promise<void>;
   moveQuestObjective: (questId: string, objectiveId: string, direction: 'up' | 'down') => Promise<void>;
+  /** Add a note to the quest, as a document of its own (T163). */
+  addQuestNote: (questId: string, note: QuestNote) => Promise<void>;
   /** `alongside`: a change to another record that commits with this one (T088). */
   addQuest: (quest: DomainData<Quest>, alongside?: CreateAlongside) => Promise<string>;
   /**
