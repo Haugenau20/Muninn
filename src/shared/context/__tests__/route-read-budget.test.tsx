@@ -2,6 +2,9 @@
 import React from "react";
 import { render, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+// `jest.mock` is hoisted above these, so the provider is built on the fakes.
+import { PrivateRecordsProvider } from "@/features/campaign-entities/shared/private/PrivateRecordsContext";
+import { LISTENER_LINGER_MS } from "@/shared/hooks/useListenerDemand";
 
 /**
  * What a route that reads no campaign data costs (T032, `PERF-03`).
@@ -16,6 +19,10 @@ import { MemoryRouter } from "react-router-dom";
  *
  * The providers below are the real ones, nested as in `App.tsx`; only the
  * Firestore layer and the usage service are counted fakes.
+ *
+ * The author's private records (T163) are part of every list, so their five
+ * listeners open with the lists and close with them -- never on a page that
+ * reads none.
  */
 
 const mockSubscribeToCollection = jest.fn();
@@ -79,7 +86,7 @@ jest.mock("features/collaboration/entity-extraction/services/EntityExtractionSer
   },
 }));
 
-import { NPCProvider } from "@/features/campaign-entities/npcs/context/NPCContext";
+import { NPCProvider, useNPCs } from "@/features/campaign-entities/npcs/context/NPCContext";
 import { LocationProvider } from "@/features/campaign-entities/locations/context/LocationContext";
 import { StoryProvider } from "@/features/storytelling/chapters/context/StoryContext";
 import { RumorProvider } from "@/features/campaign-entities/rumors/context/RumorContext";
@@ -94,6 +101,7 @@ import { useCreateRumor } from "@/features/campaign-entities/rumors/hooks/useCre
 /** The data providers, nested as `App.tsx` nests them. */
 const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>
+    <PrivateRecordsProvider>
     <NPCProvider>
       <LocationProvider>
         <StoryProvider>
@@ -109,6 +117,7 @@ const Providers: React.FC<{ children: React.ReactNode }> = ({ children }) => (
         </StoryProvider>
       </LocationProvider>
     </NPCProvider>
+    </PrivateRecordsProvider>
   </MemoryRouter>
 );
 
@@ -128,6 +137,21 @@ const HeaderCreateActions: React.FC = () => {
   useCreateRumor();
   return null;
 };
+
+/** A page that reads the people list, as the NPC page does. */
+const PeoplePage: React.FC = () => {
+  useNPCs();
+  return null;
+};
+
+/** The author's private lists and held links, each one listener. */
+const PRIVATE = [
+  "groups/group-1/users/user-1/private/campaign-1/links",
+  "groups/group-1/users/user-1/private/campaign-1/locations",
+  "groups/group-1/users/user-1/private/campaign-1/npcs",
+  "groups/group-1/users/user-1/private/campaign-1/quests",
+  "groups/group-1/users/user-1/private/campaign-1/rumors",
+];
 
 /** Let mount effects and first snapshots settle. */
 const settle = () =>
@@ -184,8 +208,48 @@ test("opening the search opens one listener per collection it searches", async (
       "groups/group-1/campaigns/campaign-1/quests",
       "groups/group-1/campaigns/campaign-1/rumors",
       "groups/group-1/users/user-1/notes",
+      ...PRIVATE,
     ])
   );
   expect(mockGetCollection).not.toHaveBeenCalled();
   expect(mockFetchUsageStatus).not.toHaveBeenCalled();
+});
+
+test("a page reading one list opens the author's private lists with it, and they close with it", async () => {
+  jest.useFakeTimers();
+  try {
+    const closed = new Map<string, jest.Mock>();
+    mockSubscribeToCollection.mockImplementation((path: string, onNext: (d: unknown[]) => void) => {
+      Promise.resolve().then(() => onNext([]));
+      const unsubscribe = jest.fn();
+      closed.set(path, unsubscribe);
+      return unsubscribe;
+    });
+    const { rerender } = render(
+      <Providers>
+        <PeoplePage />
+      </Providers>
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Every kind's, not only the people's: what is private is decided across
+    // kinds, so a private place must not pass for a shared one on this page.
+    expect([...listened()].sort()).toEqual(["groups/group-1/campaigns/campaign-1/npcs", ...PRIVATE].sort());
+
+    // They linger as the people list does, so a quick return to the page
+    // pays for neither again, and close when it closes.
+    rerender(<Providers>{null}</Providers>);
+    act(() => {
+      jest.advanceTimersByTime(LISTENER_LINGER_MS - 1000);
+    });
+    for (const path of PRIVATE) expect(closed.get(path)).not.toHaveBeenCalled();
+    act(() => {
+      jest.advanceTimersByTime(1001);
+    });
+    for (const path of PRIVATE) expect(closed.get(path)).toHaveBeenCalled();
+  } finally {
+    jest.useRealTimers();
+  }
 });

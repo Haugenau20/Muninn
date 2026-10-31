@@ -38,7 +38,7 @@ export function useMergeIntoRecord() {
   const { npc, location, quest, rumor } = paths;
   const { activeGroupUserProfile } = useUser();
   // Into one of the author's private records, it stays in their space (T163).
-  const { isPrivate, paths: privatePaths } = usePrivateRecords();
+  const { isPrivate, paths: privatePaths } = usePrivateRecords({ subscribe: false });
 
   return useCallback(
     async (

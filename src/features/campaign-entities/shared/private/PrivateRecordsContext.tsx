@@ -2,6 +2,8 @@
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { campaignCollectionPath, privateCollectionPath } from 'core/services/firebase/data/campaignCollectionPath';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
+import { useListenerDemand, useRetainListener } from 'shared/hooks/useListenerDemand';
+import type { ListReaderOptions, RetainListener } from 'shared/hooks/useListenerDemand';
 import { getActiveCharacterName, getUserName } from 'core/utils/user-utils';
 import { useAuth, useUser, useGroups, useCampaigns } from 'features/user-management';
 import {
@@ -25,8 +27,13 @@ import type { SameNameKind } from '../sameName';
  * lives. A private record never appears in a shared document: a link whose
  * owner is shared is held here (`links`) instead, and written on publish.
  *
- * Each list is the author's own, so a listener on it costs its few
- * documents; they open with the campaign.
+ * Their five listeners (four kinds and the held links) open only while
+ * something reads them (T032, `PERF-03`), and all together: each kind's
+ * provider holds them open while its own list is open, and so does any
+ * component reading them. All five, because what is private is decided
+ * across kinds -- a link's other end, a publish's chain, a rekey's
+ * references -- and a private place must not pass for a shared one because
+ * only the people list is open. A page reading no list opens none of them.
  */
 
 /** The kinds of record that can be private. */
@@ -115,6 +122,9 @@ const PrivateRecordsContext = createContext<PrivateRecordsValue>(EMPTY);
  */
 export const PrivateRecordsValueProvider = PrivateRecordsContext.Provider;
 
+/** Who wants the private listeners open; none outside a provider. */
+const PrivateDemandContext = createContext<RetainListener | undefined>(undefined);
+
 const mark = (docs: Array<Record<string, any>>): PrivateDoc[] =>
   docs.map((doc) => ({ ...doc, isPrivate: true }) as PrivateDoc);
 
@@ -135,11 +145,18 @@ export const PrivateRecordsProvider: React.FC<{ children: React.ReactNode }> = (
     links: pathOf('links'),
   };
 
-  const npcs = useFirebaseData<Record<string, any>>({ collection: paths.npc, subscribeTo: paths.npc });
-  const locations = useFirebaseData<Record<string, any>>({ collection: paths.location, subscribeTo: paths.location });
-  const quests = useFirebaseData<Record<string, any>>({ collection: paths.quest, subscribeTo: paths.quest });
-  const rumors = useFirebaseData<Record<string, any>>({ collection: paths.rumor, subscribeTo: paths.rumor });
-  const held = useFirebaseData<Record<string, any>>({ collection: paths.links, subscribeTo: paths.links });
+  // No linger of its own: everything reading them reads a list too, which
+  // lingers already, so they close when the last list does.
+  const demand = useListenerDemand(0);
+  const listen = (path: string | null) => (demand.wanted ? path : null);
+  const npcs = useFirebaseData<Record<string, any>>({ collection: paths.npc, subscribeTo: listen(paths.npc) });
+  const locations = useFirebaseData<Record<string, any>>({
+    collection: paths.location,
+    subscribeTo: listen(paths.location),
+  });
+  const quests = useFirebaseData<Record<string, any>>({ collection: paths.quest, subscribeTo: listen(paths.quest) });
+  const rumors = useFirebaseData<Record<string, any>>({ collection: paths.rumor, subscribeTo: listen(paths.rumor) });
+  const held = useFirebaseData<Record<string, any>>({ collection: paths.links, subscribeTo: listen(paths.links) });
 
   const records = useMemo(
     () => ({
@@ -206,8 +223,28 @@ export const PrivateRecordsProvider: React.FC<{ children: React.ReactNode }> = (
     ]
   );
 
-  return <PrivateRecordsContext.Provider value={value}>{children}</PrivateRecordsContext.Provider>;
+  return (
+    <PrivateDemandContext.Provider value={demand.retain}>
+      <PrivateRecordsContext.Provider value={value}>{children}</PrivateRecordsContext.Provider>
+    </PrivateDemandContext.Provider>
+  );
 };
 
-/** The author's private records, or none outside a provider. */
-export const usePrivateRecords = (): PrivateRecordsValue => useContext(PrivateRecordsContext);
+/**
+ * The author's private records, or none outside a provider. Holds their
+ * listeners open while mounted, unless `subscribe` is false: a provider
+ * above the router, which reads them only while its own list is open,
+ * passes false and holds them with `useHoldPrivateRecords`.
+ */
+export const usePrivateRecords = ({ subscribe = true }: ListReaderOptions = {}): PrivateRecordsValue => {
+  useRetainListener(useContext(PrivateDemandContext), subscribe);
+  return useContext(PrivateRecordsContext);
+};
+
+/**
+ * Holds the private listeners open while `wanted`: a kind's provider passes
+ * whether its own list is open, since the private records are part of it.
+ */
+export const useHoldPrivateRecords = (wanted: boolean): void => {
+  useRetainListener(useContext(PrivateDemandContext), wanted);
+};

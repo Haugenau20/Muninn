@@ -18,6 +18,7 @@ import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlin
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
+import { useHoldPrivateRecords } from '../../shared/private/PrivateRecordsContext';
 import { releaseImage } from 'shared/hooks/useImageAttachment';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
 
@@ -45,6 +46,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // client's own writes before their promises resolve -- so nothing below
   // patches it after a write, or asks for a re-read.
   const demand = useListenerDemand();
+  // The author's private records are part of this list: open with it (T163).
+  useHoldPrivateRecords(demand.wanted);
   const { locations, loading, error, refreshLocations, hasRequiredContext } = useLocationData({ enabled: demand.wanted });
   const { user } = useAuth();
   const { userProfile, activeGroupUserProfile } = useUser();

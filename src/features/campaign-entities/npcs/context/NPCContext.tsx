@@ -14,6 +14,7 @@ import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlin
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
+import { useHoldPrivateRecords } from '../../shared/private/PrivateRecordsContext';
 import { releaseImage } from 'shared/hooks/useImageAttachment';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
 
@@ -36,6 +37,8 @@ const { DemandProvider: NPCDemandProvider, useDemand: useNPCDemand } = createLis
 export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Use the NPCData hook for basic CRUD operations
   const demand = useListenerDemand();
+  // The author's private records are part of this list: open with it (T163).
+  useHoldPrivateRecords(demand.wanted);
   const { npcs, loading, error, refreshNPCs, hasRequiredContext } = useNPCData({ enabled: demand.wanted });
   const { user } = useAuth();
   const { userProfile, activeGroupUserProfile } = useUser();

@@ -45,7 +45,7 @@ function unmarked<F>(fields: F): F {
  * @param shared The context's writers for that collection
  */
 export function usePrivateRouting<T extends Record<string, any>>(kind: PrivateKind, sharedPath: string | null, shared: RecordWriters<T>) {
-  const { isPrivate, paths, links } = usePrivateRecords();
+  const { isPrivate, paths, links } = usePrivateRecords({ subscribe: false });
   const privatePath = paths[kind];
   const own = useFirebaseData<T>({ collection: privatePath, autoFetch: false });
 
