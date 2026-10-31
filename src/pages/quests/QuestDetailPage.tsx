@@ -23,16 +23,22 @@ import {
   createLinkActions,
   npcIdsOfQuest,
   locationIdsOfNpc,
+  useRecordNotes,
+  editRecordNote,
+  deleteRecordNote,
 } from 'features/campaign-entities';
-import type { Quest, QuestStatus, QuestLocation } from 'features/campaign-entities';
+import type { Quest, QuestStatus, QuestLocation, QuestNote, StoredNote } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
 import { useNotes, displayTitle as noteDisplayTitle } from 'features/collaboration';
+import { useUser } from 'features/user-management';
+import { getUserName, getActiveCharacterName } from 'core/utils/user-utils';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
   EntityFact,
+  EntityNotes,
   EntityPageShell,
   EntityPageSection,
   EntityProse,
@@ -40,7 +46,7 @@ import {
 } from 'shared/components/entity-page';
 import { usePageGate, GatedContent } from 'shared/components/gated';
 import { useNavigation } from 'shared/context/NavigationContext';
-import { formatNoteDate } from 'shared/utils/dateFormatter';
+import { formatNoteDate, toNoteDate } from 'shared/utils/dateFormatter';
 import { InlineEditor } from 'shared/components/inline-edit';
 import { editedText } from 'shared/utils/edit-conflict';
 import { useInlineEditing } from 'shared/hooks/useInlineEditing';
@@ -155,6 +161,7 @@ const QuestDetailPage: React.FC = () => {
     editQuestObjective,
     moveQuestObjective,
     markQuestCompleted,
+    addQuestNote,
     deleteQuest,
   } = useQuests();
   const { npcs, updateNPC } = useNPCs();
@@ -162,6 +169,10 @@ const QuestDetailPage: React.FC = () => {
   const questsPath = useCampaignCollectionPath('quests');
   const { rumors, updateRumor } = useRumors();
   const { notes } = useNotes();
+  const { activeGroupUserProfile } = useUser();
+  // The quest's own notes, documents under it (T163); `notes` above are the
+  // player's session notes, read for what points here.
+  const questNotes = useRecordNotes<QuestNote>(questsPath, questId);
 
   const quest = quests.find((candidate) => candidate.id === questId);
 
@@ -309,6 +320,34 @@ const QuestDetailPage: React.FC = () => {
   }, [inbound, people]);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const addNote = async (text: string) => {
+    if (!quest) return;
+    // The acting character, or their username when they have no character --
+    // the same actor `core/attribution` credits for the record itself.
+    const author =
+      getActiveCharacterName(activeGroupUserProfile) ||
+      getUserName(activeGroupUserProfile) ||
+      undefined;
+    await addQuestNote(quest.id, {
+      date: toNoteDate(),
+      text,
+      ...(author ? { author } : {}),
+    });
+  };
+
+  /**
+   * A note is changed in its own document; one another player changed first
+   * is refused rather than overwritten (T083).
+   */
+  const editNote = async (note: StoredNote<QuestNote>, text: string) => {
+    if (!questsPath || !quest) return;
+    await editRecordNote(questsPath, quest.id, note.noteId, 'text', note.text, text);
+  };
+  const deleteNote = async (note: StoredNote<QuestNote>) => {
+    if (!questsPath || !quest) return;
+    await deleteRecordNote(questsPath, quest.id, note.noteId);
+  };
 
   // Every write re-reads the collection rather than patching state locally: if
   // another player changed the same record first, the refetch is where that
@@ -955,6 +994,15 @@ const QuestDetailPage: React.FC = () => {
             </Typography>
           </EntityPageSection>
 
+          {/* --------------------------------- notes -------------------------------- */}
+          <EntityNotes
+            notes={questNotes}
+            canEdit={canAct}
+            onAdd={addNote}
+            onEdit={editNote}
+            onDelete={deleteNote}
+            placeholder="What happened on this quest, and when"
+          />
         </EntityPageShell>
       )}
 

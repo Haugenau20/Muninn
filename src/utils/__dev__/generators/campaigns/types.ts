@@ -80,6 +80,7 @@ export interface QuestSeed {
   rewards?: string[];
   locationId?: string;
   levelRange?: string;
+  notes?: string[];
   by?: string;
 }
 

@@ -68,6 +68,7 @@ from each entry's summary alone: a judgement, not a measurement.
 | low | T055 | Opt-in second factor | security | M | needs scoping | Kept for later, not now (2026-10-02); prefer an authenticator app over SMS |
 | low | T111 | Is it worth expanding the notes feature? | feature | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | ux | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
+| low | T163 | Private people, places, quests and rumours, published later | feature | L | open | Scoped 2026-10-31: author-only, one-way publish, a private space moved on publish; four PRs: quest notes, "already exists", private records, private pictures |
 
 ### Waiting on the maintainer
 
@@ -762,6 +763,142 @@ important**.
   sketches session templates and collaborative editing for notes (ideas only,
   nothing built).
 - **Source**: todo.txt, 2026-10-06; sharing, todo.txt, 2026-10-10
+
+### T163 — Private people, places, quests and rumours, published later
+**Category** feature · **Size** L · **Status** open · **Verified** 2026-10-31
+
+A player who plays a one-to-one session with the DM wants to record what
+happened there (a person met, a place found, a quest or rumour picked up)
+without the rest of the group seeing it, and to publish it to everyone later.
+
+- **Decided** (maintainer, 2026-10-31): private means **the author alone**;
+  sharing with chosen players is out until someone asks for it. Only the author
+  publishes. **Publishing cannot be undone**; deleting the record stays the way
+  out. Every way of adding one of the four kinds gets a "Private" checkbox:
+  quick add (`shared/components/quick-add/`), the create forms, and the "Add"
+  on an extraction's suggestions (extraction itself creates nothing). Pictures
+  on private records are wanted if they are not too costly (below).
+  Rumours: a private rumour cannot be combined with a shared one; private
+  rumours combine into a private rumour (`RumorContext.tsx`, `combineRumors`).
+  Converting to a quest (`convertToQuest`) follows the same rule: private
+  rumours convert into a private quest, and **private and shared rumours are
+  never mixed**, in either action (maintainer: too complex for now; revisit
+  only if someone asks). A conversion deletes nothing but writes into every
+  rumour: `convertedToQuestId` and a note "Converted to quest: {id}"
+  (`RumorContext.tsx:368`), which the rumour list shows as a mark
+  (`RumorRowView.tsx:60`) and the quest's page reads back
+  (`QuestDetailPage.tsx:267`). Both name the quest, and the id is its title's
+  slug; "Combined into rumour: {id}" on a combined rumour's sources, and
+  "Combined from rumours: {ids}" on the combined one, do the same. So
+  **records joined by a conversion or a combine publish together**
+  (maintainer, 2026-10-31): publishing any of them publishes the whole chain,
+  followed both ways (a combined rumour later converted brings its sources and
+  the quest), in one transaction, with marks and notes as they are. A
+  confirmation names every record that goes before anything is written. One
+  of them cannot be published alone; holding the marks and notes back
+  instead was weighed and left for a request. Ordinary links do not group
+  records: they are held (below). **Chapters get no private option**; maybe
+  one day, but no case for it today.
+- **Measured**: every campaign record is readable by any group member
+  (`firestore.rules.prod:836`), and each list is one listener on the whole
+  collection with no query constraints (`shared/hooks/useCampaignCollection.ts:32`,
+  through `DocumentService.subscribeToCollection`, `:627`). Rules do not filter
+  a query, so a "private" field on today's documents hides nothing: either the
+  read rule and every listener change together, or private records live
+  somewhere else (as notes do, under `groups/{g}/users/{u}/notes`, `:698`).
+- **Design: a private space, moved on publish.** Private records live under
+  `groups/{g}/users/{u}/private/{campaignId}/{npcs|locations|quests|rumors}/{id}`,
+  owner-only like notes, with their notes beneath them. The shared rules and
+  listeners stay as they are; each list adds a listener on the author's own
+  private records and merges them, marked private, on screen. Publishing is
+  one client transaction: create the shared record **under the same id** (the
+  existing create rule checks it, so `createdAt` becomes the publish time),
+  recreate its notes under it (`existsAfter` allows that in the same commit),
+  write its held links (next point) onto their owners, delete the private copy.
+  One-way publishing is what makes a move sound: moving back would take other
+  players' notes into a space they cannot read, and their devices' offline
+  caches would keep the record anyway.
+  A visibility field on today's records (the other way) was weighed and
+  dropped: it changes every list read and the busiest rule, needs every
+  record migrated first and two PRs in deploy order. It is the better design
+  only for sharing with chosen players.
+- **Links.** Each link is stored once, on its owner
+  (`campaign-entities/shared/links.ts:12-22`), so a private person linked to a
+  shared quest would put that person's id in the quest everyone reads, and
+  writes keep ids the writer cannot see (`linkActions.ts:61`). So a link whose
+  owner is shared is **held on the private record** and written to the owner
+  on publish. Publishing one of two linked private records moves the link the
+  other way: out of the published owner, into the one still private.
+- **Places.** A private place may sit under a shared one; a shared place may
+  not sit under a private one, so publishing a place whose parent is still
+  private publishes the parent first or is refused. A shared parent deleted
+  by someone who cannot see a private child (`firestore.rules.prod:423`)
+  leaves that child top-level for its author.
+- **Deletion.** Leaving the group and account deletion take the private space
+  with the group profile (`deleteUserSubtree.ts`, a `recursiveDelete`).
+  Campaign deletion needs a line per member beside the notes it already
+  deletes (`campaignDeletion.ts:71`). T158 is what a missed cascade costs.
+- **Pictures, the costly part.** Storage lets any member read a record's
+  picture (`storage.rules.prod:85`), so a private one needs an owner-only path
+  (`groups/{g}/users/{u}/campaigns/{c}/…`), and publishing needs the file at
+  the shared path. The client cannot copy it cheaply: no CORS setup is in the
+  repo, so it would have to download and re-upload. A small callable would copy
+  it server-side and record a `pendingUploads` entry for the new path, so the
+  publish transaction passes `imageLeased` unchanged. The sweep already finds
+  private records' pictures (`collectionGroup("npcs")`,
+  `sweepOrphanedImages.ts:128`) but must learn the new path (`IMAGE_PATH`,
+  `:18`), and account and campaign deletion must delete that prefix (account
+  deletion deletes no files today). Doable, but a stacked PR of its own,
+  after private records without pictures; a new callable needs a suite and
+  the operator approval after merge.
+- **Ids are slugs of the name** (`core/utils/entity-id.ts`: "Odile Marrow" is
+  `odile-marrow`), so a private id names its record: one more reason no
+  shared document may hold it. A private record takes a slug free in both
+  the shared list and the author's private list. A player who cannot see it
+  can still take that slug for a shared record before it is published, so the
+  publish transaction creates only if absent (`createDocumentIfAbsent`). When
+  the slug is taken, the published record gets the next free one (`-2`, as on
+  any collision), and the same transaction rewrites the old id in the
+  author's private records and held links, and in the marks and notes of the
+  records published with it. All of those are the author's own,
+  so nothing another player wrote needs changing; only the record's URL does.
+- **"Already exists"** (maintainer, 2026-10-31), for all four kinds. Today a
+  second shared "Grog" is created without a word as `grog-2`
+  (`createWithUniqueEntityId`, used by the four contexts); no create path
+  warns. So creating or publishing a record whose name matches one already
+  shared (case and punctuation ignored, `normalizeTextForComparison`) stops
+  at a dialog: "A Grog already exists", a link to open it, and three actions.
+  **Add what you know to it**: lists (links, affiliations, objectives) are
+  joined, fields it leaves empty are filled, a field both fill differently
+  goes into a note signed by the writer, the newcomer's notes move under
+  it, and nothing the existing record holds is overwritten; the dialog lists
+  what will be added first. **Create (or publish) as someone else**: a name
+  field, prefilled; keeping the name is allowed and gives `-2`, on purpose.
+  **Cancel**. It covers quick add, the create forms, an extraction's "Add",
+  and the titles a combine and a conversion give. The client checks against
+  the list it holds; a write refused because the id was taken a moment ago
+  opens the same dialog instead of falling to `-2`. Creating a *private*
+  record whose name is shared offers opening it or going ahead, not adding
+  to it, which would publish. In a publish-together group, each colliding
+  record gets its own answer; adding one to an existing record points the
+  group's marks at it, through the id rewrite above.
+- **Quests get notes** (maintainer, 2026-10-31), like the other three kinds,
+  so the merge works the same for all four and the kinds share one logic.
+  Today `hasNotes` (`firestore.rules.prod:461`) covers people, places and
+  rumours only. The pieces are there: `shared/recordNotes.ts` holds a
+  record's notes as documents (`{kind}/{id}/notes`, T133), and the NPC
+  context adds and deletes them through it (`NPCContext.tsx:173`). Quests
+  need `quests` in `hasNotes` (a note's text is `text`, as a person's), the
+  quest context's add and delete, and a notes section on the quest's page.
+  The rule only widens, and a merge deploys rules before Hosting, so it
+  ships in one PR.
+- **Order**: four PRs, stacked. (1) Notes on quests. (2) "Already exists"
+  for shared records, which helps without privacy and builds the merge the
+  publish reuses. (3) Private records: the private space, the checkbox,
+  listeners, publish with its groups, held links and id rewrite. (4) Private
+  pictures.
+- **Related**: T111's "sharing a note" is the same move for notes.
+- **Source**: todo.txt, 2026-10-31; scoped with the maintainer, 2026-10-31
 
 ---
 

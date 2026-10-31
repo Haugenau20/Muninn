@@ -43,7 +43,7 @@ export type { ObjectiveProgress } from './quests/utils/quest-presentation';
 // extractor sends `string[]`, and bare strings used to reach Firestore.
 export { normaliseObjectives } from './quests/utils/quest-objectives';
 // Quest types
-export type { Quest, QuestStatus, QuestObjective, QuestLocation, QuestContextState, QuestContextValue } from './quests/types';
+export type { Quest, QuestStatus, QuestObjective, QuestLocation, QuestNote, QuestContextState, QuestContextValue } from './quests/types';
 
 // Location context and hooks
 export { LocationProvider, useLocations } from './locations/context/LocationContext';
