@@ -205,6 +205,25 @@ describe('useRecordNotes', () => {
     expect(result.current!.map((note) => note.text)).toEqual(['first, moved from the array', 'second', 'third, still pending']);
   });
 
+  // T163: a note moved with its record is created again by the move, at one
+  // moment; the time it was first written, kept in `recordedAt`, orders it.
+  it('orders notes moved with their record by when they were first written', () => {
+    const at = (iso: string) => ({ toDate: () => new Date(iso) });
+    const moved = at('2026-10-31T12:00:00.000Z');
+    const { result } = renderHook(() => useRecordNotes<{ text: string }>(NPCS, 'aldric'));
+
+    act(() =>
+      mockListeners[0].onNext([
+        { id: 'z', text: 'last', createdAt: moved, recordedAt: at('2026-10-20T00:00:00.000Z') },
+        { id: 'a', text: 'first', createdAt: moved, recordedAt: at('2026-10-01T00:00:00.000Z') },
+        { id: 'k', text: 'written after the move', createdAt: at('2026-10-31T13:00:00.000Z') },
+        { id: 'm', text: 'middle', createdAt: moved, recordedAt: at('2026-10-10T00:00:00.000Z') },
+      ])
+    );
+
+    expect(result.current!.map((note) => note.text)).toEqual(['first', 'middle', 'last', 'written after the move']);
+  });
+
   it('reads nothing without a campaign or a record', () => {
     renderHook(() => useRecordNotes(null, 'aldric'));
     renderHook(() => useRecordNotes(NPCS, undefined));

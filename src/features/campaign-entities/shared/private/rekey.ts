@@ -4,11 +4,61 @@ import { notesPathOf } from '../recordNotes';
 import { rewriteIds } from './idFields';
 import type { HeldLink, MoveStamps, PrivateDoc, PrivateKind } from './PrivateRecordsContext';
 
+type BatchOp = { type: 'set' | 'update' | 'delete'; collection: string; id: string; data?: unknown };
+
 /** What the author's private space holds, as their client reads it. */
 export interface PrivateSpace {
   paths: Record<PrivateKind | 'links', string | null>;
-  records: Record<PrivateKind, PrivateDoc[]>;
+  records: Record<PrivateKind, readonly PrivateDoc[]>;
   links: readonly HeldLink[];
+  /** Their session notes, whose extraction marks name records by id. */
+  sessionNotes?: { path: string | null; campaignId: string | null };
+}
+
+/**
+ * A moved note's fields: as stored, with the time it was first written kept
+ * in `recordedAt`. The move stamps it created now, as the rules require, and
+ * the notes are read back in the order `recordedAt` gives (`recordNotes.ts`),
+ * so a moved record's notes keep theirs.
+ */
+export function movedNote(note: Record<string, unknown>): Record<string, unknown> {
+  const recordedAt = note.recordedAt ?? note.createdAt ?? note.dateAdded;
+  return { ...storedFields(note), ...(recordedAt ? { recordedAt } : {}) };
+}
+
+/**
+ * The writes that move the author's session notes' extraction marks from
+ * old ids to new ones: a note turned into a record keeps pointing at it,
+ * rather than at whatever now carries the old id -- possibly another
+ * player's record. Their notes alone; one read of this campaign's.
+ *
+ * @param space The author's private space, with their session notes' place
+ * @param renamed Each record whose id changes
+ */
+export async function sessionNoteMarkWrites(
+  space: PrivateSpace,
+  renamed: ReadonlyArray<{ kind: PrivateKind; oldId: string; newId: string }>
+): Promise<BatchOp[]> {
+  const path = space.sessionNotes?.path;
+  const campaignId = space.sessionNotes?.campaignId;
+  const changes = renamed.filter(({ oldId, newId }) => oldId !== newId);
+  if (!path || !campaignId || changes.length === 0) return [];
+
+  const notes = await firebaseServices.document.queryFromServer<{ extractedEntities?: Array<Record<string, unknown>> }>(
+    path, 'campaignId', campaignId
+  );
+  const ops: BatchOp[] = [];
+  for (const note of notes) {
+    let changed = false;
+    const extractedEntities = (note.extractedEntities ?? []).map((entity) => {
+      const rename = changes.find(({ kind, oldId }) => entity.type === kind && entity.convertedToId === oldId);
+      if (!rename) return entity;
+      changed = true;
+      return { ...entity, convertedToId: rename.newId };
+    });
+    if (changed) ops.push({ type: 'update', collection: path, id: note.id, data: { extractedEntities } });
+  }
+  return ops;
 }
 
 /** A record's fields as stored: without its id, its in-memory mark and its stamps. */
@@ -24,8 +74,6 @@ export function storedFields(record: Record<string, unknown>): Record<string, un
   } = record;
   return fields;
 }
-
-type BatchOp = { type: 'set' | 'update' | 'delete'; collection: string; id: string; data?: unknown };
 
 /**
  * The writes that rename one of the author's private records everywhere they
@@ -61,7 +109,7 @@ export async function rekeyWrites(
       type: 'set' as const,
       collection: notesPathOf(path, newId),
       id: note.id as string,
-      data: { ...storedFields(note), ...stamps.creation },
+      data: { ...movedNote(note), ...stamps.creation },
     })),
     ...notes.map((note) => ({ type: 'delete' as const, collection: notesPathOf(path, oldId), id: note.id as string })),
     { type: 'delete', collection: path, id: oldId },
@@ -86,6 +134,9 @@ export async function rekeyWrites(
     ops.push({ type: 'delete', collection: linksPath, id: link.id });
     ops.push({ type: 'set', collection: linksPath, id: crypto.randomUUID(), data: { from, to, createdAt: stamps.creation.createdAt } });
   }
+
+  // And the session notes that were turned into it.
+  ops.push(...(await sessionNoteMarkWrites(space, [{ kind, oldId, newId }])));
 
   return ops;
 }
