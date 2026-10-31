@@ -36,6 +36,7 @@ import { useUser } from 'features/user-management';
 import { getUserName, getActiveCharacterName } from 'core/utils/user-utils';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
@@ -449,6 +450,7 @@ const QuestDetailPage: React.FC = () => {
           breadcrumb={[{ label: 'Quests', href: '/quests' }, { label: quest.title }]}
           entityId={quest.id}
           name={quest.title}
+          notice={quest.isPrivate ? <PrivateNotice /> : undefined}
           heading={
             editing === 'title' ? (
               <InlineEditor

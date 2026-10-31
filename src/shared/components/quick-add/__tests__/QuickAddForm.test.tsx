@@ -23,6 +23,8 @@ const mockAddQuest = jest.fn();
 const mockCreateLocation = jest.fn();
 const mockMergeIntoRecord = jest.fn();
 const mockHold = jest.fn();
+/** The author's private records as the form reads them: none unless a test says. */
+let mockPrivateRecords: { isPrivate: (kind: string, id: string) => boolean } = { isPrivate: () => false };
 /*
   `convertInto` hands the create the note's mark to commit with (T088). The
   stand-in passes a token through, so a test can see the record's write
@@ -80,8 +82,7 @@ jest.mock("features/campaign-entities", () => ({
   useMergeIntoRecord: () => mockMergeIntoRecord,
   // Private records (T163): the real context, which holds none without its
   // provider, and a stand-in for holding a link.
-  usePrivateRecords: jest.requireActual("features/campaign-entities/shared/private/PrivateRecordsContext")
-    .usePrivateRecords,
+  usePrivateRecords: () => mockPrivateRecords,
   useLinkPrivacy: () => ({ isPrivate: () => false, hold: mockHold, release: jest.fn() }),
 }));
 
@@ -111,6 +112,7 @@ const createAndAddAnother = () =>
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPrivateRecords = { isPrivate: () => false };
   mockAddNPC.mockResolvedValue("npc-1");
   mockAddQuest.mockResolvedValue("quest-1");
   mockCreateLocation.mockResolvedValue("location-1");
@@ -719,5 +721,64 @@ describe("QuickAddForm -- already exists", () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/npcs/npc-frodo"));
     expect(onCreated).toHaveBeenCalledWith("npc-frodo");
     expect(mockMergeIntoRecord).not.toHaveBeenCalled();
+  });
+});
+
+// T163: "Private" on every way of adding one -- only its author sees it
+// until they publish it.
+describe("QuickAddForm -- private", () => {
+  const { SameNameError } = jest.requireActual("features/campaign-entities/shared/sameName");
+  const privateBox = () => screen.getByRole("checkbox", { name: /private/i });
+
+  it("creates in the author's private space when ticked", async () => {
+    renderForm();
+    await userEvent.click(privateBox());
+    await userEvent.type(nameField(), "Gollum");
+    await userEvent.type(lineField(), "Lives under the mountain");
+    await userEvent.click(createAndOpen());
+
+    await waitFor(() =>
+      expect(mockAddNPC).toHaveBeenCalledWith(expect.objectContaining({ name: "Gollum" }), undefined, {
+        askOnSameName: true,
+        private: true,
+      })
+    );
+  });
+
+  it("starts ticked when the extraction asked for it", () => {
+    renderForm({ initialPrivate: true });
+    expect(privateBox()).toBeChecked();
+  });
+
+  it("ticks, and keeps ticked, a place inside a private one", () => {
+    mockPrivateRecords = { isPrivate: (kind, id) => kind === "location" && id === "the-cave" };
+    renderForm({ entity: "location", parentId: "the-cave" });
+    expect(privateBox()).toBeChecked();
+    expect(privateBox()).toBeDisabled();
+    expect(screen.getByText("Inside a private place, so private too.")).toBeInTheDocument();
+  });
+
+  it("offers no adding to a shared record of the name: that would publish it", async () => {
+    mockAddNPC.mockRejectedValueOnce(new SameNameError("npc", "npc-frodo", "Frodo"));
+    renderForm({ initialPrivate: true });
+    await userEvent.type(nameField(), "Frodo");
+    await userEvent.type(lineField(), "Seen alone");
+    await userEvent.click(createAndOpen());
+
+    await screen.findByRole("dialog", { name: "A Frodo already exists" });
+    expect(screen.queryByRole("button", { name: "Add to Frodo" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Frodo" })).toBeInTheDocument();
+  });
+
+  it("holds a private person's place, when the place is shared", async () => {
+    mockAddNPC.mockResolvedValueOnce("gollum");
+    renderForm({ initialPrivate: true, carry: { location: "Bree" } });
+    await userEvent.type(nameField(), "Gollum");
+    await userEvent.type(lineField(), "Seen in Bree");
+    await userEvent.click(createAndOpen());
+
+    await waitFor(() =>
+      expect(mockHold).toHaveBeenCalledWith({ kind: "npc", id: "gollum" }, { kind: "location", id: "loc-bree" })
+    );
   });
 });

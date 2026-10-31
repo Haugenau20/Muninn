@@ -82,6 +82,15 @@ export async function finishCampaignDeletion(
 
   await writer.close("member record(s)");
 
+  // Each member's private records for this campaign (T163): their own
+  // people, places, quests and rumours, with notes and held links, under
+  // their profile rather than the campaign, so the campaign's recursive
+  // delete never reaches them. One subtree per member, keyed by the
+  // campaign's id; deleting one that does not exist succeeds.
+  for (const userDoc of groupUsersSnapshot.docs) {
+    await getFirestore().recursiveDelete(userDoc.ref.collection("private").doc(campaignId));
+  }
+
   // 2. Recursively delete the campaign document and every subcollection
   // beneath it (npcs, locations, quests, rumors, chapters,
   // story-progress, saga -- and any subcollection added later).
