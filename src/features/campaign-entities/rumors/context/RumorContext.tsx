@@ -1,5 +1,5 @@
 // src/features/campaign-entities/rumors/context/RumorContext.tsx - updating rumor context to use character names
-import React, { createContext, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useRef } from 'react';
 import { Rumor, RumorStatus, RumorNote, RumorContextValue, JoinOptions } from '../types';
 import { DomainData, IdentifiableContent, RecordChange, CreateAlongside, CreateOptions, ContentAttribution } from 'core/types/common';
 import { useRumorData } from '../hooks/useRumorData';
@@ -15,6 +15,8 @@ import { commitEntityWrites, EntityBatchWrite, MAX_BATCH_WRITES } from '../../sh
 import { locationIdsOfRumor } from '../../shared/links';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
+import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
+import { usePrivateRecords } from '../../shared/private/PrivateRecordsContext';
 import { mergeNote, planMerge } from '../../shared/mergeRecords';
 import firebaseServices from 'core/services/firebase';
 import { getActiveCharacterName, getUserName } from 'core/utils/user-utils';
@@ -87,6 +89,28 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     collection: rumorsPath,
     autoFetch: false
   });
+  // A private rumour's writes go to its author's private space (T163).
+  const sharedWriters = useMemo(
+    () => ({ updateData, updateDataAfterReading, deleteData, addData }),
+    [updateData, updateDataAfterReading, deleteData, addData]
+  );
+  const routing = usePrivateRouting<Rumor>('rumor', rumorsPath, sharedWriters);
+  const { paths: privatePaths, isPrivate: isPrivateRecord } = usePrivateRecords();
+
+  /**
+   * Where a combine or a conversion of these rumours writes (T163): private
+   * rumours combine into a private rumour and convert into a private quest,
+   * shared ones as before, and the two are never mixed.
+   */
+  const joinScope = useCallback((rumorIds: string[]) => {
+    const own = rumorIds.filter(id => routing.isOwn(id));
+    if (own.length && own.length !== rumorIds.length) {
+      throw new Error('Private and shared rumours cannot be combined or converted together.');
+    }
+    return own.length
+      ? { isPrivate: true, rumors: privatePaths.rumor, quests: privatePaths.quest }
+      : { isPrivate: false, rumors: rumorsPath, quests: questsPath };
+  }, [routing, privatePaths, rumorsPath, questsPath]);
   const { user } = useAuth();
   const { userProfile, activeGroupUserProfile } = useUser();
   const { createDocumentWithUpdates } = useFirestore();
@@ -137,8 +161,8 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const modificationAttribution = buildModificationAttribution({ uid: user.uid, activeGroupUserProfile });
 
-    await updateData(rumorId, { status, ...modificationAttribution, ...modificationTimes() });
-  }, [user, userProfile, activeGroupUserProfile, getRumorById, updateData]);
+    await routing.writersFor(rumorId).updateData(rumorId, { status, ...modificationAttribution, ...modificationTimes() });
+  }, [user, userProfile, activeGroupUserProfile, getRumorById, routing]);
 
   // Update rumor note
   const updateRumorNote = useCallback(async (rumorId: string, note: DomainData<RumorNote> & IdentifiableContent) => {
@@ -152,9 +176,10 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // A note of its own (T133), attributed by the write like any document.
-    if (!rumorsPath) throw new Error('No campaign selected');
-    await addRecordNote(rumorsPath, rumorId, { content: note.content });
-  }, [user, userProfile, getRumorById, rumorsPath]);
+    const path = routing.pathFor(rumorId);
+    if (!path) throw new Error('No campaign selected');
+    await addRecordNote(path, rumorId, { content: note.content });
+  }, [user, userProfile, getRumorById, routing]);
 
   // Ids issued during this session but not yet reflected in `rumors` (loaded
   // state). Two rumors can be created back-to-back within a single `act()` /
@@ -205,15 +230,19 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // A record already carrying the name stops here when the caller asks
     // (T163): one the client holds, or one that took the id a moment ago.
     if (options.askOnSameName) assertNoSameNamed('rumor', rumorData.title, rumors);
+    // Private, it goes to the author's own space (T163).
+    const writers = options.private ? routing.privately : routing.shared;
+    const path = options.private ? routing.privatePath : rumorsPath;
+    if (options.private && !path) throw new Error('No campaign selected');
     const id = await createWithUniqueEntityId({
       name: rumorData.title,
       issuedIds: issuedIds.current,
       isLoaded: isRumorLoaded,
-      write: (candidateId) => addData(buildRumor(candidateId), candidateId, ...(alongside ? [alongside] : [])),
-      onRefused: options.askOnSameName && rumorsPath ? stopOnSameNamed('rumor', rumorsPath, rumorData.title) : undefined
+      write: (candidateId) => writers.addData(buildRumor(candidateId), candidateId, alongside),
+      onRefused: options.askOnSameName && path ? stopOnSameNamed('rumor', path, rumorData.title) : undefined
     });
     return id;
-  }, [user, userProfile, activeGroupUserProfile, addData, isRumorLoaded, rumors, rumorsPath]);
+  }, [user, userProfile, activeGroupUserProfile, isRumorLoaded, rumors, rumorsPath, routing]);
 
   // Update an existing rumour: only what `change` names; see `RecordChange` (T083)
   const updateRumor = useCallback(async (rumorId: string, change: RecordChange<Rumor>) => {
@@ -224,9 +253,9 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const modificationAttribution = buildModificationAttribution({ uid: user.uid, activeGroupUserProfile });
 
     await writeRecordChange(
-      { updateData, updateDataAfterReading }, rumorId, change, 'Rumour not found', modificationAttribution
+      routing.writersFor(rumorId), rumorId, change, 'Rumour not found', modificationAttribution
     );
-  }, [user, userProfile, activeGroupUserProfile, updateData, updateDataAfterReading]);
+  }, [user, userProfile, activeGroupUserProfile, routing]);
 
   // Delete rumor
   const deleteRumor = useCallback(async (rumorId: string) => {
@@ -235,9 +264,12 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // Its notes first (T133): a record's subcollection outlives the record.
-    if (rumorsPath) await deleteRecordNotes(rumorsPath, [rumorId]);
-    await deleteData(rumorId);
-  }, [user, deleteData, rumorsPath]);
+    const path = routing.pathFor(rumorId);
+    if (path) await deleteRecordNotes(path, [rumorId]);
+    await routing.writersFor(rumorId).deleteData(rumorId);
+    // And the links held for it (T163).
+    await routing.afterDelete([rumorId]);
+  }, [user, routing]);
 
   /** Set the status of several rumours at once, in one batch. */
   const updateRumorsStatus = useCallback(async (rumorIds: string[], status: RumorStatus) => {
@@ -252,9 +284,10 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await commitRumorWrites(rumorIds.map(id => ({
       type: 'update' as const,
       id,
+      collection: routing.pathFor(id),
       data: { status, ...modificationAttribution, ...modificationTimes() }
     })));
-  }, [user, userProfile, activeGroupUserProfile, getRumorById, commitRumorWrites]);
+  }, [user, userProfile, activeGroupUserProfile, getRumorById, commitRumorWrites, routing]);
 
   /** Delete several rumours at once, in one batch. */
   const deleteRumors = useCallback(async (rumorIds: string[]) => {
@@ -262,9 +295,12 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('User must be authenticated to delete rumours');
     }
 
-    if (rumorsPath) await deleteRecordNotes(rumorsPath, rumorIds);
-    await commitRumorWrites(rumorIds.map(id => ({ type: 'delete' as const, id })));
-  }, [user, commitRumorWrites, rumorsPath]);
+    for (const [path, ids] of routing.byPath(rumorIds)) {
+      await deleteRecordNotes(path, ids);
+    }
+    await commitRumorWrites(rumorIds.map(id => ({ type: 'delete' as const, id, collection: routing.pathFor(id) })));
+    await routing.afterDelete(rumorIds);
+  }, [user, commitRumorWrites, routing]);
 
   // Combine multiple rumors into one
   const combineRumors = useCallback(async (
@@ -275,13 +311,19 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!user || !userProfile) {
       throw new Error('User must be authenticated to combine rumours');
     }
-    if (rumorsPath === null) {
-      throw new Error('No campaign selected');
-    }
     assertFitsOneCommit(rumorIds.length);
 
     if (rumorIds.some(id => !getRumorById(id))) {
       throw new Error('One or more rumours not found');
+    }
+    // Private rumours combine into a private one (T163).
+    const scope = joinScope(rumorIds);
+    const joinPath = scope.rumors;
+    if (joinPath === null) {
+      throw new Error('No campaign selected');
+    }
+    if (options.into && routing.isOwn(options.into) !== scope.isPrivate) {
+      throw new Error('Private and shared rumours cannot be combined together.');
     }
 
     // Use the provided title or generate one
@@ -301,7 +343,7 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const differingNoteId = crypto.randomUUID();
       const sourceNoteIds = new Map(sources.map(id => [id, crypto.randomUUID()]));
       await firebaseServices.document.mergeIntoDocument<Rumor, Rumor>(
-        rumorsPath, into, rumorsPath, async (target, read) => {
+        joinPath, into, joinPath, async (target, read) => {
           const merging = await readAll(read, sources);
           const everyone = [target, ...merging];
           const incoming = {
@@ -398,24 +440,31 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       issuedIds: issuedIds.current,
       isLoaded: isRumorLoaded,
       write: (candidateId) => createDocumentWithUpdates<Omit<Rumor, keyof ContentAttribution>, Rumor>(
-        rumorsPath, candidateId, rumorsPath, decide(candidateId)
+        joinPath, candidateId, joinPath, decide(candidateId)
       ),
-      onRefused: options.askOnSameName ? stopOnSameNamed('rumor', rumorsPath, title) : undefined
+      onRefused: options.askOnSameName ? stopOnSameNamed('rumor', joinPath, title) : undefined
     });
-  }, [user, userProfile, getRumorById, createDocumentWithUpdates, isRumorLoaded, rumorsPath, rumors]);
+  }, [user, userProfile, getRumorById, createDocumentWithUpdates, isRumorLoaded, rumors, joinScope, routing]);
 
   // Convert rumors to quest
   const convertToQuest = useCallback(async (rumorIds: string[], questData: any, options: JoinOptions = {}) => {
     if (!user || !userProfile) {
       throw new Error('User must be authenticated to convert rumours to quest');
     }
-    if (questsPath === null || rumorsPath === null) {
-      throw new Error('No campaign selected');
-    }
     assertFitsOneCommit(rumorIds.length);
 
     if (rumorIds.some(id => !getRumorById(id))) {
       throw new Error('One or more rumours not found');
+    }
+    // Private rumours convert into a private quest (T163).
+    const scope = joinScope(rumorIds);
+    const joinRumors = scope.rumors;
+    const joinQuests = scope.quests;
+    if (joinQuests === null || joinRumors === null) {
+      throw new Error('No campaign selected');
+    }
+    if (options.into && isPrivateRecord('quest', options.into) !== scope.isPrivate) {
+      throw new Error('Private rumours convert into a private quest, and shared ones into a shared quest.');
     }
 
     // Fixed once, as in `combineRumors`.
@@ -431,7 +480,7 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const differingNoteId = crypto.randomUUID();
       const author = getActiveCharacterName(activeGroupUserProfile) || getUserName(activeGroupUserProfile) || undefined;
       await firebaseServices.document.mergeIntoDocument<Record<string, unknown>, Rumor>(
-        questsPath, into, rumorsPath, async (target, read) => {
+        joinQuests, into, joinRumors, async (target, read) => {
           const rumorsToConvert = await readAll(read, rumorIds);
           const plan = planMerge('quest', target, questData);
           const differing = mergeNote('quest', questData.title || '', plan.differing, author);
@@ -486,13 +535,13 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       issuedIds: issuedQuestIds.current,
       isLoaded: () => false,
       write: (questId) => createDocumentWithUpdates<Record<string, unknown>, Rumor>(
-        questsPath, questId, rumorsPath, decide(questId)
+        joinQuests, questId, joinRumors, decide(questId)
       ),
       // The quests are not this context's list: the caller checks the ones it
       // holds, and a quest taken a moment ago stops here.
-      onRefused: options.askOnSameName ? stopOnSameNamed('quest', questsPath, questData.title || '') : undefined
+      onRefused: options.askOnSameName ? stopOnSameNamed('quest', joinQuests, questData.title || '') : undefined
     });
-  }, [user, userProfile, activeGroupUserProfile, getRumorById, createDocumentWithUpdates, questsPath, rumorsPath]);
+  }, [user, userProfile, activeGroupUserProfile, getRumorById, createDocumentWithUpdates, joinScope, isPrivateRecord]);
 
   const value: RumorContextValue = {
     rumors,

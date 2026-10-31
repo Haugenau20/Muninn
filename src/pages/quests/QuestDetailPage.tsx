@@ -21,6 +21,8 @@ import {
   QUEST_STATUS_OPTIONS,
   rumorTitleText,
   createLinkActions,
+  useLinkPrivacy,
+  useRecordNotesPath,
   npcIdsOfQuest,
   locationIdsOfNpc,
   useRecordNotes,
@@ -50,7 +52,6 @@ import { formatNoteDate, toNoteDate } from 'shared/utils/dateFormatter';
 import { InlineEditor } from 'shared/components/inline-edit';
 import { editedText } from 'shared/utils/edit-conflict';
 import { useInlineEditing } from 'shared/hooks/useInlineEditing';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 
 /** What points at this quest, from the three collections that can. */
 interface InboundLink {
@@ -166,7 +167,9 @@ const QuestDetailPage: React.FC = () => {
   } = useQuests();
   const { npcs, updateNPC } = useNPCs();
   const { locations, createLocation, updateLocation } = useLocations();
-  const questsPath = useCampaignCollectionPath('quests');
+  // Where the quest lives: its notes sit under it (T163).
+  const questsPath = useRecordNotesPath('quest', questId);
+  const linkPrivacy = useLinkPrivacy();
   const { rumors, updateRumor } = useRumors();
   const { notes } = useNotes();
   const { activeGroupUserProfile } = useUser();
@@ -253,6 +256,8 @@ const QuestDetailPage: React.FC = () => {
     updateQuest,
     updateLocation,
     updateRumor,
+    // A private record's link to a shared one is held, not written (T163).
+    privacy: linkPrivacy,
   });
   const linkPerson = (id: string) =>
     quest ? links.link({ kind: 'quest', id: quest.id }, { kind: 'npc', id }) : Promise.resolve();
@@ -414,7 +419,8 @@ const QuestDetailPage: React.FC = () => {
           ),
         };
       },
-    });
+    // A private quest's place becomes a private location (T163).
+    }, ...(quest.isPrivate ? [{ private: true }] : []));
     navigateToPage(`/locations/${newId}`);
   };
 

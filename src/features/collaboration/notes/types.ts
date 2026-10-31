@@ -126,7 +126,14 @@ export interface NoteContextValue {
    * @param type Type of entity to convert to
    * @returns Promise resolving to empty string (navigation instead of creation)
    */
-  convertEntity: (noteId: string, entityId: string, type: EntityType, sameName?: SameNameAnswer) => Promise<string>;
+  convertEntity: (
+    noteId: string,
+    entityId: string,
+    type: EntityType,
+    sameName?: SameNameAnswer,
+    /** `private`: add it to the author's private space (T163). */
+    options?: { private?: boolean }
+  ) => Promise<string>;
   
   /**
    * Mark an entity as converted in the note

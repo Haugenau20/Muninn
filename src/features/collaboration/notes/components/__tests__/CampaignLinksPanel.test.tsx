@@ -35,6 +35,8 @@ jest.mock('@/features/campaign-entities', () => ({
   // "Already exists" (T163): the real check and merge plan.
   ...jest.requireActual('features/campaign-entities/shared/sameName'),
   ...jest.requireActual('features/campaign-entities/shared/mergeRecords'),
+  usePrivateRecords: jest.requireActual('features/campaign-entities/shared/private/PrivateRecordsContext')
+    .usePrivateRecords,
 }));
 jest.mock('@/features/collaboration/entity-extraction/hooks/useEntityExtractor', () => ({
   useEntityExtractor: jest.fn(),

@@ -3,7 +3,7 @@ import React, { Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { NavigationProvider } from 'shared/context/NavigationContext';
 import { SearchProvider } from 'shared/context/SearchContext';
-import { NPCProvider, LocationProvider, RumorProvider } from 'features/campaign-entities';
+import { NPCProvider, LocationProvider, RumorProvider, PrivateRecordsProvider } from 'features/campaign-entities';
 import { StoryProvider } from 'features/storytelling';
 import {
   FirebaseProvider,
@@ -96,6 +96,8 @@ const App: React.FC = () => {
       <FirebaseProvider>
         <SessionManager>
           <NavigationProvider>
+            {/* The author's private records, which every list adds to its own (T163). */}
+            <PrivateRecordsProvider>
             <NPCProvider>
               <LocationProvider>
                 <StoryProvider>
@@ -258,6 +260,7 @@ const App: React.FC = () => {
                 </StoryProvider>
               </LocationProvider>
             </NPCProvider>
+            </PrivateRecordsProvider>
           </NavigationProvider>
         </SessionManager>
       </FirebaseProvider>

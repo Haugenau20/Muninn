@@ -1,6 +1,7 @@
 // src/features/campaign-entities/locations/hooks/useLocationData.ts
 import { Location } from '../types';
 import { useCampaignCollection } from 'shared/hooks/useCampaignCollection';
+import { useWithPrivate } from '../../shared/private/useWithPrivate';
 
 /** Locations are shown in the order Firestore returns them. */
 const asStored = (locations: Location[]): Location[] => locations;
@@ -13,8 +14,10 @@ const asStored = (locations: Location[]): Location[] => locations;
  * @returns The locations, loading and error state, a retry, and the campaign context status
  */
 export const useLocationData = ({ enabled = true }: { enabled?: boolean } = {}) => {
-  const { items, loading, error, refresh, hasRequiredContext, missingContext } =
+  const { items: shared, loading, error, refresh, hasRequiredContext, missingContext } =
     useCampaignCollection<Location>('locations', asStored, enabled);
+  // With the author's private records beside them (T163).
+  const items = useWithPrivate('location', shared, asStored);
 
   return {
     locations: items,

@@ -5,6 +5,7 @@ import {
   useQuests,
   useLocations,
   useMergeIntoRecord,
+  useLinkPrivacy,
   planMerge,
   describeMerge,
 } from "features/campaign-entities";
@@ -41,6 +42,8 @@ export interface QuickAddCreateOptions {
    * same, a second record of the name if the name was kept.
    */
   sameName?: { merge: string } | { createAnyway: true };
+  /** Create it in the author's private space (T163). */
+  private?: boolean;
 }
 
 /**
@@ -174,6 +177,7 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
   const { createLocation, updateLocation, locations } = useLocations({ subscribe: lists.locations });
   const { convertInto } = useNotes({ subscribe: lists.notes });
   const mergeIntoRecord = useMergeIntoRecord();
+  const linkPrivacy = useLinkPrivacy();
 
   return useCallback(
     async (
@@ -196,7 +200,11 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
         itself is kept in the prose field it came from (`location`), so nothing
         the session said is lost -- only the false claim of a link.
       */
-      const carry = resolveCarriedNames(entity, options.carry, npcs, locations);
+      // A shared record never names a private one (T163): its names resolve
+      // against the campaign's records alone.
+      const shared = <T extends { isPrivate?: boolean }>(list: readonly T[]) =>
+        options.private ? list : (list ?? []).filter((record) => !record.isPrivate);
+      const carry = resolveCarriedNames(entity, options.carry, shared(npcs), shared(locations));
       /*
         `values.parentId` too, and not only the carry. `splitInitialData` lifts
         `parentId` out of `initialData` into the typed values, and
@@ -206,7 +214,7 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
       */
       const resolvedValues: QuickAddValues =
         entity === "location" && values.parentId !== undefined
-          ? { ...values, parentId: resolveLocationRef(values.parentId, locations) }
+          ? { ...values, parentId: resolveLocationRef(values.parentId, options.private ? locations : shared(locations)) }
           : values;
       const document = QUICK_ADD_SPECS[entity].buildDocument(resolvedValues, carry);
 
@@ -227,7 +235,10 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
 
       const { sameName } = options;
       // Asked unless the player already answered (T163).
-      const createOptions: CreateOptions = { askOnSameName: !sameName };
+      const createOptions: CreateOptions = {
+        askOnSameName: !sameName,
+        ...(options.private ? { private: true } : {}),
+      };
 
       /** The write, with a change to commit alongside it when there is one. */
       const create = (alongside?: CreateAlongside): Promise<string> => {
@@ -254,13 +265,20 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
 
       if (placeId) {
         const place = placeId;
-        await updateLocation(place, (current) => ({
-          connectedNPCs: Array.from(new Set([...(current.connectedNPCs ?? []), id])),
-        }));
+        const sharedPlace = !locations.some((location) => location.id === place && location.isPrivate);
+        if (options.private && sharedPlace) {
+          // A private person in a shared place: the place must not name them,
+          // so the link is held until they are published (T163).
+          await linkPrivacy.hold({ kind: "npc", id }, { kind: "location", id: place });
+        } else {
+          await updateLocation(place, (current) => ({
+            connectedNPCs: Array.from(new Set([...(current.connectedNPCs ?? []), id])),
+          }));
+        }
       }
       return id;
     },
-    [addNPC, addQuest, createLocation, updateLocation, convertInto, mergeIntoRecord, npcs, locations]
+    [addNPC, addQuest, createLocation, updateLocation, convertInto, mergeIntoRecord, linkPrivacy, npcs, locations]
   );
 }
 

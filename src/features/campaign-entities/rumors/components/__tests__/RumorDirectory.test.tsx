@@ -1045,7 +1045,8 @@ describe('RumorDirectory', () => {
     test('shows a "Select Rumors" button, with no checkboxes until it is used', () => {
       render(<RumorDirectory rumors={[r1, r2]} />);
       expect(screen.getByRole('button', { name: /select rumours/i })).toBeInTheDocument();
-      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      // The rows' selection boxes; the composer's "Private" box stays (T163).
+      expect(screen.queryAllByRole('checkbox', { name: /^Select / })).toHaveLength(0);
     });
 
     test('entering selection mode reveals one accessible checkbox per rumor', () => {
@@ -1131,7 +1132,8 @@ describe('RumorDirectory', () => {
       // onComplete exits selection mode and clears the selection, so the
       // checkboxes and the batch bar both disappear.
       await screen.findByRole('button', { name: /select rumours/i });
-      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      // The rows' selection boxes; the composer's "Private" box stays (T163).
+      expect(screen.queryAllByRole('checkbox', { name: /^Select / })).toHaveLength(0);
       expect(screen.queryByText(/rumours selected/i)).not.toBeInTheDocument();
     });
 
@@ -1143,7 +1145,8 @@ describe('RumorDirectory', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /exit selection/i }));
 
-      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      // The rows' selection boxes; the composer's "Private" box stays (T163).
+      expect(screen.queryAllByRole('checkbox', { name: /^Select / })).toHaveLength(0);
       expect(screen.queryByText(/rumours selected/i)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /select rumours/i })).toBeInTheDocument();
     });
