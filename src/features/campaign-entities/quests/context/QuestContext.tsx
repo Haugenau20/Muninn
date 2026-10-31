@@ -17,6 +17,7 @@ import { normaliseObjectives } from '../utils/quest-objectives';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
+import { useHoldPrivateRecords } from '../../shared/private/PrivateRecordsContext';
 import { assertUnchanged } from 'shared/utils/edit-conflict';
 import { Location } from '../../locations/types';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
@@ -41,6 +42,8 @@ const { DemandProvider: QuestDemandProvider, useDemand: useQuestDemand } = creat
 export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Use the useQuestData hook to handle data fetching
   const demand = useListenerDemand();
+  // The author's private records are part of this list: open with it (T163).
+  useHoldPrivateRecords(demand.wanted);
   const { quests, loading, error, getQuestById, refreshQuests: fetchQuests, hasRequiredContext } = useQuestData({ enabled: demand.wanted });
   // `autoFetch: false` because nothing renders off this instance's `data`:
   // the list comes from `useQuestData()` above. Its `error` is bound as

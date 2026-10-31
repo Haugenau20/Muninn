@@ -16,7 +16,7 @@ import { locationIdsOfRumor } from '../../shared/links';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
-import { usePrivateRecords } from '../../shared/private/PrivateRecordsContext';
+import { usePrivateRecords, useHoldPrivateRecords } from '../../shared/private/PrivateRecordsContext';
 import { mergeNote, planMerge } from '../../shared/mergeRecords';
 import firebaseServices from 'core/services/firebase';
 import { getActiveCharacterName, getUserName } from 'core/utils/user-utils';
@@ -72,6 +72,8 @@ const { DemandProvider: RumorDemandProvider, useDemand: useRumorDemand } = creat
 
 export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const demand = useListenerDemand();
+  // The author's private records are part of this list: open with it (T163).
+  useHoldPrivateRecords(demand.wanted);
   const { rumors, loading, error } = useRumorData({ enabled: demand.wanted });
   // This second `useFirebaseData` instance is the one whose writes (addData/updateData/
   // deleteData) can actually fail; its `error` is renamed on destructure (`writeError`)
@@ -95,7 +97,7 @@ export const RumorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [updateData, updateDataAfterReading, deleteData, addData]
   );
   const routing = usePrivateRouting<Rumor>('rumor', rumorsPath, sharedWriters);
-  const { paths: privatePaths, isPrivate: isPrivateRecord } = usePrivateRecords();
+  const { paths: privatePaths, isPrivate: isPrivateRecord } = usePrivateRecords({ subscribe: false });
 
   /**
    * Where a combine or a conversion of these rumours writes (T163): private

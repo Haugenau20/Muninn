@@ -26,7 +26,7 @@ export function useWithPrivate<T extends { id: string }>(
   shared: T[],
   arrange: (records: T[]) => T[]
 ): T[] {
-  const space = usePrivateRecords();
+  const space = usePrivateRecords({ subscribe: false });
   const { records, links, stamps } = space;
   const moving = useRef<Set<string>>(new Set());
 
