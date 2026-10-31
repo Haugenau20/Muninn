@@ -43,7 +43,7 @@ export type { ObjectiveProgress } from './quests/utils/quest-presentation';
 // extractor sends `string[]`, and bare strings used to reach Firestore.
 export { normaliseObjectives } from './quests/utils/quest-objectives';
 // Quest types
-export type { Quest, QuestStatus, QuestObjective, QuestLocation, QuestContextState, QuestContextValue } from './quests/types';
+export type { Quest, QuestStatus, QuestObjective, QuestLocation, QuestNote, QuestContextState, QuestContextValue } from './quests/types';
 
 // Location context and hooks
 export { LocationProvider, useLocations } from './locations/context/LocationContext';
@@ -102,7 +102,7 @@ export { default as ConvertToQuestDialog } from './rumors/components/ConvertToQu
 */
 export { rumorDisplayTitle, rumorTitleText, UNTITLED_RUMOR } from './rumors/utils/rumor-title';
 // Rumor types
-export type { Rumor, RumorStatus, SourceType, RumorNote, RumorContextState, RumorContextValue } from './rumors/types';
+export type { Rumor, RumorStatus, SourceType, RumorNote, RumorContextState, RumorContextValue, JoinOptions } from './rumors/types';
 
 // Links between records (T131): which field owns each, how each side reads
 // it, and the one way to add or remove one from any page.
@@ -128,3 +128,22 @@ export {
   deleteRecordNote,
 } from './shared/recordNotes';
 export type { StoredNote } from './shared/recordNotes';
+
+// "Already exists" (T163): a create stopped at a name a record already
+// carries, and what adding to that record writes.
+export { SameNameError, isSameName, findSameNamed, nameOf } from './shared/sameName';
+export type { SameNameKind } from './shared/sameName';
+export { planMerge, describeMerge } from './shared/mergeRecords';
+export type { MergePlan } from './shared/mergeRecords';
+export { useMergeIntoRecord } from './shared/useMergeIntoRecord';
+
+// Private records (T163): a player's own people, places, quests and rumours,
+// beside the campaign's until they publish them.
+export {
+  PrivateRecordsProvider,
+  usePrivateRecords,
+} from './shared/private/PrivateRecordsContext';
+export type { PrivateKind, HeldLink } from './shared/private/PrivateRecordsContext';
+export { useLinkPrivacy } from './shared/private/heldLinks';
+export { PrivateLinkError } from './shared/private/usePrivateRouting';
+export { useRecordNotesPath } from './shared/private/useRecordNotesPath';

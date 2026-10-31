@@ -211,5 +211,59 @@ describe('entity-id', () => {
       expect(caught!.message).not.toMatch(/updateDocumentWithAttribution|setDocument|createDocument/);
       expect(caught!.message.length).toBeGreaterThan(0);
     });
+
+    // T163: a refusal can carry the answer "already exists" needs.
+    describe('onRefused', () => {
+      it('hears each refused id before the next is tried', async () => {
+        const refused: string[] = [];
+        const id = await createWithUniqueEntityId({
+          name: 'Grog',
+          issuedIds: new Set(),
+          isLoaded: () => false,
+          write: async (candidate) => {
+            if (candidate === 'grog') throw new DocumentAlreadyExistsError('npcs', candidate);
+          },
+          onRefused: async (candidate) => {
+            refused.push(candidate);
+          },
+        });
+        expect(refused).toEqual(['grog']);
+        expect(id).toBe('grog-2');
+      });
+
+      it('stops there when it throws, and tries no other id', async () => {
+        const write = jest.fn(async (candidate: string) => {
+          throw new DocumentAlreadyExistsError('npcs', candidate);
+        });
+        await expect(
+          createWithUniqueEntityId({
+            name: 'Grog',
+            issuedIds: new Set(),
+            isLoaded: () => false,
+            write,
+            onRefused: async () => {
+              throw new Error('A Grog already exists');
+            },
+          })
+        ).rejects.toThrow('A Grog already exists');
+        expect(write).toHaveBeenCalledTimes(1);
+      });
+
+      it('is not told of a failure that is not a taken id', async () => {
+        const onRefused = jest.fn();
+        await expect(
+          createWithUniqueEntityId({
+            name: 'Grog',
+            issuedIds: new Set(),
+            isLoaded: () => false,
+            write: async () => {
+              throw new Error('offline');
+            },
+            onRefused,
+          })
+        ).rejects.toThrow('offline');
+        expect(onRefused).not.toHaveBeenCalled();
+      });
+    });
   });
 });

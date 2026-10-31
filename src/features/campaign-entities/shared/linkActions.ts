@@ -15,6 +15,20 @@ export interface LinkEnd {
 }
 
 /**
+ * Privacy for the link actions (T163). A private record's id must never be
+ * written into a shared one, so a link whose owner is shared and whose other
+ * end is private is held beside the private record instead, and written to
+ * the owner when that record is published.
+ */
+export interface LinkPrivacy {
+  isPrivate: (end: LinkEnd) => boolean;
+  /** Keeps the link between the private `from` and the shared owner `to`. */
+  hold: (from: LinkEnd, to: LinkEnd) => Promise<void>;
+  /** Lets go of a held link, if there is one. */
+  release: (from: LinkEnd, to: LinkEnd) => Promise<void>;
+}
+
+/**
  * What the actions read and write through: the lists and writers the
  * contexts hand every page (`useNPCs`, `useQuests`, `useLocations`,
  * `useRumors`).
@@ -27,6 +41,8 @@ export interface LinkDeps {
   updateQuest: (id: string, change: RecordChange<Quest>) => Promise<void>;
   updateLocation: (id: string, change: RecordChange<Location>) => Promise<void>;
   updateRumor: (id: string, change: RecordChange<Rumor>) => Promise<void>;
+  /** Private records' links are held rather than written into shared ones (T163). */
+  privacy?: LinkPrivacy;
 }
 
 /** The two ends in a fixed order, so each pair is handled in one place. */
@@ -51,6 +67,64 @@ const changeConnections =
     return { connections: { ...connections, [list]: next(connections[list] ?? []) } };
   };
 
+/** What a link writes: the record that owns it, and the change to that record. */
+export interface LinkWrite {
+  owner: LinkEnd;
+  change: (current: any) => Record<string, unknown>;
+}
+
+/**
+ * Where a link between `a` and `b` is stored, and what storing it changes
+ * there, worked out from the owner as it is passed in: the server's copy in
+ * a transaction, or a copy in memory (T163's held links). Null when there is
+ * nothing to write, or `locationOf` does not know the place a quest is linked to.
+ *
+ * @param holder For two people, which of them stores it: the first unless said
+ */
+export function linkWrite(
+  a: LinkEnd,
+  b: LinkEnd,
+  locationOf: (id: string) => Location | undefined,
+  holder?: LinkEnd
+): LinkWrite | null {
+  const [first, second] = ordered(a, b);
+  switch (`${first.kind}-${second.kind}`) {
+    case 'npc-npc': {
+      if (first.id === second.id) return null;
+      const owner = holder ?? first;
+      const other = owner.id === first.id ? second : first;
+      return { owner, change: changeConnections('relatedNPCs', (ids) => add(ids, other.id)) };
+    }
+    case 'npc-quest':
+      return { owner: second, change: (current: Quest) => ({ relatedNPCIds: add(current.relatedNPCIds, first.id) }) };
+    case 'npc-location':
+      return { owner: second, change: (current: Location) => ({ connectedNPCs: add(current.connectedNPCs, first.id) }) };
+    case 'npc-rumor':
+      return { owner: second, change: (current: Rumor) => ({ relatedNPCs: add(current.relatedNPCs, first.id) }) };
+    case 'quest-location': {
+      const location = locationOf(second.id);
+      if (!location) return null;
+      // The quest's own location when it has none, else one of its places.
+      return {
+        owner: first,
+        change: (current: Quest): Partial<Quest> => {
+          if (questNamesLocation(current, location)) return {};
+          if (!current.locationId) return { locationId: location.id, location: location.name };
+          const place: QuestLocation = { name: location.name, description: '', locationId: location.id };
+          return { keyLocations: [...(current.keyLocations ?? []), place] };
+        },
+      };
+    }
+    case 'location-rumor':
+      return {
+        owner: second,
+        change: (current: Rumor) => ({ relatedLocations: add(current.relatedLocations, first.id) }),
+      };
+    default:
+      throw new Error(`A ${first.kind} cannot be linked to a ${second.kind}.`);
+  }
+}
+
 /**
  * Links and unlinks two records, from whichever page the player is on (T131).
  *
@@ -59,7 +133,9 @@ const changeConnections =
  * the same thing, and removing it clears the same field.
  *
  * Each write is worked out from the record the server holds (T083), so a
- * link another player added a moment ago survives this one.
+ * link another player added a moment ago survives this one. With `privacy`,
+ * a link that would put a private record's id into a shared one is held
+ * instead (T163), and two people of whom one is private store it on that one.
  */
 export function createLinkActions({
   npcs,
@@ -69,55 +145,54 @@ export function createLinkActions({
   updateQuest,
   updateLocation,
   updateRumor,
+  privacy,
 }: LinkDeps) {
   const npcOf = (id: string) => npcs.find((npc) => npc.id === id);
   const questOf = (id: string) => quests.find((quest) => quest.id === id);
   const locationOf = (id: string) => locations.find((location) => location.id === id);
+  const isPrivate = (end: LinkEnd) => privacy?.isPrivate(end) ?? false;
+  const same = (x: LinkEnd, y: LinkEnd) => x.kind === y.kind && x.id === y.id;
+
+  const updateOf: Record<AttachKind, (id: string, change: any) => Promise<void>> = {
+    npc: updateNPC,
+    quest: updateQuest,
+    location: updateLocation,
+    rumor: updateRumor,
+  };
 
   const link = async (a: LinkEnd, b: LinkEnd): Promise<void> => {
     const [first, second] = ordered(a, b);
-    const pair = `${first.kind}-${second.kind}`;
-
-    switch (pair) {
-      case 'npc-npc': {
-        if (first.id === second.id) return;
-        // Stored once: nothing to do when the other side already holds it.
-        if (npcOf(second.id)?.connections?.relatedNPCs?.includes(first.id)) return;
-        await updateNPC(first.id, changeConnections('relatedNPCs', (ids) => add(ids, second.id)));
-        return;
-      }
-      case 'npc-quest':
-        await updateQuest(second.id, (current) => ({ relatedNPCIds: add(current.relatedNPCIds, first.id) }));
-        return;
-      case 'npc-location':
-        await updateLocation(second.id, (current) => ({ connectedNPCs: add(current.connectedNPCs, first.id) }));
-        return;
-      case 'npc-rumor':
-        await updateRumor(second.id, (current) => ({ relatedNPCs: add(current.relatedNPCs, first.id) }));
-        return;
-      case 'quest-location': {
-        const location = locationOf(second.id);
-        if (!location) return;
-        // The quest's own location when it has none, else one of its places.
-        await updateQuest(first.id, (current): Partial<Quest> => {
-          if (questNamesLocation(current, location)) return {};
-          if (!current.locationId) return { locationId: location.id, location: location.name };
-          const place: QuestLocation = { name: location.name, description: '', locationId: location.id };
-          return { keyLocations: [...(current.keyLocations ?? []), place] };
-        });
-        return;
-      }
-      case 'location-rumor':
-        await updateRumor(second.id, (current) => ({ relatedLocations: add(current.relatedLocations, first.id) }));
-        return;
-      default:
-        throw new Error(`A ${first.kind} cannot be linked to a ${second.kind}.`);
+    let holder: LinkEnd | undefined;
+    if (first.kind === 'npc' && second.kind === 'npc') {
+      // Stored once: nothing to do when the other side already holds it.
+      if (npcOf(second.id)?.connections?.relatedNPCs?.includes(first.id)) return;
+      // On the private one, when one is: then nothing needs holding.
+      holder = isPrivate(second) && !isPrivate(first) ? second : first;
     }
+
+    const write = linkWrite(first, second, locationOf, holder);
+    if (!write) return;
+    const other = same(write.owner, first) ? second : first;
+    if (privacy && isPrivate(other) && !isPrivate(write.owner)) {
+      await privacy.hold(other, write.owner);
+      return;
+    }
+    await updateOf[write.owner.kind](write.owner.id, write.change);
   };
 
   const unlink = async (a: LinkEnd, b: LinkEnd): Promise<void> => {
     const [first, second] = ordered(a, b);
     const pair = `${first.kind}-${second.kind}`;
+
+    // A held link is let go of: the shared owner never had it.
+    if (privacy && pair !== 'npc-npc') {
+      const owner = pair === 'quest-location' ? first : second;
+      const other = owner === first ? second : first;
+      if (isPrivate(other) && !isPrivate(owner)) {
+        await privacy.release(other, owner);
+        return;
+      }
+    }
 
     switch (pair) {
       case 'npc-npc': {

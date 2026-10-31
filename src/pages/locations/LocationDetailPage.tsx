@@ -14,6 +14,8 @@ import {
   useQuests,
   useRumors,
   createLinkActions,
+  useLinkPrivacy,
+  useRecordNotesPath,
   npcIdsOfLocation,
   questIdsOfLocation,
   rumorIdsOfLocation,
@@ -35,6 +37,7 @@ import { useUser, useGroups, useCampaigns } from 'features/user-management';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import { useImageAttachment } from 'shared/hooks/useImageAttachment';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
@@ -54,7 +57,6 @@ import { InlineEditor } from 'shared/components/inline-edit';
 import { editedText } from 'shared/utils/edit-conflict';
 import { rumorTitleText } from 'features/campaign-entities';
 import { useInlineEditing } from 'shared/hooks/useInlineEditing';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 
 /** The eight kinds a place can be, as the select offers them. */
 const TYPE_OPTIONS: LocationType[] = [
@@ -148,7 +150,9 @@ const LocationDetailPage: React.FC = () => {
     deleteLocation,
     createLocation,
   } = useLocations();
-  const locationsPath = useCampaignCollectionPath('locations');
+  // Where the place lives: its notes sit under it (T163).
+  const locationsPath = useRecordNotesPath('location', locationId);
+  const linkPrivacy = useLinkPrivacy();
   // The notes: their own documents (T133).
   const notes = useRecordNotes<LocationNote>(locationsPath, locationId);
   const { npcs, updateNPC } = useNPCs();
@@ -218,6 +222,8 @@ const LocationDetailPage: React.FC = () => {
     updateQuest,
     updateLocation,
     updateRumor,
+    // A private record's link to a shared one is held, not written (T163).
+    privacy: linkPrivacy,
   });
   const here = location ? { kind: 'location' as const, id: location.id } : null;
 
@@ -334,7 +340,8 @@ const LocationDetailPage: React.FC = () => {
         if (!current) throw new Error('Location not found');
         return { features: (current.features ?? []).filter((f: string) => f !== feature) };
       },
-    });
+    // A place inside a private one is private too (T163).
+    }, ...(location.isPrivate ? [{ private: true }] : []));
   };
 
   const handleDelete = async (childStrategy: Parameters<typeof deleteLocation>[1]) => {
@@ -374,7 +381,9 @@ const LocationDetailPage: React.FC = () => {
           imageAlt={location.name}
           imageShape="wide"
           imageUpload={
-            canAct
+            // No picture on a private place yet: its file would be stored
+            // where every member reads it (T163).
+            canAct && !location.isPrivate
               ? { subject: 'picture', onUpload: picture.upload, onRemove: picture.remove }
               : undefined
           }
@@ -431,9 +440,13 @@ const LocationDetailPage: React.FC = () => {
             )
           }
           notice={
+            location.isPrivate ? (
+              <PrivateNotice />
+            ) : (
             // A deletion that failed partway leaves its mark, and the rules
             // refuse every edit to a marked place (T088): the one thing left to
-            // do is finish it, the way it started.
+            // do is finish it, the way it started. A private place is deleted
+            // by its author alone, from the list, and never left marked.
             gate.canAct &&
             location.deleting && (
               <div className="flex items-center gap-3 flex-wrap">
@@ -460,6 +473,7 @@ const LocationDetailPage: React.FC = () => {
                   </Typography>
                 )}
               </div>
+            )
             )
           }
           facts={

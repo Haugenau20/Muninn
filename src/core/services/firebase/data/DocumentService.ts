@@ -519,6 +519,85 @@ class DocumentService extends BaseFirebaseService {
   }
 
   /**
+   * Add to one existing document, update others and create notes, as one
+   * transaction, from a decision made on them as the server holds them (T163).
+   *
+   * The "already exists" merge: what a player knew about a record that turned
+   * out to exist goes into it -- empty fields filled, lists joined, what
+   * differs into a note under it -- together with what pointed at the
+   * newcomer (a session note's mark, a combine's or a conversion's sources).
+   * `createDocumentWithUpdates` for a target that is already there.
+   *
+   * `decide` gets the target and a reader for `sourceCollection`, and returns
+   * the target's fields, the updates and the notes; throwing refuses it all.
+   * It may run more than once. The target and each update get modification
+   * attribution, each note creation attribution.
+   *
+   * Needs the server: offline, the transaction fails rather than queueing.
+   *
+   * @param collectionName The target's collection: name or full path
+   * @param id The target, which must exist
+   * @param sourceCollection Where the documents `decide` reads and updates live
+   * @param decide Works out the writes from the target and the sources
+   * @throws {Error} 'This record was deleted.' when the target has gone
+   */
+  public async mergeIntoDocument<T extends DocumentData, S extends DocumentData>(
+    collectionName: string,
+    id: string,
+    sourceCollection: string,
+    decide: (
+      target: T & { id: string },
+      read: (id: string) => Promise<(S & { id: string }) | undefined>
+    ) => Promise<{
+      fields: Partial<T>;
+      updates: Array<{ id: string; data: Partial<S> }>;
+      /** Notes under the target (`under: 'target'`) or under an updated source. */
+      notes?: Array<{ under: 'target' | { updated: string }; id: string; data: DocumentData }>;
+    }>
+  ): Promise<void> {
+    // Resolved before any await, as in `createDocument` (T082).
+    const collectionRef = this.getCollectionRef(collectionName);
+    const sourceRef = this.getCollectionRef(sourceCollection);
+    const groupId = this.groupOf(collectionRef);
+    const creation = await this.getCreationAttribution(groupId);
+    const modification = await this.getModificationAttribution(groupId);
+
+    await runTransaction(this.db, async (transaction) => {
+      const targetRef = doc(collectionRef, id);
+      const snapshot = await transaction.get(targetRef);
+      if (!snapshot.exists()) {
+        throw new Error('This record was deleted.');
+      }
+      const read = async (sourceId: string) => {
+        const source = await transaction.get(doc(sourceRef, sourceId));
+        return source.exists() ? ({ ...(source.data() as S), id: source.id }) : undefined;
+      };
+      const { fields, updates, notes = [] } = await decide({ ...(snapshot.data() as T), id }, read);
+      this.assertTextFits(collectionRef, fields);
+      updates.forEach((update) => this.assertTextFits(sourceRef, update.data));
+      const noteRefs = notes.map((note) => {
+        const parent = note.under === 'target' ? targetRef : doc(sourceRef, note.under.updated);
+        const notesRef = collection(parent, 'notes');
+        this.assertTextFits(notesRef, note.data);
+        return doc(notesRef, note.id);
+      });
+
+      // Nothing to add to the target writes nothing there: an empty update
+      // would still credit it with a change nobody made.
+      if (Object.keys(fields).length > 0) {
+        transaction.update(targetRef, { ...fields, ...modification } as Partial<DocumentData>);
+      }
+      for (const update of updates) {
+        transaction.update(doc(sourceRef, update.id), {
+          ...update.data,
+          ...modification
+        } as Partial<DocumentData>);
+      }
+      notes.forEach((note, i) => transaction.set(noteRefs[i], { ...note.data, ...creation }));
+    });
+  }
+
+  /**
    * Update specific fields in a document without attribution metadata
    * Use updateDocumentWithAttribution for automatic attribution
    */

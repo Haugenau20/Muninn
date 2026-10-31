@@ -27,6 +27,8 @@ jest.mock('@/features/user-management', () => ({
 const mockAddRumor = jest.fn().mockResolvedValue('rumor-1');
 jest.mock('features/campaign-entities', () => ({
   useRumors: () => ({ addRumor: mockAddRumor }),
+  // "Add what you know to it" (T163), which a plain conversion never reaches.
+  useMergeIntoRecord: () => jest.fn(),
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -532,7 +534,10 @@ describe('NoteContext Bug Tests', () => {
       // Unconfirmed is what an unverified rumour *is*, so nothing is lost by
       // saying so -- and the row stays visible.
       expect(mockAddRumor).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'unconfirmed' })
+        expect.objectContaining({ status: 'unconfirmed' }),
+        // No mark for a draft note; the title checked first (T163).
+        undefined,
+        { askOnSameName: true }
       );
     });
 
@@ -572,7 +577,10 @@ describe('NoteContext Bug Tests', () => {
       });
 
       expect(mockAddRumor).toHaveBeenCalledWith(
-        expect.objectContaining({ status: 'confirmed' })
+        expect.objectContaining({ status: 'confirmed' }),
+        // No mark for a draft note; the title checked first (T163).
+        undefined,
+        { askOnSameName: true }
       );
     });
 
@@ -618,7 +626,10 @@ describe('NoteContext Bug Tests', () => {
       });
 
       expect(mockAddRumor).toHaveBeenCalledWith(
-        expect.objectContaining({ sourceType: 'npc', sourceName: 'Gaffer Gamgee' })
+        expect.objectContaining({ sourceType: 'npc', sourceName: 'Gaffer Gamgee' }),
+        // No mark for a draft note; the title checked first (T163).
+        undefined,
+        { askOnSameName: true }
       );
     });
 
@@ -660,7 +671,10 @@ describe('NoteContext Bug Tests', () => {
       // Blank, not "tavern": the kind is already recorded next door, and the
       // row shows this string as the line under the rumour's name.
       expect(mockAddRumor).toHaveBeenCalledWith(
-        expect.objectContaining({ sourceType: 'tavern', sourceName: '' })
+        expect.objectContaining({ sourceType: 'tavern', sourceName: '' }),
+        // No mark for a draft note; the title checked first (T163).
+        undefined,
+        { askOnSameName: true }
       );
     });
 

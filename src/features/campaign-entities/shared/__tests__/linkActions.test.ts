@@ -155,3 +155,94 @@ it('refuses a pair that cannot be linked', async () => {
   const { link } = setup({});
   await expect(link({ kind: 'quest', id: 'a' }, { kind: 'quest', id: 'b' })).rejects.toThrow(/cannot be linked/);
 });
+
+// T163: a private record's id never reaches a shared one. A link whose owner
+// is shared and whose other end is private is held instead.
+describe('links to private records', () => {
+  const privately = (records: Parameters<typeof setup>[0], privateIds: string[]) => {
+    const held: Array<['hold' | 'release', string, string]> = [];
+    const npcs = records.npcs ?? [];
+    const quests = records.quests ?? [];
+    const locations = records.locations ?? [];
+    const writes: Array<[string, string, any]> = [];
+    const writer = (kind: string, list: any[]) => async (id: string, change: any) => {
+      writes.push([kind, id, resolveRecordChange(change, list.find((record) => record.id === id) ?? { id })]);
+    };
+    const actions = createLinkActions({
+      npcs,
+      quests,
+      locations,
+      updateNPC: writer('npc', npcs),
+      updateQuest: writer('quest', quests),
+      updateLocation: writer('location', locations),
+      updateRumor: writer('rumor', records.rumors ?? []),
+      privacy: {
+        isPrivate: (end) => privateIds.includes(`${end.kind}:${end.id}`),
+        hold: async (from, to) => {
+          held.push(['hold', `${from.kind}:${from.id}`, `${to.kind}:${to.id}`]);
+        },
+        release: async (from, to) => {
+          held.push(['release', `${from.kind}:${from.id}`, `${to.kind}:${to.id}`]);
+        },
+      },
+    });
+    return { ...actions, writes, held };
+  };
+
+  it('holds a private person on a shared quest, and writes nothing shared', async () => {
+    const { link, writes, held } = privately(
+      { npcs: [npc('gollum')], quests: [{ id: 'ring', relatedNPCIds: [] }] },
+      ['npc:gollum']
+    );
+    await link({ kind: 'quest', id: 'ring' }, { kind: 'npc', id: 'gollum' });
+    expect(writes).toEqual([]);
+    expect(held).toEqual([['hold', 'npc:gollum', 'quest:ring']]);
+  });
+
+  it('writes a shared person into a private quest, which owns the link', async () => {
+    const { link, writes, held } = privately(
+      { npcs: [npc('bilbo')], quests: [{ id: 'the-fish', relatedNPCIds: [] }] },
+      ['quest:the-fish']
+    );
+    await link({ kind: 'npc', id: 'bilbo' }, { kind: 'quest', id: 'the-fish' });
+    expect(writes).toEqual([['quest', 'the-fish', { relatedNPCIds: ['bilbo'] }]]);
+    expect(held).toEqual([]);
+  });
+
+  it('holds a shared quest to a private place, owner and all', async () => {
+    const { link, writes, held } = privately(
+      { quests: [{ id: 'ring', locationId: '' }], locations: [{ id: 'the-cave', name: 'The cave' }] },
+      ['location:the-cave']
+    );
+    await link({ kind: 'location', id: 'the-cave' }, { kind: 'quest', id: 'ring' });
+    expect(writes).toEqual([]);
+    expect(held).toEqual([['hold', 'location:the-cave', 'quest:ring']]);
+  });
+
+  it('stores two people on the private one of them, so nothing is held', async () => {
+    const { link, writes, held } = privately({ npcs: [npc('bilbo'), npc('gollum')] }, ['npc:gollum']);
+    await link({ kind: 'npc', id: 'bilbo' }, { kind: 'npc', id: 'gollum' });
+    expect(writes).toEqual([['npc', 'gollum', { connections: expect.objectContaining({ relatedNPCs: ['bilbo'] }) }]]);
+    expect(held).toEqual([]);
+  });
+
+  it('lets go of a held link, and the shared owner is not written', async () => {
+    const { unlink, writes, held } = privately(
+      { npcs: [npc('gollum')], quests: [{ id: 'ring', relatedNPCIds: [] }] },
+      ['npc:gollum']
+    );
+    await unlink({ kind: 'npc', id: 'gollum' }, { kind: 'quest', id: 'ring' });
+    expect(writes).toEqual([]);
+    expect(held).toEqual([['release', 'npc:gollum', 'quest:ring']]);
+  });
+
+  it('links two shared records as before', async () => {
+    const { link, writes, held } = privately(
+      { npcs: [npc('bilbo')], quests: [{ id: 'ring', relatedNPCIds: [] }] },
+      ['npc:gollum']
+    );
+    await link({ kind: 'npc', id: 'bilbo' }, { kind: 'quest', id: 'ring' });
+    expect(writes).toEqual([['quest', 'ring', { relatedNPCIds: ['bilbo'] }]]);
+    expect(held).toEqual([]);
+  });
+});

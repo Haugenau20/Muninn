@@ -11,6 +11,8 @@ import {
   useRumors,
   useLocations,
   createLinkActions,
+  useLinkPrivacy,
+  useRecordNotesPath,
   locationIdsOfNpc,
   resolveLocationName,
   npcIdsOfNpc,
@@ -21,7 +23,6 @@ import {
   deleteRecordNote,
 } from 'features/campaign-entities';
 import type { StoredNote } from 'features/campaign-entities';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 import type { NPC, NPCNote, NPCRelationship, NPCStatus } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
 import { useUser, useGroups, useCampaigns } from 'features/user-management';
@@ -46,6 +47,7 @@ import {
   FieldPrompt,
 } from 'shared/components/entity-page';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
 import { attachRefs, type AttachKind } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import { Pencil, X } from 'lucide-react';
@@ -254,8 +256,9 @@ const NPCDetailPage: React.FC = () => {
 
   const npc = npcs.find((candidate) => candidate.id === npcId);
 
-  // The notes: their own documents (T133).
-  const npcsPath = useCampaignCollectionPath('npcs');
+  // The notes: their own documents (T133), where the person lives (T163).
+  const npcsPath = useRecordNotesPath('npc', npc?.id);
+  const linkPrivacy = useLinkPrivacy();
   const notes = useRecordNotes<NPCNote>(npcsPath, npc?.id);
 
   // `loading` folds into the gate's resolving state: `npcs` is empty while auth
@@ -364,6 +367,8 @@ const NPCDetailPage: React.FC = () => {
     updateQuest,
     updateLocation,
     updateRumor,
+    // A private record's link to a shared one is held, not written (T163).
+    privacy: linkPrivacy,
   });
 
   /**
@@ -637,6 +642,7 @@ const NPCDetailPage: React.FC = () => {
           breadcrumb={breadcrumb}
           entityId={npc.id}
           name={npc.name}
+          notice={npc.isPrivate ? <PrivateNotice /> : undefined}
           // A person is taller than they are wide, so the portrait stands
           // beside the name rather than spanning the page as a location's
           // picture does (T064). Without one the sigil is their picture.
@@ -644,7 +650,9 @@ const NPCDetailPage: React.FC = () => {
           imageAlt={`Portrait of ${npc.name}`}
           imageShape="tall"
           imageUpload={
-            gate.canAct
+            // No portrait on a private person yet: its file would be stored
+            // where every member reads it (T163).
+            gate.canAct && !npc.isPrivate
               ? { subject: 'portrait', onUpload: portrait.upload, onRemove: portrait.remove }
               : undefined
           }

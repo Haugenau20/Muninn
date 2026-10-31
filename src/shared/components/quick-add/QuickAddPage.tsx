@@ -44,6 +44,8 @@ const QuickAddPage: React.FC<QuickAddPageProps> = ({
   // marks the entity in the same commit as the record (T088).
   const noteId = location.state?.noteId as string | undefined;
   const entityId = location.state?.entityId as string | undefined;
+  // The extraction's "Add as private" (T163).
+  const initialPrivate = location.state?.private === true;
   const { initialName, initialLine, carry, parentId } = splitInitialData(
     entity,
     location.state?.initialData
@@ -83,6 +85,7 @@ const QuickAddPage: React.FC<QuickAddPageProps> = ({
             carry={carry}
             initialName={initialName}
             initialLine={initialLine}
+            initialPrivate={initialPrivate}
             onCancel={handleCancel}
             // The page has a Back control of its own above the form and a
             // breadcrumb before that; stealing focus past both would skip the

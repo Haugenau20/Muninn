@@ -77,6 +77,11 @@ const mockConvertToQuest = jest.fn();
 jest.mock('../../context/RumorContext', () => ({
   useRumors: jest.fn(),
 }));
+
+// Converting checks the title against the quests (T163).
+jest.mock('../../../quests/context/QuestContext', () => ({
+  useQuests: jest.fn(() => ({ quests: [] })),
+}));
 const { useRumors } = require('../../context/RumorContext');
 
 function makeRumor(id: string): Rumor {
@@ -227,6 +232,8 @@ describe('RumorBatchActions', () => {
         expect(mockCombineRumors).toHaveBeenCalledWith(
           ['r1', 'r2'],
           { title: 't', content: 'c' },
+          // Stopped at a title a rumour already carries (T163).
+          { askOnSameName: true },
         );
       });
       expect(onComplete).toHaveBeenCalledTimes(1);
@@ -261,7 +268,8 @@ describe('RumorBatchActions', () => {
       fireEvent.click(screen.getByText('Convert to Quest'));
       fireEvent.click(screen.getByText('submit-convert'));
       await waitFor(() => {
-        expect(mockConvertToQuest).toHaveBeenCalledWith(['r1', 'r2'], { title: 't' });
+        // Stopped at a title a quest already carries (T163).
+        expect(mockConvertToQuest).toHaveBeenCalledWith(['r1', 'r2'], { title: 't' }, { askOnSameName: true });
       });
       // A rumour could be converted into a quest and then not refer to it --
       // the quest existed and nothing on screen led to it.
@@ -328,5 +336,75 @@ describe('RumorBatchActions', () => {
         expect(screen.getByText(/Failed to delete rumours: bad delete/i)).toBeInTheDocument();
       });
     });
+  });
+});
+
+// T163: a combine's or a conversion's title a record already carries stops
+// at "already exists", and "Add to" joins into that record instead.
+describe('RumorBatchActions -- already exists', () => {
+  const { useQuests } = require('../../../quests/context/QuestContext');
+  const { SameNameError } = jest.requireActual('../../../shared/sameName');
+  afterEach(() => (useQuests as jest.Mock).mockReturnValue({ quests: [] }));
+
+  test('a conversion titled as a quest the page holds asks, then converts into it', async () => {
+    (useQuests as jest.Mock).mockReturnValue({
+      quests: [{ id: 'the-t-quest', title: 'T', description: '', status: 'active', objectives: [] }],
+    });
+    mockConvertToQuest.mockResolvedValue('the-t-quest');
+    render(<RumorBatchActions selectedRumors={new Set(['r1', 'r2'])} />);
+    fireEvent.click(screen.getByText('Convert to Quest'));
+    fireEvent.click(screen.getByText('submit-convert'));
+
+    await screen.findByRole('dialog', { name: 'A T already exists' });
+    expect(mockConvertToQuest).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add to T' }));
+    await waitFor(() =>
+      expect(mockConvertToQuest).toHaveBeenCalledWith(['r1', 'r2'], { title: 't' }, { into: 'the-t-quest' })
+    );
+    await waitFor(() => expect(mockNavigateToPage).toHaveBeenCalledWith('/quests/the-t-quest'));
+  });
+
+  test('a combine stopped by the context asks, then combines into that rumour', async () => {
+    mockCombineRumors
+      .mockRejectedValueOnce(new SameNameError('rumor', 'r3', 'Rumour r3'))
+      .mockResolvedValueOnce('r3');
+    const onComplete = jest.fn();
+    render(<RumorBatchActions selectedRumors={new Set(['r1', 'r2'])} onComplete={onComplete} />);
+    fireEvent.click(screen.getByText('Combine'));
+    fireEvent.click(screen.getByText('submit-combine'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add to Rumour r3' }));
+    await waitFor(() =>
+      expect(mockCombineRumors).toHaveBeenLastCalledWith(['r1', 'r2'], { title: 't', content: 'c' }, { into: 'r3' })
+    );
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+  });
+
+  test('cancelling leaves the combine dialog open, and nothing written', async () => {
+    mockCombineRumors.mockRejectedValueOnce(new SameNameError('rumor', 'r3', 'Rumour r3'));
+    render(<RumorBatchActions selectedRumors={new Set(['r1', 'r2'])} />);
+    fireEvent.click(screen.getByText('Combine'));
+    fireEvent.click(screen.getByText('submit-combine'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByTestId('combine-dialog')).toBeInTheDocument();
+    expect(mockCombineRumors).toHaveBeenCalledTimes(1);
+  });
+
+  test('keeping the title on purpose combines anyway, as a second rumour of it', async () => {
+    mockCombineRumors
+      .mockRejectedValueOnce(new SameNameError('rumor', 'r3', 'Rumour r3'))
+      .mockResolvedValueOnce('t-2');
+    render(<RumorBatchActions selectedRumors={new Set(['r1', 'r2'])} />);
+    fireEvent.click(screen.getByText('Combine'));
+    fireEvent.click(screen.getByText('submit-combine'));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a name' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Combine t' }));
+    await waitFor(() =>
+      expect(mockCombineRumors).toHaveBeenLastCalledWith(['r1', 'r2'], { title: 't', content: 'c' }, { askOnSameName: false })
+    );
   });
 });

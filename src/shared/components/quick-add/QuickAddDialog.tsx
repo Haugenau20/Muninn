@@ -56,6 +56,7 @@ const QuickAddDialog: React.FC<QuickAddDialogProps> = ({
       placement="sheet-on-phone"
     >
       <QuickAddForm
+        inDialog
         // Remount on a change of entity so no field survives from the last
         // one. Opening "Add a quest" straight after "Add an NPC" must not
         // inherit the NPC's half-typed name.

@@ -1072,6 +1072,107 @@ describe('DocumentService', () => {
     });
   });
 
+  // ─── mergeIntoDocument (T163) ───────────────────────────────────────────────
+  // "Add what you know to it": the existing record, the marks that pointed at
+  // the newcomer and the note of what differed, in one commit.
+  describe('mergeIntoDocument', () => {
+    const PROFILE = { username: 'Sam', activeCharacterId: null, characters: [] };
+    const NPCS = 'groups/g1/campaigns/c1/npcs';
+    const NOTES = 'groups/g1/users/u1/notes';
+    const flatDoc = mockDoc.getMockImplementation()!;
+    const flatCollection = mockCollection.getMockImplementation()!;
+
+    beforeEach(() => {
+      mockGetDoc.mockResolvedValue(makeDocSnapshot(true, PROFILE));
+      mockDoc.mockImplementation((parent: any, ...segs: string[]) => {
+        const path = [parent?.path, ...segs].filter(Boolean).join('/');
+        return { path, id: path.split('/').pop()! };
+      });
+      mockCollection.mockImplementation((parent: any, ...segs: string[]) => ({
+        path: [parent?.path, ...segs].filter(Boolean).join('/'),
+      }));
+    });
+    afterEach(() => {
+      mockDoc.mockImplementation(flatDoc);
+      mockCollection.mockImplementation(flatCollection);
+    });
+
+    const inCampaign = () => {
+      const svc = DocumentService.getInstance();
+      svc.setActiveGroup('g1');
+      svc.setActiveCampaign('c1');
+      return svc;
+    };
+
+    test('adds to the target, updates the source and writes the note, each attributed, in one commit', async () => {
+      mockFirestoreStore.seed(`${NPCS}/grog`, { name: 'Grog', occupation: '' });
+      mockFirestoreStore.seed(`${NOTES}/session-9`, { title: 'Session 9', extractedEntities: [] });
+      let seen: any;
+
+      await inCampaign().mergeIntoDocument<any, any>(NPCS, 'grog', NOTES, async (target, read) => {
+        seen = target;
+        const note = await read('session-9');
+        return {
+          fields: { occupation: 'Smith' },
+          updates: [{ id: note!.id, data: { extractedEntities: [{ id: 'e1', convertedToId: 'grog' }] } }],
+          notes: [{ under: 'target', id: 'n1', data: { text: 'Also recorded as Grog' } }],
+        };
+      });
+
+      expect(seen).toMatchObject({ id: 'grog', name: 'Grog' });
+      expect(mockFirestoreStore.read(`${NPCS}/grog`)).toMatchObject({
+        name: 'Grog',
+        occupation: 'Smith',
+        modifiedByUsername: 'Sam',
+      });
+      expect(mockFirestoreStore.read(`${NOTES}/session-9`)).toMatchObject({
+        extractedEntities: [{ id: 'e1', convertedToId: 'grog' }],
+        modifiedByUsername: 'Sam',
+      });
+      expect(mockFirestoreStore.read(`${NPCS}/grog/notes/n1`)).toMatchObject({
+        text: 'Also recorded as Grog',
+        createdByUsername: 'Sam',
+        createdAt: 'SERVER_TIMESTAMP',
+      });
+    });
+
+    test('writes nothing to the target when it gains nothing, so no change is credited to it', async () => {
+      mockFirestoreStore.seed(`${NPCS}/grog`, { name: 'Grog' });
+
+      await inCampaign().mergeIntoDocument<any, any>(NPCS, 'grog', NPCS, async () => ({ fields: {}, updates: [] }));
+
+      expect(mockFirestoreStore.read(`${NPCS}/grog`)).toEqual({ name: 'Grog' });
+    });
+
+    test('refuses when the target has gone, writing nothing', async () => {
+      mockFirestoreStore.seed(`${NOTES}/session-9`, { title: 'Session 9' });
+
+      await expect(
+        inCampaign().mergeIntoDocument<any, any>(NPCS, 'grog', NOTES, async () => ({
+          fields: { occupation: 'Smith' },
+          updates: [{ id: 'session-9', data: { title: 'Changed' } }],
+        }))
+      ).rejects.toThrow('This record was deleted.');
+
+      expect(mockFirestoreStore.paths()).toEqual([`${NOTES}/session-9`]);
+      expect(mockFirestoreStore.read(`${NOTES}/session-9`)).toEqual({ title: 'Session 9' });
+    });
+
+    test('refuses the whole commit when the note is too long', async () => {
+      mockFirestoreStore.seed(`${NPCS}/grog`, { name: 'Grog', occupation: '' });
+
+      await expect(
+        inCampaign().mergeIntoDocument<any, any>(NPCS, 'grog', NPCS, async () => ({
+          fields: { occupation: 'Smith' },
+          updates: [],
+          notes: [{ under: 'target', id: 'n1', data: { text: 'x'.repeat(10_001) } }],
+        }))
+      ).rejects.toMatchObject({ name: 'TextTooLongError' });
+
+      expect(mockFirestoreStore.read(`${NPCS}/grog`)).toEqual({ name: 'Grog', occupation: '' });
+    });
+  });
+
   // ─── collection path construction ───────────────────────────────────────────
 
 

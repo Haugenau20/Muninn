@@ -25,8 +25,11 @@ jest.mock('@/features/user-management', () => ({
  * requirement of `NoteProvider` -- satisfied in `app/App.tsx`, and mocked here.
  */
 const mockAddRumor = jest.fn().mockResolvedValue('rumor-1');
+const mockMergeIntoRecord = jest.fn().mockResolvedValue('strange-lights');
 jest.mock('features/campaign-entities', () => ({
   useRumors: () => ({ addRumor: mockAddRumor }),
+  // "Add what you know to it" (T163), which a plain conversion never reaches.
+  useMergeIntoRecord: () => mockMergeIntoRecord,
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -1007,13 +1010,80 @@ describe('NoteContext Behavioral Tests', () => {
           content: 'Travelers report seeing strange lights',
           sourceType: 'traveler',
           status: 'unconfirmed'
-        })
+        }),
+        // No mark for a draft note; the title checked first (T163).
+        undefined,
+        { askOnSameName: true }
       );
       expect(mockNavigate).toHaveBeenCalledWith('/rumors?highlight=rumor-1');
       expect(mockNavigate).not.toHaveBeenCalledWith(
         '/rumors/create',
         expect.anything()
       );
+    });
+
+    // T163: the player's answer to "already exists", brought back by the
+    // links panel: add to that rumour, or create under the name given.
+    describe('with an answer to "already exists"', () => {
+      const rumorEntity = (): ExtractedEntity => ({
+        ...mockEntity,
+        type: 'rumor',
+        extraData: { title: 'Strange Lights', content: 'Lights over the fen', status: 'unconfirmed' },
+      });
+      const convertWith = async (answer: unknown) => {
+        let capturedContext: any;
+        render(
+          <NoteProvider>
+            <TestComponent onRender={(ctx) => capturedContext = ctx} />
+          </NoteProvider>
+        );
+        await waitFor(() => expect(capturedContext.isLoading).toBe(false));
+        await act(async () => {
+          createdId = await capturedContext.createNote('Test Note', 'Test content');
+        });
+        await act(async () => {
+          await capturedContext.updateNote(createdId, { extractedEntities: [rumorEntity()] });
+        });
+        let id: string | undefined;
+        await act(async () => {
+          id = await capturedContext.convertEntity(createdId, 'entity-1', 'rumor', answer);
+        });
+        return id;
+      };
+
+      test('adds the rumour to the one of that title, and opens its row', async () => {
+        const id = await convertWith({ merge: 'strange-lights' });
+
+        expect(id).toBe('strange-lights');
+        expect(mockMergeIntoRecord).toHaveBeenCalledWith(
+          'rumor',
+          'strange-lights',
+          expect.objectContaining({ title: 'Strange Lights', content: 'Lights over the fen' }),
+          undefined
+        );
+        expect(mockAddRumor).not.toHaveBeenCalled();
+        expect(mockNavigate).toHaveBeenCalledWith('/rumors?highlight=strange-lights');
+      });
+
+      test('creates it under another title, checked like the first', async () => {
+        await convertWith({ createAs: 'Lights on the fen', anyway: false });
+
+        expect(mockAddRumor).toHaveBeenCalledWith(
+          expect.objectContaining({ title: 'Lights on the fen' }),
+          undefined,
+          { askOnSameName: true }
+        );
+      });
+
+      test('creates it under the same title when kept on purpose', async () => {
+        await convertWith({ createAs: 'Strange Lights', anyway: true });
+
+        expect(mockAddRumor).toHaveBeenCalledWith(
+          expect.objectContaining({ title: 'Strange Lights' }),
+          undefined,
+          { askOnSameName: false }
+        );
+      });
     });
 
     // T119: with no extracted title, the rumour is named after the passage the
@@ -1048,7 +1118,10 @@ describe('NoteContext Behavioral Tests', () => {
       });
 
       expect(mockAddRumor).toHaveBeenCalledWith(
-        expect.objectContaining({ title: passage.slice(0, 200), content: passage })
+        expect.objectContaining({ title: passage.slice(0, 200), content: passage }),
+        // No mark for a draft note; the title checked first (T163).
+        undefined,
+        { askOnSameName: true }
       );
     });
 

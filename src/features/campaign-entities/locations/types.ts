@@ -1,5 +1,5 @@
 // src/features/campaign-entities/locations/types.ts
-import { BaseContent, DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { BaseContent, DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { StoredImage } from 'core/types/storedImage';
 
 /**
@@ -158,7 +158,7 @@ export interface LocationContextValue extends LocationContextState {
    */
   deleteLocations: (locationIds: string[], childStrategy: LocationChildStrategy) => Promise<void>;
   /** `alongside`: a change to another record that commits with this one (T088). */
-  createLocation: (locationData: DomainData<Location>, alongside?: CreateAlongside) => Promise<string>;
+  createLocation: (locationData: DomainData<Location>, alongside?: CreateAlongside, options?: CreateOptions) => Promise<string>;
   /** Retry after a failed load: reopens the listener if it failed (T032). Writes never need it. */
   refreshLocations: () => Promise<Location[]>;
   hasRequiredContext: boolean;

@@ -70,6 +70,7 @@ const QUEST_VALUE: QuestContextValue = {
   addQuestObjective: nothing,
   editQuestObjective: nothing,
   moveQuestObjective: nothing,
+  addQuestNote: nothing,
   addQuest: noId,
   updateQuest: nothing,
   deleteQuest: nothing,

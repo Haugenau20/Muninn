@@ -457,17 +457,37 @@ service cloud.firestore {
               !request.resource.data.diff(resource.data).affectedKeys().hasAny([field]));
     }
 
-    // The records whose notes are documents of their own (T133).
+    // The records whose notes are documents of their own (T133; quests', T163).
     function hasNotes(entityCollection) {
-      return entityCollection in ['npcs', 'locations', 'rumors'];
+      return entityCollection in ['npcs', 'locations', 'quests', 'rumors'];
     }
 
-    // A note's text: a person's or place's note is `text`, a rumour's
+    // A note's text: a person's, place's or quest's note is `text`, a rumour's
     // `content`, each a text of 10,000; its day and author a line (T133).
     function noteTextFits() {
       let changed = changedKeys();
       return fits(changed, 'text', 10000) && fits(changed, 'content', 10000) &&
              fits(changed, 'date', 200) && fits(changed, 'author', 200);
+    }
+
+    // A private record carries no picture (T163): a picture's file is stored
+    // where every member of the group can read it.
+    function holdsNoPicture() {
+      return request.resource.data.get('image', null) == null;
+    }
+
+    // A held link (T163): its two ends, each a kind and an id, and nothing
+    // else. `from` is the private record, `to` the shared one that owns the link.
+    function heldLinkShape() {
+      let data = request.resource.data;
+      let kinds = ['npc', 'location', 'quest', 'rumor'];
+      return data.keys().hasOnly(['from', 'to', 'createdAt']) &&
+             data.from is map && data.to is map &&
+             data.from.keys().hasOnly(['kind', 'id']) && data.to.keys().hasOnly(['kind', 'id']) &&
+             data.from.kind in kinds && data.to.kind in kinds &&
+             data.from.id is string && data.from.id.size() <= 200 &&
+             data.to.id is string && data.to.id.size() <= 200 &&
+             data.createdAt == request.time;
     }
 
     // The fields this write sets or changes: all of them for a new document.
@@ -701,6 +721,49 @@ service cloud.firestore {
                                  campaignOpen(groupId, request.resource.data.campaignId);
         }
 
+        // Private records (T163): a player's people, places, quests and
+        // rumours kept to themselves -- what happened in a one-to-one session
+        // with the DM -- until they publish them. Owner-only, like notes:
+        // not even an admin reads them. Shaped and capped as the campaign's
+        // own records are, so publishing moves one across unchanged; writing
+        // also requires membership and a campaign that takes writes. No
+        // picture yet: a record's picture lives where every member reads it.
+        match /private/{campaignId}/{entityCollection}/{entityId} {
+          allow read, delete: if isSignedIn() && request.auth.uid == userId &&
+                               hasNotes(entityCollection);
+          allow create: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
+                         hasNotes(entityCollection) && keepsItsName(entityCollection) &&
+                         textFits(entityCollection) && stampsCreation() && holdsNoPicture() &&
+                         campaignOpen(groupId, campaignId);
+          allow update: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
+                         hasNotes(entityCollection) && keepsItsName(entityCollection) &&
+                         textFits(entityCollection) && stampsModification() && holdsNoPicture() &&
+                         campaignOpen(groupId, campaignId);
+
+          // A private record's notes, as a shared record's are (T133).
+          match /notes/{noteId} {
+            allow read, delete: if isSignedIn() && request.auth.uid == userId;
+            allow create: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
+                           hasNotes(entityCollection) && campaignOpen(groupId, campaignId) &&
+                           noteTextFits() && stampsCreation() &&
+                           existsAfter(/databases/$(database)/documents/groups/$(groupId)/users/$(userId)/private/$(campaignId)/$(entityCollection)/$(entityId));
+            allow update: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
+                           hasNotes(entityCollection) && campaignOpen(groupId, campaignId) &&
+                           noteTextFits() && stampsModification() &&
+                           existsAfter(/databases/$(database)/documents/groups/$(groupId)/users/$(userId)/private/$(campaignId)/$(entityCollection)/$(entityId));
+          }
+        }
+
+        // A link held for a private record (T163): one whose owner is a
+        // shared record, which must not carry a private record's id. Written
+        // onto the owner when the record is published. Ids only, created and
+        // deleted, never changed.
+        match /private/{campaignId}/links/{linkId} {
+          allow read, delete: if isSignedIn() && request.auth.uid == userId;
+          allow create: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
+                         campaignOpen(groupId, campaignId) && heldLinkShape();
+        }
+
         // A reader's place in each campaign's story, one document per campaign
         // (T073). Private for the same reason notes are: it records what one
         // player has read. It used to be one campaign-wide document every
@@ -863,7 +926,7 @@ service cloud.firestore {
         }
 
         // A record's notes, each a document of its own (T133): a person's,
-        // a place's and a rumour's. Their text is capped one note at a time,
+        // a place's, a quest's (T163) and a rumour's. Their text is capped one note at a time,
         // which no rule could do inside the array they used to live in (F3,
         // F4). Any member may write them, as any member may the record, and
         // only under a record there is: after the write, so a new record's
