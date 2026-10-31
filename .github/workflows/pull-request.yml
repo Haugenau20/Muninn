@@ -1,0 +1,20 @@
+# .github/workflows/pull-request.yml
+#
+# The gate a PR must pass to merge: the same `test.yml` the merge-to-main
+# deploy runs first. The ruleset on `main` requires its `test / ...` checks by
+# name, so this file must keep calling it as `test`.
+#
+# PRs used to get a Firebase Hosting preview channel as well. It ran unmerged
+# code against production data, so it was signed out on purpose and showed
+# only the sign-in page, while the PR's `npm ci` and build ran on the runner
+# that then held the Hosting deploy key (T139). It was removed on 2026-10-31;
+# `test / bundle` still builds the production site on every PR.
+
+name: Test PR
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  # Runs for every PR, forks included: it needs no secrets.
+  test:
+    uses: ./.github/workflows/test.yml

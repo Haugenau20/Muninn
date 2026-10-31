@@ -39,7 +39,7 @@ from each entry's summary alone: a judgement, not a measurement.
 | Priority | ID | Item | Category | Size | Status | Why here |
 |---|---|---|---|---|---|---|
 | medium | T146 | The functions run as an Editor of the whole project | security | M | open | Any code deployed as a function, by CI's key (T139) or a poisoned dependency, reaches every resource in the project and can act as every service account in it; the roles it needs are measured |
-| medium | T139 | CI signs in to Google Cloud with long-lived keys | security | M | open | A leaked key deploys code that reads every group, and a PR's dependencies run beside the Hosting key |
+| medium | T139 | CI signs in to Google Cloud with long-lived keys | security | M | open | A leaked key deploys code that reads every group |
 | medium | T141 | The site's contact address is a Gmail account | ops | M | open | Players see a Gmail address on replies and on Google's consent screen; the maintainer wants it soon |
 | medium | T152 | Anyone can spend the site's sign-in emails for the day | security | M | open | The quota is the project's, 25,000 a day, and the browser asks Firebase directly; spent, nobody can sign in by email until the next day |
 | medium | T154 | Backups of the data, inside and outside the project | reliability | M | open | A mistake that deletes data needs a way back, and the project a copy to rebuild from |
@@ -178,15 +178,12 @@ to this repository by id and to the workflow and branch, removes them.
 
 - **Where**: `FIREBASE_FUNCTIONS_DEPLOY_SA` (functions and rules,
   `firebase-hosting-merge.yml:43` and `:95`); `FIREBASE_SERVICE_ACCOUNT_DND_CAMPAIGN_COMPANION`
-  (Hosting, `:141`; PR previews, `firebase-hosting-pull-request.yml:58`;
-  channel cleanup, `firebase-hosting-pull-request-cleanup.yml:45`).
-- **Catch**: the preview job runs an unmerged branch's `npm ci` and build
-  (`firebase-hosting-pull-request.yml:26-31`) on the runner that then holds the
-  Hosting key, so a poisoned dependency in a PR can wait for that step and take it.
-  `FirebaseExtended/action-hosting-deploy` takes only a JSON key (its README:
-  `firebaseServiceAccount` "required", "a service account JSON key"), so those
-  steps move to the CLI under `google-github-actions/auth`; unverified whether
-  the action accepts anything else.
+  (Hosting, `:143`). No PR workflow holds either key since the PR preview was
+  removed (2026-10-31).
+- **Catch**: `FirebaseExtended/action-hosting-deploy` takes only a JSON key (its
+  README: `firebaseServiceAccount` "required", "a service account JSON key"), so
+  the Hosting step moves to the CLI under `google-github-actions/auth`;
+  unverified whether the action accepts anything else.
 - **Then**: delete both keys in the console once nothing uses them.
 - **Source**: found while designing T137's operator deploy, which uses
   Workload Identity Federation from the start, 2026-10-08

@@ -4,7 +4,7 @@
 # the build, also covers the test files), lint on the app code with zero
 # warnings allowed, lint on the test files against a baseline that may only go
 # down, and the jest suite with its 80% coverage floor. Called by
-# both hosting workflows, so a PR and the merge-to-main deploy run exactly the
+# `pull-request.yml` and the merge-to-main deploy, so both run exactly the
 # same gate.
 #
 # `functions` runs firebase/functions' own suite against the emulators, which
@@ -18,9 +18,8 @@
 #
 # `e2e` runs the browser journeys (T103, e2e/): Playwright drives the
 # production build against emulators that enforce the production Firestore
-# rules, started by `npm --prefix firebase run test:e2e`. A ruleset only
-# requires the checks it names, so this job blocks a PR's merge once
-# `test / e2e` is added there.
+# rules, started by `npm --prefix firebase run test:e2e`. The ruleset on
+# `main` requires `test / e2e` like the other three.
 #
 # Every job must pass for a caller's `needs: test`, so all four hold back the
 # deploy.

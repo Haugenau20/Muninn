@@ -41,7 +41,6 @@ beforeEach(() => {
   localStorage.clear();
   setNodeEnv("production");
   mockConfig.useEmulators = false;
-  delete process.env.REACT_APP_PREVIEW;
   analytics = require("../analytics");
   analytics.resetAnalyticsForTests();
 });
@@ -162,7 +161,6 @@ describe("only on the live site", () => {
   it.each([
     ["the dev server", () => setNodeEnv("development")],
     ["the emulators", () => { mockConfig.useEmulators = true; }],
-    ["a pull request's preview", () => { process.env.REACT_APP_PREVIEW = "true"; }],
   ])("never starts on %s, even with consent", async (_where, arrange) => {
     arrange();
     analytics.attachAnalytics(app);

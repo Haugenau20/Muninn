@@ -285,9 +285,9 @@ order is fixed** — a rule may rely on a live function, and the frontend on a l
 refuses what the *live* frontend still writes must merge after that frontend has shipped, in a
 later PR. CI (`.github/workflows/test.yml`) runs all three steps,
 plus `npm run lint`, `npm run lint:tests`, the `firebase/functions` suite and `npm run check:bundle`, on every PR and
-before the deploy, which waits on them. A ruleset on `main` requires `test / test`, `test / functions`
-and `test / bundle`, so a red PR cannot merge; a new job in `test.yml` gates nothing until the
-maintainer adds it there (`test / e2e`, the browser journeys, is not in it yet). Changed a function? Run
+before the deploy, which waits on them. A ruleset on `main` requires `test / test`, `test / functions`,
+`test / bundle` and `test / e2e` (the browser journeys), so a red PR cannot merge; a new job in
+`test.yml` gates nothing until the maintainer adds it there. Changed a function? Run
 `npm --prefix firebase run test:functions` too; changed a page or a flow, `npm --prefix firebase run test:e2e`.
 
 **The operator page deploys on its own track** (T137). After each main deploy, `operator-deploy.yml`
@@ -301,9 +301,9 @@ changed (IAP, its access list, the audit trail), not the code. Deploy it only th
 service is down: `scripts/issue-founder-invitation.js` for founder links, and
 `users/{uid}.extractionAllowance` in the console for allowances.
 
-**A PR's preview site is signed out on purpose**: it runs unmerged code against production data, so the
-preview build sets `REACT_APP_PREVIEW` and `/signin` and `/join` say sign-in is off. Check signed-in
-screens on the dev server; never set that variable in the live deploy.
+**PRs get no preview site** (removed 2026-10-31): it ran unmerged code against production data, so it
+was signed out and showed only the sign-in page, while holding the Hosting key. Check pages on the dev
+server; `test / bundle` builds the production site on every PR.
 
 **Never watch CI or PRs after pushing** — the maintainer's standing rule (2026-09-27). Do not
 subscribe to PR activity, poll check runs, `/loop`, schedule check-ins (`send_later`, routines,

@@ -189,27 +189,4 @@ describe("SignInPage", () => {
       expect(screen.getByTestId("landed")).toHaveTextContent("/");
     });
   });
-
-  // T110: a PR's preview site runs against production data and stays signed
-  // out on purpose. It says so, rather than offering a form that fails.
-  describe("on a preview build", () => {
-    afterEach(() => {
-      delete process.env.REACT_APP_PREVIEW;
-    });
-
-    test("says sign-in is off, in place of the form", () => {
-      process.env.REACT_APP_PREVIEW = "true";
-      renderAt("/signin");
-      expect(screen.getByText(/preview build: sign-in is off/i)).toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: "Pretend to sign in" })
-      ).not.toBeInTheDocument();
-    });
-
-    test("shows the form on any other build", () => {
-      renderAt("/signin");
-      expect(screen.queryByTestId("preview-signin-notice")).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Pretend to sign in" })).toBeInTheDocument();
-    });
-  });
 });

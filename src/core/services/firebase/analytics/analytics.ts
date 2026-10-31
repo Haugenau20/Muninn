@@ -2,7 +2,6 @@
 import type { FirebaseApp } from "firebase/app";
 import type { Analytics } from "firebase/analytics";
 import { firebaseConfig, useEmulators } from "../config/firebaseConfig";
-import { isPreviewBuild } from "core/constants/app";
 import { ANALYTICS_FACTS } from "core/constants/privacy";
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "core/utils/local-storage";
 
@@ -58,13 +57,12 @@ const listeners = new Set<() => void>();
 
 /**
  * Whether this build may report to Google Analytics at all: only the live
- * site. Never the dev server, the emulators (the browser journeys run a
- * production build against them) or a pull request's preview.
+ * site. Never the dev server or the emulators (the browser journeys run a
+ * production build against them).
  */
 const analyticsAvailable = (): boolean =>
   process.env.NODE_ENV === "production" &&
   !useEmulators &&
-  !isPreviewBuild() &&
   Boolean(firebaseConfig.measurementId);
 
 const isConsent = (value: string | null): value is AnalyticsConsent =>

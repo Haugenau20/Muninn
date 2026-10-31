@@ -49,7 +49,6 @@ export const appBuildEnv: Record<string, string> = {
   REACT_APP_API_KEY: "fake-api-key",
   REACT_APP_AUTH_DOMAIN: `${E2E.projectId}.firebaseapp.com`,
   REACT_APP_STORAGE_BUCKET: `${E2E.projectId}.appspot.com`,
-  REACT_APP_PREVIEW: "",
 };
 
 /** The file the signed-in browser state is saved to and read from. */
