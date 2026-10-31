@@ -1,6 +1,7 @@
 // src/features/campaign-entities/rumors/hooks/useRumorData.ts
 import { Rumor } from '../types';
 import { useCampaignCollection } from 'shared/hooks/useCampaignCollection';
+import { useWithPrivate } from '../../shared/private/useWithPrivate';
 
 /** Rumours are shown in the order Firestore returns them. */
 const asStored = (rumors: Rumor[]): Rumor[] => rumors;
@@ -13,8 +14,10 @@ const asStored = (rumors: Rumor[]): Rumor[] => rumors;
  * @returns The rumors, loading and error state, a retry, and the campaign context status
  */
 export const useRumorData = ({ enabled = true }: { enabled?: boolean } = {}) => {
-  const { items, loading, error, refresh, hasRequiredContext, missingContext } =
+  const { items: shared, loading, error, refresh, hasRequiredContext, missingContext } =
     useCampaignCollection<Rumor>('rumors', asStored, enabled);
+  // With the author's private records beside them (T163).
+  const items = useWithPrivate('rumor', shared, asStored);
 
   return {
     rumors: items,

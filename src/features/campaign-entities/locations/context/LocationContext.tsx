@@ -1,5 +1,5 @@
 // src/features/campaign-entities/locations/context/LocationContext.tsx
-import React, { createContext, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useRef } from 'react';
 import { Location, LocationStatus, LocationContextValue, LocationNote, LocationChildStrategy } from '../types';
 import { descendantIdsDeepestFirst, parentChainReaches, wouldCreateCycle } from '../utils/location-tree';
 import { planBatchDelete } from '../utils/batch-delete';
@@ -17,6 +17,7 @@ import { commitEntityWrites } from '../../shared/commitEntityWrites';
 import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlinkDeleted';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
+import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
 import { releaseImage } from 'shared/hooks/useImageAttachment';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
 
@@ -63,6 +64,12 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     collection: locationsPath,
     autoFetch: false
   });
+  // A private place's writes go to its author's private space (T163).
+  const sharedWriters = useMemo(
+    () => ({ updateData, updateDataAfterReading, deleteData, addData }),
+    [updateData, updateDataAfterReading, deleteData, addData]
+  );
+  const routing = usePrivateRouting<Location>('location', locationsPath, sharedWriters);
 
   // Get location by ID
   const getLocationById = useCallback((id: string) => {
@@ -100,8 +107,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       throw new Error('Location not found');
     }
 
-    await writeRecordChange({ updateData, updateDataAfterReading }, locationId, change, 'Location not found');
-  }, [user, activeGroupId, activeCampaignId, getLocationById, updateData, updateDataAfterReading]);
+    await writeRecordChange(routing.writersFor(locationId), locationId, change, 'Location not found');
+  }, [user, activeGroupId, activeCampaignId, getLocationById, routing]);
 
   // Update location note
   const updateLocationNote = useCallback(async (locationId: string, note: LocationNote): Promise<void> => {
@@ -115,9 +122,10 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     // A note of its own (T133), not one more entry in the record.
-    if (!locationsPath) throw new Error('No campaign selected');
-    await addRecordNote(locationsPath, locationId, { ...note, date: toNoteDate() });
-  }, [user, userProfile, activeGroupId, activeCampaignId, getLocationById, locationsPath]);
+    const path = routing.pathFor(locationId);
+    if (!path) throw new Error('No campaign selected');
+    await addRecordNote(path, locationId, { ...note, date: toNoteDate() });
+  }, [user, userProfile, activeGroupId, activeCampaignId, getLocationById, routing]);
 
   // Update location status
   const updateLocationStatus = useCallback(async (locationId: string, status: LocationStatus): Promise<void> => {
@@ -129,8 +137,8 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       throw new Error('Location not found');
     }
 
-    await updateData(locationId, { status });
-  }, [user, activeGroupId, activeCampaignId, getLocationById, updateData]);
+    await routing.writersFor(locationId).updateData(locationId, { status });
+  }, [user, activeGroupId, activeCampaignId, getLocationById, routing]);
 
   /**
    * Sets the status of several locations in one batch (T017): one round trip,
@@ -147,11 +155,12 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const modificationAttribution = buildModificationAttribution({ uid: user.uid, activeGroupUserProfile });
     await commitEntityWrites<Location>(locationsPath, 'locations', locationIds.map(id => ({
+      collection: routing.pathFor(id),
       type: 'update' as const,
       id,
       data: { status, ...modificationAttribution, ...modificationTimes() }
     })));
-  }, [user, activeGroupUserProfile, activeGroupId, activeCampaignId, getLocationById, locationsPath]);
+  }, [user, activeGroupUserProfile, activeGroupId, activeCampaignId, getLocationById, locationsPath, routing]);
 
   /**
    * Move a location under a new parent.
@@ -196,12 +205,23 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
+    // A shared place never sits inside a private one (T163); a private one
+    // may sit inside a shared one, which cannot be inside it, so there is no
+    // cycle to read for.
+    if (routing.isOwn(nextParentId) && !routing.isOwn(locationId)) {
+      throw new Error('A shared place cannot sit inside a private one.');
+    }
+    if (routing.isOwn(locationId) && !routing.isOwn(nextParentId)) {
+      await updateLocation(locationId, { parentId: nextParentId });
+      return;
+    }
+
     // The list on screen is a snapshot: another member may have moved the new
     // parent inside this place since, and two opposite moves each pass the
     // check above (DATA-006). The parent's chain is read again inside the
     // transaction that writes the move, so whichever commits second sees the
     // first and is refused.
-    await updateDataAfterReading(locationId, async (read) => {
+    await routing.writersFor(locationId).updateDataAfterReading(locationId, async (read) => {
       const parent = await read(nextParentId);
       if (!parent) {
         throw new Error(`${getLocationById(nextParentId)?.name ?? 'That place'} no longer exists.`);
@@ -211,7 +231,60 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       return { parentId: nextParentId };
     });
-  }, [user, activeGroupId, activeCampaignId, getLocationById, locations, updateLocation, updateDataAfterReading]);
+  }, [user, activeGroupId, activeCampaignId, getLocationById, locations, updateLocation, routing]);
+
+  /**
+   * Delete one of the author's private places (T163), and what is inside it
+   * or nothing. Only the author writes there, and every place inside a
+   * private one is private, so this works from the list rather than marking
+   * and asking the server as a shared deletion must.
+   */
+  const deletePrivatePlace = useCallback(async (
+    locationId: string,
+    childStrategy: LocationChildStrategy
+  ): Promise<void> => {
+    const place = getLocationById(locationId);
+    if (!place) return;
+    const path = routing.privatePath;
+    const writers = routing.privately;
+    const gone =
+      childStrategy === 'promote-to-grandparent'
+        ? []
+        : descendantIdsDeepestFirst(locations, locationId);
+    if (childStrategy === 'promote-to-grandparent') {
+      for (const child of locations.filter(candidate => candidate.parentId === locationId)) {
+        await writers.updateData(child.id, { parentId: place.parentId || '' });
+      }
+    }
+    for (const id of [...gone, locationId]) {
+      if (path) await deleteRecordNotes(path, [id]);
+      await writers.deleteData(id);
+    }
+    await routing.afterDelete([...gone, locationId]);
+  }, [getLocationById, locations, routing]);
+
+  /**
+   * After shared places are deleted: the author's private places inside
+   * them follow the same answer (T163). Others cannot see them, so the
+   * deletion itself never reached them: moved up to `grandparentId`, or
+   * deleted with what is inside them.
+   */
+  const afterSharedPlacesGo = useCallback(async (
+    deletedIds: readonly string[],
+    strategy: LocationChildStrategy,
+    grandparentId: string
+  ): Promise<void> => {
+    const gone = new Set(deletedIds);
+    const inside = locations.filter(place => place.isPrivate && gone.has(place.parentId ?? ''));
+    for (const place of inside) {
+      if (strategy === 'promote-to-grandparent') {
+        await routing.privately.updateData(place.id, { parentId: grandparentId });
+      } else {
+        await deletePrivatePlace(place.id, 'delete-subtree');
+      }
+    }
+    await routing.afterDelete(deletedIds);
+  }, [locations, routing, deletePrivatePlace]);
 
   /**
    * Delete a location, and say what happens to the places inside it.
@@ -248,6 +321,12 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   ): Promise<void> => {
     if (!user || !activeGroupId || !activeCampaignId) {
       throw new Error('User must be authenticated and group/campaign context must be set to delete a location');
+    }
+
+    // A private place is its author's alone, and so is everything inside it.
+    if (routing.isOwn(locationId)) {
+      await deletePrivatePlace(locationId, childStrategy);
+      return;
     }
 
     // 1. The mark. A place already marked keeps the way its deletion began.
@@ -312,6 +391,7 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       discard?.();
       // And out of every list that named it (T131).
       await unlinkDeletedQuietly(recordPaths, 'location', [locationId]);
+      await afterSharedPlacesGo([locationId], strategy, grandparentId);
       return;
     }
 
@@ -358,7 +438,11 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Every deleted place's picture, once all the documents are gone.
     discards.forEach(discard => discard());
     await unlinkDeletedQuietly(recordPaths, 'location', [...childrenIds, locationId]);
-  }, [user, activeGroupId, activeCampaignId, deleteData, queryData, updateManyAfterReading, recordPaths, locationsPath]);
+    await afterSharedPlacesGo([...childrenIds, locationId], strategy, '');
+  }, [
+    user, activeGroupId, activeCampaignId, deleteData, queryData, updateManyAfterReading, recordPaths, locationsPath,
+    routing, deletePrivatePlace, afterSharedPlacesGo
+  ]);
 
   const deleteLocation = useCallback(
     (locationId: string, childStrategy: LocationChildStrategy = 'delete-subtree') =>
@@ -413,18 +497,27 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // A record already carrying the name stops here when the caller asks
     // (T163): one the client holds, or one that took the id a moment ago.
     if (options.askOnSameName) assertNoSameNamed('location', locationData.name, locations);
+    // A shared place never sits inside a private one (T163).
+    if (!options.private && locationData.parentId && routing.isOwn(locationData.parentId)) {
+      throw new Error('A place inside a private one is private too.');
+    }
+    const writers = options.private ? routing.privately : routing.shared;
+    const path = options.private ? routing.privatePath : locationsPath;
+    if (options.private && !path) {
+      throw new Error('User must be authenticated and group/campaign context must be set to create a location');
+    }
     const locationId = await createWithUniqueEntityId({
       name: locationData.name,
       issuedIds: issuedIds.current,
       isLoaded: (candidateId) => Boolean(getLocationById(candidateId)),
-      write: (candidateId) => addData({ ...locationData, id: candidateId }, candidateId, ...(alongside ? [alongside] : [])),
-      onRefused: options.askOnSameName && locationsPath
-        ? stopOnSameNamed('location', locationsPath, locationData.name)
+      write: (candidateId) => writers.addData({ ...locationData, id: candidateId }, candidateId, alongside),
+      onRefused: options.askOnSameName && path
+        ? stopOnSameNamed('location', path, locationData.name)
         : undefined
     });
 
     return locationId;
-  }, [user, activeGroupId, activeCampaignId, getLocationById, addData, locations, locationsPath]);
+  }, [user, activeGroupId, activeCampaignId, getLocationById, routing, locations, locationsPath]);
 
   const value: LocationContextValue = {
     locations,

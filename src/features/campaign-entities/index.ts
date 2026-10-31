@@ -136,3 +136,14 @@ export type { SameNameKind } from './shared/sameName';
 export { planMerge, describeMerge } from './shared/mergeRecords';
 export type { MergePlan } from './shared/mergeRecords';
 export { useMergeIntoRecord } from './shared/useMergeIntoRecord';
+
+// Private records (T163): a player's own people, places, quests and rumours,
+// beside the campaign's until they publish them.
+export {
+  PrivateRecordsProvider,
+  usePrivateRecords,
+} from './shared/private/PrivateRecordsContext';
+export type { PrivateKind, HeldLink } from './shared/private/PrivateRecordsContext';
+export { useLinkPrivacy } from './shared/private/heldLinks';
+export { PrivateLinkError } from './shared/private/usePrivateRouting';
+export { useRecordNotesPath } from './shared/private/useRecordNotesPath';

@@ -22,6 +22,7 @@ const mockAddNPC = jest.fn();
 const mockAddQuest = jest.fn();
 const mockCreateLocation = jest.fn();
 const mockMergeIntoRecord = jest.fn();
+const mockHold = jest.fn();
 /*
   `convertInto` hands the create the note's mark to commit with (T088). The
   stand-in passes a token through, so a test can see the record's write
@@ -77,6 +78,11 @@ jest.mock("features/campaign-entities", () => ({
   ...jest.requireActual("features/campaign-entities/shared/sameName"),
   ...jest.requireActual("features/campaign-entities/shared/mergeRecords"),
   useMergeIntoRecord: () => mockMergeIntoRecord,
+  // Private records (T163): the real context, which holds none without its
+  // provider, and a stand-in for holding a link.
+  usePrivateRecords: jest.requireActual("features/campaign-entities/shared/private/PrivateRecordsContext")
+    .usePrivateRecords,
+  useLinkPrivacy: () => ({ isPrivate: () => false, hold: mockHold, release: jest.fn() }),
 }));
 
 jest.mock("features/collaboration", () => ({

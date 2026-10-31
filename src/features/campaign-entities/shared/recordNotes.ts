@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 import firebaseServices from 'core/services/firebase';
 import { recordTimes } from 'core/attribution';
 import { assertUnchanged } from 'shared/utils/edit-conflict';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
+import { useRecordNotesPath } from './private/useRecordNotesPath';
+import type { PrivateKind } from './private/PrivateRecordsContext';
+
+const KIND_OF: Record<string, PrivateKind> = { npcs: 'npc', locations: 'location', quests: 'quest', rumors: 'rumor' };
 
 /**
  * A record's notes as documents of their own (T133): `npcs/{id}/notes/{noteId}`,
@@ -73,7 +76,8 @@ export function useRecordNotes<T>(
  * @param recordId The record
  */
 export function useCampaignRecordNotes<T>(collection: string, recordId: string): StoredNote<T>[] {
-  return useRecordNotes<T>(useCampaignCollectionPath(collection), recordId) ?? [];
+  // A private record's notes are in its author's space (T163).
+  return useRecordNotes<T>(useRecordNotesPath(KIND_OF[collection], recordId), recordId) ?? [];
 }
 
 /**

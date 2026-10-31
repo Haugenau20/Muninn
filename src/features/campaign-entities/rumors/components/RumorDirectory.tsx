@@ -382,16 +382,18 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
    * and answering on their behalf is what made the row and the editor
    * disagree.
    */
-  const handleAdd = async (content: string): Promise<string> => {
-    const id = await addRumor({
+  const handleAdd = async (content: string, options?: { private?: boolean }): Promise<string> => {
+    const rumor = {
       title: '',
       content,
-      status: 'unconfirmed',
+      status: 'unconfirmed' as const,
       sourceName: '',
       relatedNPCs: [],
       relatedLocations: [],
       notes: [],
-    });
+    };
+    // Kept to the player who heard it, when they ticked "Private" (T163).
+    const id = await (options?.private ? addRumor(rumor, undefined, { private: true }) : addRumor(rumor));
     openRow(id);
     setJustAddedId(id);
     return id;

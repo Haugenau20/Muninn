@@ -15,7 +15,8 @@ import {
   type QuickAddValues,
 } from "./quickAddSpecs";
 import { useQuickAddCreate, useQuickAddMergePreview, type QuickAddCreateOptions } from "./useQuickAddCreate";
-import { SameNameError, isSameName } from "features/campaign-entities";
+import { SameNameError, isSameName, usePrivateRecords } from "features/campaign-entities";
+import PrivateCheckbox from "shared/components/private/PrivateCheckbox";
 import { useSameNameDialog } from "shared/components/same-name/useSameNameDialog";
 import { useAutoGrow } from "shared/hooks/useAutoGrow";
 
@@ -58,6 +59,8 @@ export interface QuickAddFormProps {
   navigateOnCreate?: boolean;
   /** Mounted inside a dialog: the "already exists" dialog then opens over it. */
   inDialog?: boolean;
+  /** Start with "Private" ticked: the extraction's "Add" was asked to (T163). */
+  initialPrivate?: boolean;
 }
 
 /**
@@ -86,12 +89,23 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
   autoFocus = true,
   navigateOnCreate = true,
   inDialog = false,
+  initialPrivate = false,
 }) => {
   const spec = QUICK_ADD_SPECS[entity];
   const navigate = useNavigate();
   const create = useQuickAddCreate({ entity, parentId, noteId, carry });
   const previewMerge = useQuickAddMergePreview(entity);
   const sameName = useSameNameDialog();
+
+  /*
+    Private (T163): only its author sees it until they publish it. A place
+    inside a private place is private too: a shared place never sits inside
+    one, so the box is ticked and stays ticked.
+  */
+  const { isPrivate: isPrivateRecord } = usePrivateRecords();
+  const insidePrivate = entity === "location" && !!parentId && isPrivateRecord("location", parentId);
+  const [privateChosen, setPrivateChosen] = useState(initialPrivate);
+  const isPrivate = privateChosen || insidePrivate;
 
   const [name, setName] = useState(initialName);
   const [line, setLine] = useState(initialLine);
@@ -137,6 +151,8 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
           existingName: found.existingName,
           preview: previewMerge(found.existingId, current, carry),
           isNested: inDialog,
+          // A private record is not added to a shared one: that would publish it.
+          canMerge: !isPrivate || isPrivateRecord(entity, found.existingId),
         });
         if (choice.action === "cancel") return null;
         if (choice.action === "open") {
@@ -160,7 +176,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
         }
       }
     },
-    [entity, carry, inDialog, create, previewMerge, sameName, onCreated, navigate, spec]
+    [entity, carry, inDialog, create, previewMerge, sameName, onCreated, navigate, spec, isPrivate, isPrivateRecord]
   );
 
   /**
@@ -186,7 +202,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
     setIsSubmitting(true);
     try {
       const values = { name, line, parentId };
-      const base = { noteId, entityId, carry };
+      const base = { noteId, entityId, carry, ...(isPrivate ? { private: true } : {}) };
       try {
         return await create(entity, values, base);
       } catch (err) {
@@ -199,7 +215,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [entity, name, line, parentId, noteId, entityId, carry, create, answerSameName]);
+  }, [entity, name, line, parentId, noteId, entityId, carry, create, answerSameName, isPrivate]);
 
   const handleCreateAndOpen = useCallback(async () => {
     const id = await submit();
@@ -264,7 +280,14 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
           fullWidth
         />
 
-        {writeError && (
+        <PrivateCheckbox
+        checked={isPrivate}
+        onChange={setPrivateChosen}
+        lockedReason={insidePrivate ? "Inside a private place, so private too." : undefined}
+        disabled={isSubmitting}
+      />
+
+      {writeError && (
           <div className="flex items-start gap-2" role="alert">
             <AlertCircle size={16} className="form-error shrink-0 mt-0.5" aria-hidden="true" />
             <Typography color="error" variant="body-sm">

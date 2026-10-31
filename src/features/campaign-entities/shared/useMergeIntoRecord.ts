@@ -7,6 +7,9 @@ import { useUser } from 'features/user-management';
 import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 import { mergeNote, planMerge } from './mergeRecords';
 import { nameOf, type SameNameKind } from './sameName';
+import { usePrivateRecords } from './private/PrivateRecordsContext';
+import { privateIdsIn } from './private/idFields';
+import { PrivateLinkError } from './private/usePrivateRouting';
 
 /** Each kind's collection in the campaign. */
 const COLLECTION: Record<SameNameKind, string> = {
@@ -34,6 +37,8 @@ export function useMergeIntoRecord() {
   };
   const { npc, location, quest, rumor } = paths;
   const { activeGroupUserProfile } = useUser();
+  // Into one of the author's private records, it stays in their space (T163).
+  const { isPrivate, paths: privatePaths } = usePrivateRecords();
 
   return useCallback(
     async (
@@ -42,7 +47,8 @@ export function useMergeIntoRecord() {
       incoming: object,
       alongside?: CreateAlongside
     ): Promise<string> => {
-      const path = { npc, location, quest, rumor }[kind];
+      const intoPrivate = isPrivate(kind, existingId);
+      const path = intoPrivate ? privatePaths[kind] : { npc, location, quest, rumor }[kind];
       if (!path) throw new Error('No campaign selected');
       const author =
         getActiveCharacterName(activeGroupUserProfile) || getUserName(activeGroupUserProfile) || undefined;
@@ -55,6 +61,8 @@ export function useMergeIntoRecord() {
         alongside?.collection ?? path,
         async (target, read) => {
           const plan = planMerge(kind, target, incoming);
+          // A shared record never names a private one (T163).
+          if (!intoPrivate && privateIdsIn(kind, plan.fields, isPrivate).length) throw new PrivateLinkError();
           const note = mergeNote(kind, nameOf(kind, incoming), plan.differing, author);
           return {
             fields: plan.fields,
@@ -67,6 +75,6 @@ export function useMergeIntoRecord() {
       );
       return existingId;
     },
-    [npc, location, quest, rumor, activeGroupUserProfile]
+    [npc, location, quest, rumor, activeGroupUserProfile, isPrivate, privatePaths]
   );
 }

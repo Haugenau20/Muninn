@@ -83,6 +83,7 @@ jest.mock("shared/context/SearchContext", () => ({
 }));
 
 jest.mock("features/campaign-entities", () => ({
+  PrivateRecordsProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   NPCProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="npc-provider">{children}</div>
   ),

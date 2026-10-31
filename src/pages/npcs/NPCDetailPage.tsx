@@ -11,6 +11,8 @@ import {
   useRumors,
   useLocations,
   createLinkActions,
+  useLinkPrivacy,
+  useRecordNotesPath,
   locationIdsOfNpc,
   resolveLocationName,
   npcIdsOfNpc,
@@ -21,7 +23,6 @@ import {
   deleteRecordNote,
 } from 'features/campaign-entities';
 import type { StoredNote } from 'features/campaign-entities';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 import type { NPC, NPCNote, NPCRelationship, NPCStatus } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
 import { useUser, useGroups, useCampaigns } from 'features/user-management';
@@ -254,8 +255,9 @@ const NPCDetailPage: React.FC = () => {
 
   const npc = npcs.find((candidate) => candidate.id === npcId);
 
-  // The notes: their own documents (T133).
-  const npcsPath = useCampaignCollectionPath('npcs');
+  // The notes: their own documents (T133), where the person lives (T163).
+  const npcsPath = useRecordNotesPath('npc', npc?.id);
+  const linkPrivacy = useLinkPrivacy();
   const notes = useRecordNotes<NPCNote>(npcsPath, npc?.id);
 
   // `loading` folds into the gate's resolving state: `npcs` is empty while auth
@@ -364,6 +366,8 @@ const NPCDetailPage: React.FC = () => {
     updateQuest,
     updateLocation,
     updateRumor,
+    // A private record's link to a shared one is held, not written (T163).
+    privacy: linkPrivacy,
   });
 
   /**
@@ -644,7 +648,9 @@ const NPCDetailPage: React.FC = () => {
           imageAlt={`Portrait of ${npc.name}`}
           imageShape="tall"
           imageUpload={
-            gate.canAct
+            // No portrait on a private person yet: its file would be stored
+            // where every member reads it (T163).
+            gate.canAct && !npc.isPrivate
               ? { subject: 'portrait', onUpload: portrait.upload, onRemove: portrait.remove }
               : undefined
           }

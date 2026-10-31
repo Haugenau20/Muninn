@@ -68,7 +68,11 @@ export interface IdentifiableContent {
  * Base content item with ID and attribution
  */
 export interface BaseContent extends IdentifiableContent, ContentAttribution {
-  // Base fields for all content types
+  /**
+   * In memory only, never stored: the record is one of the reader's private
+   * ones (T163), read from their private space rather than the campaign.
+   */
+  isPrivate?: boolean;
 }
 
 /**
@@ -117,6 +121,11 @@ export interface CreateAlongside<S = any> {
  */
 export interface CreateOptions {
   askOnSameName?: boolean;
+  /**
+   * Create it in the author's private space (T163): only they see it until
+   * they publish it.
+   */
+  private?: boolean;
 }
 
 /**

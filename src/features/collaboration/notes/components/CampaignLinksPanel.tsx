@@ -15,10 +15,12 @@ import {
   useRumors,
   SameNameError,
   isSameName,
+  usePrivateRecords,
   planMerge,
   describeMerge,
 } from "features/campaign-entities";
 import { useSameNameDialog } from "shared/components/same-name/useSameNameDialog";
+import PrivateCheckbox from "shared/components/private/PrivateCheckbox";
 import { AlertCircle, ExternalLink } from 'lucide-react';
 import CampaignLinksView from "./CampaignLinksView";
 import { entityPath } from "../utils/entity-path";
@@ -57,6 +59,9 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
   const { quests } = useQuests();
   const { rumors } = useRumors();
   const sameName = useSameNameDialog();
+  // "Add" as private (T163): a rumour is written so, and quick add opens ticked.
+  const [addPrivately, setAddPrivately] = useState(false);
+  const { isPrivate: isPrivateRecord } = usePrivateRecords();
 
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedEntities, setExtractedEntities] = useState<ExtractedEntity[]>([]);
@@ -271,9 +276,11 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
     let name = entity.text;
     for (;;) {
       try {
-        return await (answer
-          ? convertEntity(noteId, entity.id, entity.type, answer)
-          : convertEntity(noteId, entity.id, entity.type));
+        return await (addPrivately
+          ? convertEntity(noteId, entity.id, entity.type, answer, { private: true })
+          : answer
+            ? convertEntity(noteId, entity.id, entity.type, answer)
+            : convertEntity(noteId, entity.id, entity.type));
       } catch (err) {
         if (!(err instanceof SameNameError)) throw err;
         const existing = rumors.find((rumor) => rumor.id === err.existingId);
@@ -289,6 +296,8 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
                 sourceName: extra.sourceName,
               }))
             : null,
+          // A private rumour is not added to a shared one: that would publish it.
+          canMerge: !addPrivately || isPrivateRecord("rumor", err.existingId),
         });
         if (choice.action === "cancel") return null;
         if (choice.action === "open") {
@@ -377,6 +386,12 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
         addingIds={convertingIds}
         status={
           <>
+            {detections.length > 0 && (
+              <div className="mt-4">
+                <PrivateCheckbox checked={addPrivately} onChange={setAddPrivately} />
+              </div>
+            )}
+
             {looksUnscanned && (
               <Typography variant="body-sm" color="muted" className="mt-4">
                 Not scanned yet.

@@ -414,7 +414,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
     noteId: string,
     entityId: string,
     type: EntityType,
-    sameName?: SameNameAnswer
+    sameName?: SameNameAnswer,
+    options: { private?: boolean } = {}
   ): Promise<string> => {
     const note = getNoteById(noteId);
     if (!note) throw new Error("Note not found");
@@ -554,7 +555,11 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
             return mergeIntoRecord('rumor', sameName.merge, rumor, alongside);
           }
           const named = sameName ? { ...rumor, title: sameName.createAs } : rumor;
-          return addRumor(named, alongside, { askOnSameName: !sameName?.anyway });
+          return addRumor(named, alongside, {
+            askOnSameName: !sameName?.anyway,
+            // Kept to the player, when they added it as private (T163).
+            ...(options.private ? { private: true } : {}),
+          });
         });
 
         navigate(`/rumors?highlight=${rumorId}`);
@@ -569,7 +574,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
           state: { 
             initialData,
             noteId, 
-            entityId 
+            entityId,
+            ...(options.private ? { private: true } : {}),
           } 
         });
         break;
@@ -578,7 +584,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
           state: { 
             initialData,
             noteId, 
-            entityId 
+            entityId,
+            ...(options.private ? { private: true } : {}),
           } 
         });
         break;
@@ -587,7 +594,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
           state: { 
             initialData,
             noteId, 
-            entityId 
+            entityId,
+            ...(options.private ? { private: true } : {}),
           } 
         });
         break;

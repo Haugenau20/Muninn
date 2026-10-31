@@ -1,5 +1,5 @@
 // src/features/campaign-entities/quests/context/QuestContext.tsx
-import React, { createContext, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useRef } from 'react';
 import { Quest, QuestStatus, QuestContextValue, QuestNote } from '../types';
 import { DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { useQuestData } from '../hooks/useQuestData';
@@ -16,6 +16,7 @@ import { moveObjective } from '../utils/quest-presentation';
 import { normaliseObjectives } from '../utils/quest-objectives';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
 import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
+import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
 import { assertUnchanged } from 'shared/utils/edit-conflict';
 import { Location } from '../../locations/types';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
@@ -53,6 +54,12 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     collection: questsPath,
     autoFetch: false
   });
+  // A private quest's writes go to its author's private space (T163).
+  const sharedWriters = useMemo(
+    () => ({ updateData, updateDataAfterReading, deleteData, addData }),
+    [updateData, updateDataAfterReading, deleteData, addData]
+  );
+  const routing = usePrivateRouting<Quest>('quest', questsPath, sharedWriters);
   const { user } = useAuth();
   const { userProfile, activeGroupUserProfile } = useUser();
   const { activeGroupId } = useGroups();
@@ -116,11 +123,11 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const now = new Date().toISOString();
 
     // The status alone (T083), and the completion date if completing.
-    await updateData(questId, {
+    await routing.writersFor(questId).updateData(questId, {
       status,
       ...(status === 'completed' && { dateCompleted: now })
     });
-  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, updateData]);
+  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, routing]);
 
   /**
    * The one guard every objective write shares: signed in, a campaign in
@@ -154,13 +161,13 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const writeObjectives = useCallback(
     async (questId: string, next: (objectives: Quest['objectives']) => Quest['objectives']) => {
       await writeRecordChange(
-        { updateData, updateDataAfterReading },
+        routing.writersFor(questId),
         questId,
         (quest) => ({ objectives: next(normaliseObjectives(quest.objectives)) }),
         'Quest not found'
       );
     },
-    [updateData, updateDataAfterReading]
+    [routing]
   );
 
   /**
@@ -263,7 +270,8 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('User must be authenticated to add notes');
     }
 
-    if (!activeGroupId || !activeCampaignId || !questsPath) {
+    const path = routing.pathFor(questId);
+    if (!activeGroupId || !activeCampaignId || !path) {
       throw new Error('Group and campaign context must be set to add notes');
     }
 
@@ -271,8 +279,8 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('Quest not found');
     }
 
-    await addRecordNote(questsPath, questId, { ...note });
-  }, [user, userProfile, activeGroupId, activeCampaignId, questsPath, getQuestById]);
+    await addRecordNote(path, questId, { ...note });
+  }, [user, userProfile, activeGroupId, activeCampaignId, routing, getQuestById]);
 
   // Add quest
   const addQuest = useCallback(async (
@@ -308,16 +316,20 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // A record already carrying the name stops here when the caller asks
     // (T163): one the client holds, or one that took the id a moment ago.
     if (options.askOnSameName) assertNoSameNamed('quest', questData.title, quests);
+    // Private, it goes to the author's own space (T163).
+    const writers = options.private ? routing.privately : routing.shared;
+    const path = options.private ? routing.privatePath : questsPath;
+    if (options.private && !path) throw new Error('Group and campaign context must be set to add quests');
     const id = await createWithUniqueEntityId({
       name: questData.title,
       issuedIds: issuedIds.current,
       isLoaded: (candidateId) => Boolean(getQuestById(candidateId)),
-      write: (candidateId) => addData(buildQuest(candidateId), candidateId, ...(alongside ? [alongside] : [])),
-      onRefused: options.askOnSameName && questsPath ? stopOnSameNamed('quest', questsPath, questData.title) : undefined
+      write: (candidateId) => writers.addData(buildQuest(candidateId), candidateId, alongside),
+      onRefused: options.askOnSameName && path ? stopOnSameNamed('quest', path, questData.title) : undefined
     });
 
     return id;
-  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, addData, quests, questsPath]);
+  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, routing, quests, questsPath]);
 
   // Update an existing quest: only what `change` names; see `RecordChange` (T083)
   const updateQuest = useCallback(async (questId: string, change: RecordChange<Quest>) => {
@@ -329,8 +341,8 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('Group and campaign context must be set to update quests');
     }
 
-    await writeRecordChange({ updateData, updateDataAfterReading }, questId, change, 'Quest not found');
-  }, [user, userProfile, activeGroupId, activeCampaignId, updateData, updateDataAfterReading]);
+    await writeRecordChange(routing.writersFor(questId), questId, change, 'Quest not found');
+  }, [user, userProfile, activeGroupId, activeCampaignId, routing]);
 
   // Delete quest
   const deleteQuest = useCallback(async (questId: string) => {
@@ -343,11 +355,13 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // Its notes first: a record's subcollection outlives the record.
-    if (questsPath) await deleteRecordNotes(questsPath, [questId]);
-    await deleteData(questId);
-    // And out of the old halves that still name it (T131).
+    const path = routing.pathFor(questId);
+    if (path) await deleteRecordNotes(path, [questId]);
+    await routing.writersFor(questId).deleteData(questId);
+    // And out of the old halves that still name it (T131), and its held links (T163).
     await unlinkDeletedQuietly(recordPaths, 'quest', [questId]);
-  }, [user, activeGroupId, activeCampaignId, deleteData, recordPaths, questsPath]);
+    await routing.afterDelete([questId]);
+  }, [user, activeGroupId, activeCampaignId, recordPaths, routing]);
 
   /**
    * Sets the status of several quests in one batch (T017): one round trip, and
@@ -371,6 +385,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await commitEntityWrites<Quest>(questsPath, 'quests', questIds.map(id => ({
       type: 'update' as const,
       id,
+      collection: routing.pathFor(id),
       data: {
         status,
         ...(status === 'completed' && { dateCompleted: new Date().toISOString() }),
@@ -378,7 +393,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...modificationTimes()
       }
     })));
-  }, [user, userProfile, activeGroupUserProfile, activeGroupId, activeCampaignId, getQuestById, questsPath]);
+  }, [user, userProfile, activeGroupUserProfile, activeGroupId, activeCampaignId, getQuestById, questsPath, routing]);
 
   /** Deletes several quests in one batch. */
   const deleteQuests = useCallback(async (questIds: string[]) => {
@@ -390,10 +405,17 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('Group and campaign context must be set to delete quests');
     }
 
-    if (questsPath) await deleteRecordNotes(questsPath, questIds);
-    await commitEntityWrites<Quest>(questsPath, 'quests', questIds.map(id => ({ type: 'delete' as const, id })));
+    for (const [path, ids] of routing.byPath(questIds)) {
+      await deleteRecordNotes(path, ids);
+    }
+    await commitEntityWrites<Quest>(questsPath, 'quests', questIds.map(id => ({
+      type: 'delete' as const,
+      id,
+      collection: routing.pathFor(id),
+    })));
     await unlinkDeletedQuietly(recordPaths, 'quest', questIds);
-  }, [user, activeGroupId, activeCampaignId, questsPath, recordPaths]);
+    await routing.afterDelete(questIds);
+  }, [user, activeGroupId, activeCampaignId, questsPath, recordPaths, routing]);
 
   // Mark quest as completed
   const markQuestCompleted = useCallback(async (questId: string, dateCompleted?: string) => {
@@ -416,7 +438,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Every objective the server holds is ticked, including one added since
     // this copy was taken (T083).
     await writeRecordChange(
-      { updateData, updateDataAfterReading },
+      routing.writersFor(questId),
       questId,
       (current) => ({
         status: 'completed' as QuestStatus,
@@ -425,7 +447,7 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }),
       'Quest not found'
     );
-  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, updateData, updateDataAfterReading]);
+  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, routing]);
 
   // Mark quest as failed
   const markQuestFailed = useCallback(async (questId: string) => {
@@ -441,8 +463,8 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       throw new Error('Quest not found');
     }
 
-    await updateData(questId, { status: 'failed' as QuestStatus });
-  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, updateData]);
+    await routing.writersFor(questId).updateData(questId, { status: 'failed' as QuestStatus });
+  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, routing]);
 
   const value: QuestContextValue = {
     quests,
