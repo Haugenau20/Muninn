@@ -1,5 +1,5 @@
 // src/features/campaign-entities/npcs/types.ts
-import { BaseContent, DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { BaseContent, DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { StoredImage } from 'core/types/storedImage';
 
 export type NPCStatus = 'alive' | 'deceased' | 'missing' | 'unknown';
@@ -118,7 +118,7 @@ export interface NPCContextValue extends NPCContextState {
   updateNPCNote: (npcId: string, note: NPCNote) => void;
   updateNPCRelationship: (npcId: string, relationship: NPCRelationship) => Promise<void>;
   /** `alongside`: a change to another record that commits with this one (T088). */
-  addNPC: (npc: DomainData<NPC>, alongside?: CreateAlongside) => Promise<string>;
+  addNPC: (npc: DomainData<NPC>, alongside?: CreateAlongside, options?: CreateOptions) => Promise<string>;
   /**
    * Write `change` to the NPC: the fields it names, and nothing else
    * (T083). Never the whole record -- a copy from the listener can be behind

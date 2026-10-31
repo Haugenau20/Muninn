@@ -1,5 +1,5 @@
 // src/features/campaign-entities/quests/types.ts
-import { BaseContent, DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { BaseContent, DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { Location } from '../locations/types';
 import type { EntityNote } from 'shared/utils/entity-notes';
 
@@ -108,7 +108,7 @@ export interface QuestContextValue extends QuestContextState {
   /** Add a note to the quest, as a document of its own (T163). */
   addQuestNote: (questId: string, note: QuestNote) => Promise<void>;
   /** `alongside`: a change to another record that commits with this one (T088). */
-  addQuest: (quest: DomainData<Quest>, alongside?: CreateAlongside) => Promise<string>;
+  addQuest: (quest: DomainData<Quest>, alongside?: CreateAlongside, options?: CreateOptions) => Promise<string>;
   /**
    * Write `change` to the quest: the fields it names, and nothing else
    * (T083). Never the whole record -- a copy from the listener can be behind

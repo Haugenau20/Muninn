@@ -15,7 +15,8 @@ interface CombineRumorsDialogProps {
   onClose: () => void;
   rumorIds: string[];
   rumors: Rumor[];
-  onCombine: (rumorIds: string[], newRumor: Partial<Rumor>) => Promise<string>;
+  /** Resolves with the rumour combined into, or null when nothing was (T163). */
+  onCombine: (rumorIds: string[], newRumor: Partial<Rumor>) => Promise<string | null>;
 }
 
 /**
@@ -80,13 +81,14 @@ const CombineRumorsDialog: React.FC<CombineRumorsDialogProps> = ({
     setIsSubmitting(true);
 
     try {
-      await onCombine(selectedRumorIds, {
+      const combined = await onCombine(selectedRumorIds, {
         title,
         content,
         status
       });
-      
-      onClose();
+
+      // Cancelled at "already exists": the choices stay as they were.
+      if (combined !== null) onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to combine rumours');
     } finally {

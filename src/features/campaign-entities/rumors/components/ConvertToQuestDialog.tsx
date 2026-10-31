@@ -15,7 +15,8 @@ interface ConvertToQuestDialogProps {
   onClose: () => void;
   rumorIds: string[];
   rumors: Rumor[];
-  onConvert: (rumorIds: string[], questData: Partial<Omit<Quest, 'id'>>) => Promise<string>;
+  /** Resolves with the quest converted into, or null when nothing was (T163). */
+  onConvert: (rumorIds: string[], questData: Partial<Omit<Quest, 'id'>>) => Promise<string | null>;
 }
 
 /**
@@ -154,8 +155,9 @@ const ConvertToQuestDialog: React.FC<ConvertToQuestDialogProps> = ({
         location, // Use the location state
       };
 
-      await onConvert(rumorIds, questData);
-      onClose();
+      const converted = await onConvert(rumorIds, questData);
+      // Cancelled at "already exists": the quest as written stays open.
+      if (converted !== null) onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to convert rumours to quest');
     } finally {
