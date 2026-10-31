@@ -13,8 +13,6 @@ import JoinAsNewUser from '../components/JoinAsNewUser';
 import JoinTokenPrompt from '../components/JoinTokenPrompt';
 import StartGroup from '../components/StartGroup';
 import { FOUNDER_PARAM } from '../utils/founder-link';
-import PreviewSignInNotice from '../../auth/components/PreviewSignInNotice';
-import { isPreviewBuild } from 'core/constants/app';
 
 /** Where the page is, which decides what it renders. */
 type TokenState = 'absent' | 'checking' | 'valid' | 'rejected';
@@ -79,7 +77,7 @@ const JoinPage: React.FC = () => {
   );
 
   useEffect(() => {
-    if (linkToken && !isPreviewBuild()) check(linkToken);
+    if (linkToken) check(linkToken);
   }, [linkToken, check]);
 
   const handleJoined = async () => {
@@ -111,21 +109,8 @@ const JoinPage: React.FC = () => {
     </div>
   );
 
-  if (founderToken !== null && !isPreviewBuild()) {
+  if (founderToken !== null) {
     return <StartGroup founderToken={founderToken.trim()} />;
-  }
-
-  // Joining means signing in or creating an account, and a preview site stays
-  // signed out on purpose (T110). The invitation is not even checked there.
-  if (isPreviewBuild()) {
-    return (
-      <>
-        {band}
-        <div className="max-w-xl mx-auto px-4 py-8">
-          <PreviewSignInNotice />
-        </div>
-      </>
-    );
   }
 
   return (
