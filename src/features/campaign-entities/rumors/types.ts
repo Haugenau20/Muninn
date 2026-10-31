@@ -1,5 +1,5 @@
 // src/features/campaign-entities/rumors/types.ts
-import { BaseContent, DomainData, RecordChange, IdentifiableContent, CreateAlongside } from 'core/types/common';
+import { BaseContent, DomainData, RecordChange, IdentifiableContent, CreateAlongside, CreateOptions } from 'core/types/common';
 
 export type RumorStatus = 'confirmed' | 'unconfirmed' | 'false';
 export type SourceType = 'npc' | 'tavern' | 'notice' | 'traveler' | 'other';
@@ -89,7 +89,7 @@ export interface RumorContextValue extends RumorContextState {
   updateRumorStatus: (rumorId: string, status: RumorStatus) => Promise<void>;
   updateRumorNote: (rumorId: string, note: DomainData<RumorNote> & IdentifiableContent) => Promise<void>;
   /** `alongside`: a change to another record that commits with this one (T088). */
-  addRumor: (rumor: DomainData<Rumor>, alongside?: CreateAlongside) => Promise<string>;
+  addRumor: (rumor: DomainData<Rumor>, alongside?: CreateAlongside, options?: CreateOptions) => Promise<string>;
   /**
    * Write `change` to the rumour: the fields it names, and nothing else
    * (T083). Never the whole record -- a copy from the listener can be behind
@@ -102,6 +102,17 @@ export interface RumorContextValue extends RumorContextState {
   updateRumorsStatus: (rumorIds: string[], status: RumorStatus) => Promise<void>;
   /** Delete several rumours in one atomic write (T032, `PERF-06`). */
   deleteRumors: (rumorIds: string[]) => Promise<void>;
-  combineRumors: (rumorIds: string[], newRumor: Partial<Rumor>) => Promise<string>;
-  convertToQuest: (rumorIds: string[], questData: any) => Promise<string>;
+  combineRumors: (rumorIds: string[], newRumor: Partial<Rumor>, options?: JoinOptions) => Promise<string>;
+  convertToQuest: (rumorIds: string[], questData: any, options?: JoinOptions) => Promise<string>;
+}
+
+/**
+ * How a combine or a conversion treats a title one record already carries
+ * (T163). `askOnSameName` refuses with a `SameNameError`, as a create does;
+ * `into` names the record to add to instead of creating one -- the existing
+ * rumour, or the existing quest -- which then carries every mark and note
+ * the new one would have.
+ */
+export interface JoinOptions extends CreateOptions {
+  into?: string;
 }

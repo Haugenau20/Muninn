@@ -26,6 +26,9 @@ const mockUseCampaigns = jest.fn();
 const mockUseQuestData = jest.fn();
 const mockUseFirebaseData = jest.fn();
 
+// A quest's notes are documents of their own (T163), deleted with it; see the mock.
+jest.mock('features/campaign-entities/shared/recordNotes', () => require('@/test-utils/record-notes-mock').recordNotesMock());
+
 // Mock the Firebase context hooks
 jest.mock('@/features/user-management', () => ({
   useAuth: () => mockUseAuth(),

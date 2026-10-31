@@ -1,7 +1,7 @@
 // src/features/campaign-entities/npcs/context/NPCContext.tsx
-import React, { createContext, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useRef } from 'react';
 import { NPC, NPCContextValue, NPCRelationship, NPCNote, NPCStatus } from '../types';
-import { DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { useNPCData } from '../hooks/useNPCData';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
 import { writeRecordChange } from '../../shared/writeRecordChange';
@@ -12,6 +12,8 @@ import { buildModificationAttribution, modificationTimes } from 'core/attributio
 import { commitEntityWrites } from '../../shared/commitEntityWrites';
 import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlinkDeleted';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
+import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
+import { usePrivateRouting } from '../../shared/private/usePrivateRouting';
 import { releaseImage } from 'shared/hooks/useImageAttachment';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
 
@@ -56,6 +58,12 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     collection: npcsPath,
     autoFetch: false
   });
+  // A private record's writes go to its author's private space (T163).
+  const sharedWriters = useMemo(
+    () => ({ updateData, updateDataAfterReading, deleteData, addData }),
+    [updateData, updateDataAfterReading, deleteData, addData]
+  );
+  const routing = usePrivateRouting<NPC>('npc', npcsPath, sharedWriters);
 
   // Get NPC by ID
   const getNPCById = useCallback((id: string) => {
@@ -85,9 +93,10 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // A note of its own (T133), not one more entry in the record.
-    if (!npcsPath) throw new Error('No campaign selected');
-    await addRecordNote(npcsPath, npcId, { ...note });
-  }, [getNPCById, hasRequiredContext, user, userProfile, npcsPath]);
+    const path = routing.pathFor(npcId);
+    if (!path) throw new Error('No campaign selected');
+    await addRecordNote(path, npcId, { ...note });
+  }, [getNPCById, hasRequiredContext, user, userProfile, routing]);
 
   // Update NPC relationship
   const updateNPCRelationship = useCallback(async (npcId: string, relationship: NPCRelationship) => {
@@ -103,8 +112,8 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       throw new Error('NPC not found');
     }
 
-    await updateData(npcId, { relationship });
-  }, [getNPCById, updateData, hasRequiredContext, user, userProfile]);
+    await routing.writersFor(npcId).updateData(npcId, { relationship });
+  }, [getNPCById, routing, hasRequiredContext, user, userProfile]);
 
   // Ids issued during this session but not yet reflected in `npcs` (loaded
   // state). Two NPCs can be created back-to-back within a single `act()` /
@@ -116,7 +125,11 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const issuedIds = useRef<Set<string>>(new Set());
 
   // Add a new NPC
-  const addNPC = useCallback(async (npcData: DomainData<NPC>, alongside?: CreateAlongside): Promise<string> => {
+  const addNPC = useCallback(async (
+    npcData: DomainData<NPC>,
+    alongside?: CreateAlongside,
+    options: CreateOptions = {}
+  ): Promise<string> => {
     if (!hasRequiredContext) {
       throw new Error('Cannot add NPC: No group or campaign selected');
     }
@@ -130,15 +143,24 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     //
     // The id is derived inside createWithUniqueEntityId, which also takes the
     // next free one if another session has since written the same slug (#1402).
+    // A record already carrying the name stops here when the caller asks
+    // (T163): one the client holds, or one that took the id a moment ago.
+    if (options.askOnSameName) assertNoSameNamed('npc', npcData.name, npcs);
+    // Private, it goes to the author's own space (T163), under an id free in
+    // the shared list and theirs alike: the list holds both.
+    const writers = options.private ? routing.privately : routing.shared;
+    const path = options.private ? routing.privatePath : npcsPath;
+    if (options.private && !path) throw new Error('Cannot add NPC: No group or campaign selected');
     const id = await createWithUniqueEntityId({
       name: npcData.name,
       issuedIds: issuedIds.current,
       isLoaded: (candidateId) => Boolean(getNPCById(candidateId)),
-      write: (candidateId) => addData({ ...npcData, id: candidateId }, candidateId, ...(alongside ? [alongside] : []))
+      write: (candidateId) => writers.addData({ ...npcData, id: candidateId }, candidateId, alongside),
+      onRefused: options.askOnSameName && path ? stopOnSameNamed('npc', path, npcData.name) : undefined
     });
 
     return id;
-  }, [hasRequiredContext, user, userProfile, getNPCById, addData]);
+  }, [hasRequiredContext, user, userProfile, getNPCById, routing, npcs, npcsPath]);
 
   // Update an existing NPC: only what `change` names; see `RecordChange` (T083)
   const updateNPC = useCallback(async (npcId: string, change: RecordChange<NPC>): Promise<void> => {
@@ -154,8 +176,8 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       throw new Error('NPC not found');
     }
 
-    await writeRecordChange({ updateData, updateDataAfterReading }, npcId, change, 'NPC not found');
-  }, [hasRequiredContext, user, userProfile, getNPCById, updateData, updateDataAfterReading]);
+    await writeRecordChange(routing.writersFor(npcId), npcId, change, 'NPC not found');
+  }, [hasRequiredContext, user, userProfile, getNPCById, routing]);
 
   // Delete an NPC
   const deleteNPC = useCallback(async (npcId: string): Promise<void> => {
@@ -170,14 +192,16 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const image = getNPCById(npcId)?.image;
     const discard = image ? releaseImage(image.path) : undefined;
     // Its notes first (T133): a record's subcollection outlives the record.
-    if (npcsPath) await deleteRecordNotes(npcsPath, [npcId]);
-    await deleteData(npcId);
+    const path = routing.pathFor(npcId);
+    if (path) await deleteRecordNotes(path, [npcId]);
+    await routing.writersFor(npcId).deleteData(npcId);
     // After the document: a failure can then only orphan the file, which the
     // released record lets the daily sweep find.
     discard?.();
-    // And out of every list that named them (T131).
+    // And out of every list that named them (T131), private ones too (T163).
     await unlinkDeletedQuietly(recordPaths, 'npc', [npcId]);
-  }, [hasRequiredContext, user, getNPCById, deleteData, recordPaths, npcsPath]);
+    await routing.afterDelete([npcId]);
+  }, [hasRequiredContext, user, getNPCById, recordPaths, routing]);
 
   /**
    * Sets the status of several NPCs in one batch (T017): one round trip, and
@@ -200,9 +224,10 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await commitEntityWrites<NPC>(npcsPath, 'NPCs', npcIds.map(id => ({
       type: 'update' as const,
       id,
+      collection: routing.pathFor(id),
       data: { status, ...modificationAttribution, ...modificationTimes() }
     })));
-  }, [hasRequiredContext, user, userProfile, activeGroupUserProfile, getNPCById, npcsPath]);
+  }, [hasRequiredContext, user, userProfile, activeGroupUserProfile, getNPCById, npcsPath, routing]);
 
   /** Deletes several NPCs in one batch, then their portraits, as `deleteNPC` does for one. */
   const deleteNPCs = useCallback(async (npcIds: string[]): Promise<void> => {
@@ -218,12 +243,19 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const image = getNPCById(id)?.image;
       return image ? [releaseImage(image.path)] : [];
     });
-    if (npcsPath) await deleteRecordNotes(npcsPath, npcIds);
-    await commitEntityWrites<NPC>(npcsPath, 'NPCs', npcIds.map(id => ({ type: 'delete' as const, id })));
+    for (const [path, ids] of routing.byPath(npcIds)) {
+      await deleteRecordNotes(path, ids);
+    }
+    await commitEntityWrites<NPC>(npcsPath, 'NPCs', npcIds.map(id => ({
+      type: 'delete' as const,
+      id,
+      collection: routing.pathFor(id),
+    })));
     // After the documents: a failure can then only orphan files.
     discards.forEach(discard => discard());
     await unlinkDeletedQuietly(recordPaths, 'npc', npcIds);
-  }, [hasRequiredContext, user, getNPCById, npcsPath, recordPaths]);
+    await routing.afterDelete(npcIds);
+  }, [hasRequiredContext, user, getNPCById, npcsPath, recordPaths, routing]);
 
   const value: NPCContextValue = {
     npcs,

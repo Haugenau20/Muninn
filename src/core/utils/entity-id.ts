@@ -134,6 +134,13 @@ export interface CreateWithUniqueEntityIdOptions {
   write: (id: string) => Promise<unknown>;
   /** Overrides {@link MAX_CREATE_ATTEMPTS}. */
   maxAttempts?: number;
+  /**
+   * Told each id the write was refused for, before the next is tried. It may
+   * throw to stop there: the "already exists" check (T163) reads the record
+   * that took the id, and stops when it carries the same name, so a record
+   * created a moment ago by someone else is offered instead of a `-2`.
+   */
+  onRefused?: (id: string) => Promise<void>;
 }
 
 /**
@@ -164,7 +171,7 @@ export interface CreateWithUniqueEntityIdOptions {
 export async function createWithUniqueEntityId(
   options: CreateWithUniqueEntityIdOptions
 ): Promise<string> {
-  const { name, issuedIds, isLoaded, write, maxAttempts = MAX_CREATE_ATTEMPTS } = options;
+  const { name, issuedIds, isLoaded, write, maxAttempts = MAX_CREATE_ATTEMPTS, onRefused } = options;
   const isTaken = (candidateId: string) => issuedIds.has(candidateId) || isLoaded(candidateId);
 
   let lastRefusal: DocumentAlreadyExistsError | undefined;
@@ -179,6 +186,7 @@ export async function createWithUniqueEntityId(
         throw err;
       }
       lastRefusal = err;
+      await onRefused?.(id);
     }
   }
 

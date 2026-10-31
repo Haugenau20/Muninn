@@ -213,7 +213,10 @@ export const buildCampaignRecords = (
           dateCompleted: quest.status === "completed" ? when.toISOString() : undefined,
           ...attribution(author, when),
         }),
-        notes: [],
+        notes: (quest.notes ?? []).map((text) => ({
+          fields: { date: toNoteDate(when), text },
+          author,
+        })),
       };
     }),
 

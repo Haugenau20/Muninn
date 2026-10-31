@@ -125,6 +125,40 @@ describe("members' reading progress (T073)", () => {
   });
 });
 
+describe("members' private records (T163)", () => {
+  const privately = (uid: string, campaignId: string, path: string) =>
+    db.doc(`groups/${GROUP}/users/${uid}/private/${campaignId}/${path}`);
+
+  beforeEach(async () => {
+    await Promise.all([
+      privately("frodo", "c1", "npcs/gollum").set({name: "Gollum"}),
+      privately("frodo", "c1", "npcs/gollum/notes/n1").set({text: "Lost a ring"}),
+      privately("frodo", "c1", "links/l1").set({from: {kind: "npc", id: "gollum"}, to: {kind: "quest", id: "q1"}}),
+      privately("gandalf", "c1", "quests/the-ring").set({title: "The ring"}),
+      privately("frodo", "c2", "npcs/smeagol").set({name: "Sméagol"}),
+    ]);
+  });
+
+  it("go with the campaign, for every member, notes and held links too", async () => {
+    await remove("gandalf");
+
+    for (const ref of [
+      privately("frodo", "c1", "npcs/gollum"),
+      privately("frodo", "c1", "npcs/gollum/notes/n1"),
+      privately("frodo", "c1", "links/l1"),
+      privately("gandalf", "c1", "quests/the-ring"),
+    ]) {
+      expect((await ref.get()).exists).toBe(false);
+    }
+  });
+
+  it("stay for every other campaign", async () => {
+    await remove("gandalf");
+
+    expect((await privately("frodo", "c2", "npcs/smeagol").get()).exists).toBe(true);
+  });
+});
+
 describe("a deletion that fails partway (T037)", () => {
   // Every stage can fail. Whatever failed, calling again must finish the
   // job, and a failure must never leave a live campaign whose pictures are

@@ -1129,18 +1129,21 @@ describe("a campaign holds the app's records, each with its name (T119)", () => 
 });
 
 // T133: a person's, a place's and a rumour's notes are documents of their
-// own, `{record}/{id}/notes/{noteId}`, each capped alone (F3, F4).
+// own, `{record}/{id}/notes/{noteId}`, each capped alone (F3, F4); a quest's
+// too since T163.
 describe("a record's notes are documents of their own (T133)", () => {
   const C = `groups/${G}/campaigns/c1`;
 
   beforeEach(() => env.withSecurityRulesDisabled(async (context) => {
     await context.firestore().doc(`${C}/locations/bree`).set({name: "Bree", parentId: ""});
     await context.firestore().doc(`${C}/rumors/r1`).set({title: "Smoke", content: ""});
+    await context.firestore().doc(`${C}/quests/q1`).set({title: "The ring", objectives: []});
   }));
 
   it.each([
     ["an NPC's", "npcs/n1", {date: "2026-10-09", text: "Owes us a sword"}],
     ["a location's", "locations/bree", {date: "2026-10-09", text: "The Prancing Pony"}],
+    ["a quest's", "quests/q1", {date: "2026-10-31", text: "Took the long road"}],
     ["a rumour's", "rumors/r1", {content: "Rangers about"}],
   ])("control: a member adds, reads, edits and deletes %s note", async (_whose, record, note) => {
     const db = as("frodo");
@@ -1165,9 +1168,9 @@ describe("a record's notes are documents of their own (T133)", () => {
 
   it("refuses notes under a record of a kind that keeps none", async () => {
     await env.withSecurityRulesDisabled((context) =>
-      context.firestore().doc(`${C}/quests/q1`).set({title: "The ring"})
+      context.firestore().doc(`${C}/chapters/ch1`).set({title: "Chapter one", order: 1})
     );
-    await assertFails(as("frodo").doc(`${C}/quests/q1/notes/x1`).set({text: "Junk"}));
+    await assertFails(as("frodo").doc(`${C}/chapters/ch1/notes/x1`).set({text: "Junk", ...created("frodo")}));
     await assertFails(as("frodo").doc(`${C}/anything/a1/notes/x1`).set({text: "Junk"}));
   });
 
@@ -1495,5 +1498,98 @@ describe("the shapes records were moved out of stay empty (T131, T133, T134)", (
     const db = as("frodo");
     await assertSucceeds(db.doc(`${C}/rumors/r1`).update({content: "Black riders on the road", ...modified("frodo")}));
     await assertSucceeds(db.doc(`${C}/saga/sagaData`).set({title: "The saga", content: "Once", ...created("frodo")}));
+  });
+});
+
+// T163: a player's private records, under their own group profile, read and
+// written by them alone until published.
+describe("private records are their author's alone (T163)", () => {
+  const P = `groups/${G}/users/frodo/private/c1`;
+
+  it.each([
+    ["person", "npcs", {name: "Gollum"}],
+    ["place", "locations", {name: "The cave", parentId: ""}],
+    ["quest", "quests", {title: "Follow the fish", objectives: []}],
+    ["rumour", "rumors", {title: "Riddles in the dark", content: ""}],
+  ])("control: the author adds, reads, lists, edits and deletes a private %s", async (_what, kind, record) => {
+    const db = as("frodo");
+    const path = `${P}/${kind}/r1`;
+    await assertSucceeds(db.doc(path).set({...record, ...created("frodo")}));
+    await assertSucceeds(db.doc(path).get());
+    await assertSucceeds(db.collection(`${P}/${kind}`).get());
+    await assertSucceeds(db.doc(path).update({description: "Changed", ...modified("frodo")}));
+    await assertSucceeds(db.doc(path).delete());
+  });
+
+  it("shows another member nothing, not even an admin, and takes nothing from one", async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      context.firestore().doc(`${P}/npcs/gollum`).set({name: "Gollum"})
+    );
+    for (const uid of ["gandalf", "sauron"]) {
+      const db = as(uid);
+      await assertFails(db.doc(`${P}/npcs/gollum`).get());
+      await assertFails(db.collection(`${P}/npcs`).get());
+      await assertFails(db.doc(`${P}/npcs/gollum`).update({name: "Sméagol", ...modified(uid)}));
+      await assertFails(db.doc(`${P}/npcs/gollum`).delete());
+      await assertFails(db.doc(`${P}/npcs/new`).set({name: "Planted", ...created(uid)}));
+    }
+    await assertFails(as("gandalf").collectionGroup("npcs").get());
+  });
+
+  it("takes nothing from someone who has left the group, even under their own uid", async () => {
+    await env.withSecurityRulesDisabled((context) => context.firestore().doc(`groups/${G}/users/frodo`).delete());
+    await assertFails(as("frodo").doc(`${P}/npcs/r1`).set({name: "Gollum", ...created("frodo")}));
+  });
+
+  it("refuses a kind of record that is never private, and a chapter above all", async () => {
+    const db = as("frodo");
+    await assertFails(db.doc(`${P}/chapters/ch1`).set({title: "Chapter", ...created("frodo")}));
+    await assertFails(db.doc(`${P}/anything/a1`).set({name: "Junk", ...created("frodo")}));
+  });
+
+  it("caps a private record's text as a shared one's, and checks who wrote it", async () => {
+    const db = as("frodo");
+    await assertFails(db.doc(`${P}/npcs/r1`).set({name: "x".repeat(201), ...created("frodo")}));
+    await assertFails(db.doc(`${P}/npcs/r1`).set({name: "Gollum", ...created("frodo"), createdBy: "gandalf"}));
+    await assertSucceeds(db.doc(`${P}/npcs/r1`).set({name: "x".repeat(200), ...created("frodo")}));
+  });
+
+  it("refuses a picture on a private record", async () => {
+    const image = {path: `groups/${G}/campaigns/c1/npcs/r1/a.jpg`, url: "https://example.com/a.jpg"};
+    await assertFails(as("frodo").doc(`${P}/npcs/r1`).set({name: "Gollum", image, ...created("frodo")}));
+  });
+
+  it("takes nothing while the campaign is being deleted, but lets a record go", async () => {
+    await env.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc(`${P}/npcs/gollum`).set({name: "Gollum"});
+      await context.firestore().doc(`groups/${G}/campaigns/c1`).update({deleting: true});
+    });
+    const db = as("frodo");
+    await assertFails(db.doc(`${P}/npcs/r2`).set({name: "Late", ...created("frodo")}));
+    await assertSucceeds(db.doc(`${P}/npcs/gollum`).delete());
+  });
+
+  it("keeps a private record's notes to its author, under a record that exists", async () => {
+    await env.withSecurityRulesDisabled((context) =>
+      context.firestore().doc(`${P}/npcs/gollum`).set({name: "Gollum"})
+    );
+    const note = {date: "2026-10-31", text: "Lost a ring", ...created("frodo")};
+    await assertSucceeds(as("frodo").doc(`${P}/npcs/gollum/notes/x1`).set(note));
+    await assertSucceeds(as("frodo").collection(`${P}/npcs/gollum/notes`).get());
+    await assertFails(as("gandalf").doc(`${P}/npcs/gollum/notes/x1`).get());
+    await assertFails(as("gandalf").collectionGroup("notes").get());
+    await assertFails(as("frodo").doc(`${P}/npcs/nobody/notes/x1`).set(note));
+    await assertFails(as("frodo").doc(`${P}/npcs/gollum/notes/x2`).set({...note, text: "x".repeat(10_001)}));
+  });
+
+  it("holds a link as its two ends and nothing else, for its author alone", async () => {
+    const link = {from: {kind: "npc", id: "gollum"}, to: {kind: "quest", id: "the-ring"}, createdAt: now()};
+    await assertSucceeds(as("frodo").doc(`${P}/links/l1`).set(link));
+    await assertSucceeds(as("frodo").collection(`${P}/links`).get());
+    await assertFails(as("gandalf").collection(`${P}/links`).get());
+    await assertFails(as("frodo").doc(`${P}/links/l2`).set({...link, note: "extra"}));
+    await assertFails(as("frodo").doc(`${P}/links/l2`).set({...link, to: {kind: "chapter", id: "c"}}));
+    await assertFails(as("frodo").doc(`${P}/links/l1`).update({to: {kind: "quest", id: "other"}}));
+    await assertSucceeds(as("frodo").doc(`${P}/links/l1`).delete());
   });
 });

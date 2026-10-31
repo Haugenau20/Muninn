@@ -9,6 +9,11 @@ export interface EntityBatchWrite<T> {
   type: 'update' | 'delete';
   id: string;
   data?: Partial<T>;
+  /**
+   * The record's collection when it is not the batch's: a private record's
+   * (T163), so one batch can hold the author's private records and shared ones.
+   */
+  collection?: string | null;
 }
 
 /**
@@ -40,6 +45,6 @@ export async function commitEntityWrites<T>(
     throw new Error(`One action can change at most ${MAX_BATCH_WRITES} ${plural} at once.`);
   }
   await firebaseServices.document.batchOperations(
-    writes.map((write) => ({ ...write, collection }))
+    writes.map((write) => ({ ...write, collection: write.collection ?? collection }))
   );
 }

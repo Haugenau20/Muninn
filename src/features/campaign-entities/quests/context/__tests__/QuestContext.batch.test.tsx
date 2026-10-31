@@ -14,6 +14,9 @@ const mockUpdateData = jest.fn();
 const mockDeleteData = jest.fn();
 let mockQuests: any[] = [];
 
+// A quest's notes are documents of their own (T163), deleted with it; see the mock.
+jest.mock('features/campaign-entities/shared/recordNotes', () => require('@/test-utils/record-notes-mock').recordNotesMock());
+
 jest.mock('features/user-management', () => ({
   useAuth: () => ({ user: { uid: 'user-1' } }),
   useUser: () => ({

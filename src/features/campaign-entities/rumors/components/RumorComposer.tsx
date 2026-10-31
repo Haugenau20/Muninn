@@ -5,13 +5,15 @@ import { Plus } from 'lucide-react';
 import Button from 'core/components/Button';
 import Input from 'core/components/Input';
 import Typography from 'core/components/Typography';
+import PrivateCheckbox from 'shared/components/private/PrivateCheckbox';
 
 export interface RumorComposerProps {
   /**
    * Create the rumour and resolve with its id. Must reject on failure — the
-   * composer keeps the typed text and says why (§7).
+   * composer keeps the typed text and says why (§7). `private` when the
+   * player ticked "Private" (T163).
    */
-  onAdd: (content: string) => Promise<string>;
+  onAdd: (content: string, options?: { private?: boolean }) => Promise<string>;
   className?: string;
 }
 
@@ -60,6 +62,8 @@ export const RumorComposer: React.FC<RumorComposerProps> = ({ onAdd, className }
   const [text, setText] = useState('');
   const [state, setState] = useState<'idle' | 'adding' | 'failed'>('idle');
   const [error, setError] = useState<string | null>(null);
+  // Kept between rumours: one heard in a one-to-one session is seldom alone.
+  const [isPrivate, setPrivate] = useState(false);
   const hintId = useId();
 
   const trimmed = text.trim();
@@ -70,7 +74,7 @@ export const RumorComposer: React.FC<RumorComposerProps> = ({ onAdd, className }
     setState('adding');
     setError(null);
     try {
-      await onAdd(trimmed);
+      await (isPrivate ? onAdd(trimmed, { private: true }) : onAdd(trimmed));
       // Only now: the row below is the confirmation, and it carries the text
       // that was typed here.
       setText('');
@@ -121,6 +125,10 @@ export const RumorComposer: React.FC<RumorComposerProps> = ({ onAdd, className }
             {state === 'adding' ? 'Adding…' : 'Add rumour'}
           </Button>
         </span>
+      </div>
+
+      <div className="mt-2 px-1">
+        <PrivateCheckbox checked={isPrivate} onChange={setPrivate} disabled={state === 'adding'} />
       </div>
 
       {/* Hovering is not available to everyone; the same sentence, read out. */}

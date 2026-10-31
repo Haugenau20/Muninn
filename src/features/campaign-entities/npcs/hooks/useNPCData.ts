@@ -1,6 +1,7 @@
 // src/features/campaign-entities/npcs/hooks/useNPCData.ts
 import { NPC } from '../types';
 import { useCampaignCollection } from 'shared/hooks/useCampaignCollection';
+import { useWithPrivate } from '../../shared/private/useWithPrivate';
 
 /** Alphabetical by name. */
 const byName = (npcs: NPC[]): NPC[] =>
@@ -14,8 +15,10 @@ const byName = (npcs: NPC[]): NPC[] =>
  * @returns The NPCs, loading and error state, a retry, and the campaign context status
  */
 export const useNPCData = ({ enabled = true }: { enabled?: boolean } = {}) => {
-  const { items, loading, error, refresh, hasRequiredContext, missingContext } =
+  const { items: shared, loading, error, refresh, hasRequiredContext, missingContext } =
     useCampaignCollection<NPC>('npcs', byName, enabled);
+  // With the author's private records beside them (T163).
+  const items = useWithPrivate('npc', shared, byName);
 
   return {
     npcs: items,

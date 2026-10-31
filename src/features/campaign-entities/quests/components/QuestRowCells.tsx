@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { QuestStatus } from '../types';
 import Typography from '../../../../core/components/Typography';
 import { RosterName, RosterStatus, type RosterStatusTone } from 'core/components/Roster';
+import PrivateMark from 'shared/components/private/PrivateMark';
 
 /** Column template shared by every row, so the columns line up across groups. */
 export const QUEST_ROW_GRID =
@@ -45,6 +46,8 @@ export interface QuestRowFacts {
   locationName?: string;
   objectivesDone: number;
   objectivesTotal: number;
+  /** One of the reader's private quests (T163). */
+  isPrivate?: boolean;
 }
 
 /**
@@ -61,7 +64,11 @@ const QuestRowCells: React.FC<{ quest: QuestRowFacts }> = ({ quest }) => {
     <>
       {/* Where it happens is the line under the title, as an
           NPC's title is: every directory row is two lines. */}
-      <RosterName name={quest.title} detail={quest.locationName} />
+      <RosterName
+        name={quest.title}
+        detail={quest.locationName}
+        badge={quest.isPrivate ? <PrivateMark /> : undefined}
+      />
 
       <RosterStatus tone={STATUS_TONE[quest.status]}>
         {quest.status.charAt(0).toUpperCase() + quest.status.slice(1)}
