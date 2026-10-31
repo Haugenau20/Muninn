@@ -3,6 +3,7 @@ import { Scroll } from 'lucide-react';
 import { Rumor } from '../types';
 import Typography from '../../../../core/components/Typography';
 import { RosterName, RosterStatus } from 'core/components/Roster';
+import PrivateMark from 'shared/components/private/PrivateMark';
 import {
   RUMOR_STATUS_TONE,
   formatRumorStatus,
@@ -26,6 +27,8 @@ export interface RumorRowFacts {
   convertedToQuest: boolean;
   /** An edit held across a route change and not saved yet. */
   unsaved: boolean;
+  /** One of the reader's private rumours (T163). */
+  isPrivate?: boolean;
 }
 
 /**
@@ -53,10 +56,15 @@ const RumorRowCells: React.FC<{ rumor: RumorRowFacts }> = ({ rumor }) => (
           one -- otherwise persistence is just a quieter way to
           lose work, because you would believe you had saved.
         */
-        rumor.unsaved ? (
-          <span className="shrink-0 px-2 py-0.5 rounded-full text-xs feedback-warning-edge chip-toggle chip-toggle-selected">
-            Unsaved
-          </span>
+        rumor.unsaved || rumor.isPrivate ? (
+          <>
+            {rumor.isPrivate && <PrivateMark />}
+            {rumor.unsaved && (
+              <span className="shrink-0 px-2 py-0.5 rounded-full text-xs feedback-warning-edge chip-toggle chip-toggle-selected">
+                Unsaved
+              </span>
+            )}
+          </>
         ) : undefined
       }
     />

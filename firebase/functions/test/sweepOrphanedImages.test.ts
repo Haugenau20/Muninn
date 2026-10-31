@@ -175,6 +175,27 @@ describe("sweeping orphaned images", () => {
     expect(result.failed).toEqual([]);
   });
 
+  // T163: a private record's picture lives under its author's profile; the
+  // collection-group read finds the private record that names it.
+  describe("private records' pictures", () => {
+    const KEPT = "groups/g1/users/frodo/campaigns/c1/npcs/gollum/current.webp";
+    const ORPHAN = "groups/g1/users/frodo/campaigns/c1/npcs/gollum/replaced.webp";
+
+    beforeEach(async () => {
+      await db.doc("groups/g1/users/frodo/private/c1/npcs/gollum").set({name: "Gollum", image: stored(KEPT)});
+      await Promise.all(
+        [KEPT, ORPHAN].map((path) => imageBucket().file(path).save(Buffer.from("x"), {contentType: "image/webp"}))
+      );
+    });
+
+    it("keeps the one a private record names, and deletes the one nothing names", async () => {
+      await sweepOrphanedImages(later());
+
+      expect(await exists(KEPT)).toBe(true);
+      expect(await exists(ORPHAN)).toBe(false);
+    });
+  });
+
   // T084 (IMG-003): an upload whose document write is still on its way --
   // queued in a tab that went offline -- is not an orphan, however old the
   // file. The client records it in `pendingUploads` before uploading and

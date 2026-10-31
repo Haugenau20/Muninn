@@ -21,18 +21,29 @@ import {
   QUEST_STATUS_OPTIONS,
   rumorTitleText,
   createLinkActions,
+  useLinkPrivacy,
+  usePublish,
+  useRecordNotesPath,
   npcIdsOfQuest,
   locationIdsOfNpc,
+  useRecordNotes,
+  editRecordNote,
+  deleteRecordNote,
 } from 'features/campaign-entities';
-import type { Quest, QuestStatus, QuestLocation } from 'features/campaign-entities';
+import type { Quest, QuestStatus, QuestLocation, QuestNote, StoredNote } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
 import { useNotes, displayTitle as noteDisplayTitle } from 'features/collaboration';
+import { useUser } from 'features/user-management';
+import { getUserName, getActiveCharacterName } from 'core/utils/user-utils';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
+import PublishButton from 'shared/components/private/PublishButton';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
   EntityFact,
+  EntityNotes,
   EntityPageShell,
   EntityPageSection,
   EntityProse,
@@ -40,11 +51,10 @@ import {
 } from 'shared/components/entity-page';
 import { usePageGate, GatedContent } from 'shared/components/gated';
 import { useNavigation } from 'shared/context/NavigationContext';
-import { formatNoteDate } from 'shared/utils/dateFormatter';
+import { formatNoteDate, toNoteDate } from 'shared/utils/dateFormatter';
 import { InlineEditor } from 'shared/components/inline-edit';
 import { editedText } from 'shared/utils/edit-conflict';
 import { useInlineEditing } from 'shared/hooks/useInlineEditing';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 
 /** What points at this quest, from the three collections that can. */
 interface InboundLink {
@@ -155,13 +165,21 @@ const QuestDetailPage: React.FC = () => {
     editQuestObjective,
     moveQuestObjective,
     markQuestCompleted,
+    addQuestNote,
     deleteQuest,
   } = useQuests();
   const { npcs, updateNPC } = useNPCs();
   const { locations, createLocation, updateLocation } = useLocations();
-  const questsPath = useCampaignCollectionPath('quests');
+  // Where the quest lives: its notes sit under it (T163).
+  const questsPath = useRecordNotesPath('quest', questId);
+  const linkPrivacy = useLinkPrivacy();
+  const publish = usePublish();
   const { rumors, updateRumor } = useRumors();
   const { notes } = useNotes();
+  const { activeGroupUserProfile } = useUser();
+  // The quest's own notes, documents under it (T163); `notes` above are the
+  // player's session notes, read for what points here.
+  const questNotes = useRecordNotes<QuestNote>(questsPath, questId);
 
   const quest = quests.find((candidate) => candidate.id === questId);
 
@@ -242,6 +260,8 @@ const QuestDetailPage: React.FC = () => {
     updateQuest,
     updateLocation,
     updateRumor,
+    // A private record's link to a shared one is held, not written (T163).
+    privacy: linkPrivacy,
   });
   const linkPerson = (id: string) =>
     quest ? links.link({ kind: 'quest', id: quest.id }, { kind: 'npc', id }) : Promise.resolve();
@@ -310,6 +330,34 @@ const QuestDetailPage: React.FC = () => {
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
+  const addNote = async (text: string) => {
+    if (!quest) return;
+    // The acting character, or their username when they have no character --
+    // the same actor `core/attribution` credits for the record itself.
+    const author =
+      getActiveCharacterName(activeGroupUserProfile) ||
+      getUserName(activeGroupUserProfile) ||
+      undefined;
+    await addQuestNote(quest.id, {
+      date: toNoteDate(),
+      text,
+      ...(author ? { author } : {}),
+    });
+  };
+
+  /**
+   * A note is changed in its own document; one another player changed first
+   * is refused rather than overwritten (T083).
+   */
+  const editNote = async (note: StoredNote<QuestNote>, text: string) => {
+    if (!questsPath || !quest) return;
+    await editRecordNote(questsPath, quest.id, note.noteId, 'text', note.text, text);
+  };
+  const deleteNote = async (note: StoredNote<QuestNote>) => {
+    if (!questsPath || !quest) return;
+    await deleteRecordNote(questsPath, quest.id, note.noteId);
+  };
+
   // Every write re-reads the collection rather than patching state locally: if
   // another player changed the same record first, the refetch is where that
   // becomes visible. `updateQuest` already does that read and awaits it
@@ -375,7 +423,8 @@ const QuestDetailPage: React.FC = () => {
           ),
         };
       },
-    });
+    // A private quest's place becomes a private location (T163).
+    }, ...(quest.isPrivate ? [{ private: true }] : []));
     navigateToPage(`/locations/${newId}`);
   };
 
@@ -404,6 +453,7 @@ const QuestDetailPage: React.FC = () => {
           breadcrumb={[{ label: 'Quests', href: '/quests' }, { label: quest.title }]}
           entityId={quest.id}
           name={quest.title}
+          notice={quest.isPrivate ? <PrivateNotice /> : undefined}
           heading={
             editing === 'title' ? (
               <InlineEditor
@@ -435,6 +485,16 @@ const QuestDetailPage: React.FC = () => {
           actions={
             canAct && (
               <>
+                {/* Only its author ever sees a private quest, so only they publish it (T163). */}
+                {quest.isPrivate && (
+                  <PublishButton
+                    publish={publish}
+                    kind="quest"
+                    id={quest.id}
+                    name={quest.title}
+                    onPublished={(id) => navigateToPage(`/quests/${id}`)}
+                  />
+                )}
                 {quest.status === 'active' && (
                   <Button
                     variant="outline"
@@ -955,6 +1015,15 @@ const QuestDetailPage: React.FC = () => {
             </Typography>
           </EntityPageSection>
 
+          {/* --------------------------------- notes -------------------------------- */}
+          <EntityNotes
+            notes={questNotes}
+            canEdit={canAct}
+            onAdd={addNote}
+            onEdit={editNote}
+            onDelete={deleteNote}
+            placeholder="What happened on this quest, and when"
+          />
         </EntityPageShell>
       )}
 

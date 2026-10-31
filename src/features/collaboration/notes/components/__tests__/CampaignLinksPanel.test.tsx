@@ -32,6 +32,11 @@ jest.mock('@/features/campaign-entities', () => ({
   useLocations: jest.fn(),
   useQuests: jest.fn(),
   useRumors: jest.fn(),
+  // "Already exists" (T163): the real check and merge plan.
+  ...jest.requireActual('features/campaign-entities/shared/sameName'),
+  ...jest.requireActual('features/campaign-entities/shared/mergeRecords'),
+  usePrivateRecords: jest.requireActual('features/campaign-entities/shared/private/PrivateRecordsContext')
+    .usePrivateRecords,
 }));
 jest.mock('@/features/collaboration/entity-extraction/hooks/useEntityExtractor', () => ({
   useEntityExtractor: jest.fn(),
@@ -652,6 +657,77 @@ describe('CampaignLinksPanel', () => {
       await waitFor(() => {
         expect(onEntityConverted).toHaveBeenCalledWith('ent-1', 'created-npc-1');
       });
+    });
+  });
+
+  // T163: a rumour is written straight from its detection, so a title one
+  // already carries stops here, at the dialog, and is converted again with
+  // the answer.
+  describe('a rumour whose title one already carries', () => {
+    const { SameNameError } = jest.requireActual('features/campaign-entities/shared/sameName');
+    const detected = () =>
+      makeNote({
+        extractedEntities: [
+          {
+            id: 'ent-1',
+            text: 'Smoke over the hill',
+            type: 'rumor',
+            confidence: 0.9,
+            isConverted: false,
+            createdAt: '2024-01-15T10:00:00.000Z',
+            extraData: { content: 'Ash on the wind' },
+          },
+        ],
+      });
+
+    beforeEach(() => {
+      setupMocks({ note: detected() });
+      (useRumors as jest.Mock).mockReturnValue({
+        rumors: [{ id: 'smoke', title: 'Smoke', content: 'Smoke over the hill', relatedNPCs: [], relatedLocations: [] }],
+      });
+      mockConvertEntity.mockRejectedValueOnce(new SameNameError('rumor', 'smoke', 'Smoke'));
+    });
+
+    test('asks, then adds the detection to that rumour', async () => {
+      const onEntityConverted = jest.fn();
+      mockConvertEntity.mockResolvedValueOnce('smoke');
+      render(<CampaignLinksPanel noteId="note-1" onEntityConverted={onEntityConverted} />);
+      fireEvent.click(screen.getByRole('button', { name: /add/i }));
+
+      const dialog = await screen.findByRole('dialog', { name: 'A Smoke already exists' });
+      expect(dialog).toHaveTextContent('A note with what it says differently: what was said');
+      fireEvent.click(screen.getByRole('button', { name: 'Add to Smoke' }));
+
+      await waitFor(() =>
+        expect(mockConvertEntity).toHaveBeenLastCalledWith('note-1', 'ent-1', 'rumor', { merge: 'smoke' })
+      );
+      await waitFor(() => expect(onEntityConverted).toHaveBeenCalledWith('ent-1', 'smoke'));
+    });
+
+    test('marks nothing converted when cancelled', async () => {
+      const onEntityConverted = jest.fn();
+      render(<CampaignLinksPanel noteId="note-1" onEntityConverted={onEntityConverted} />);
+      fireEvent.click(screen.getByRole('button', { name: /add/i }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(mockConvertEntity).toHaveBeenCalledTimes(1);
+      expect(onEntityConverted).not.toHaveBeenCalled();
+    });
+
+    test('creates it anyway under the same title when kept on purpose', async () => {
+      mockConvertEntity.mockResolvedValueOnce('smoke-over-the-hill');
+      render(<CampaignLinksPanel noteId="note-1" />);
+      fireEvent.click(screen.getByRole('button', { name: /add/i }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Choose a name' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create Smoke over the hill' }));
+
+      await waitFor(() =>
+        expect(mockConvertEntity).toHaveBeenLastCalledWith('note-1', 'ent-1', 'rumor', {
+          createAs: 'Smoke over the hill',
+          anyway: true,
+        })
+      );
     });
   });
 

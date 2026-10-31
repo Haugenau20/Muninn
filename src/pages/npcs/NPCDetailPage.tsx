@@ -11,6 +11,10 @@ import {
   useRumors,
   useLocations,
   createLinkActions,
+  useLinkPrivacy,
+  usePublish,
+  useRecordImagePrefix,
+  useRecordNotesPath,
   locationIdsOfNpc,
   resolveLocationName,
   npcIdsOfNpc,
@@ -21,13 +25,11 @@ import {
   deleteRecordNote,
 } from 'features/campaign-entities';
 import type { StoredNote } from 'features/campaign-entities';
-import { useCampaignCollectionPath } from 'shared/hooks/useCampaignCollectionPath';
 import type { NPC, NPCNote, NPCRelationship, NPCStatus } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
-import { useUser, useGroups, useCampaigns } from 'features/user-management';
+import { useUser } from 'features/user-management';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import { useImageAttachment } from 'shared/hooks/useImageAttachment';
-import { entityImagePrefix } from 'core/services/firebase/storage/ImageStorageService';
 import { toNoteDate } from 'shared/utils/dateFormatter';
 import Breadcrumb from 'shared/components/Breadcrumb';
 import DeleteConfirmationDialog from 'shared/components/DeleteConfirmationDialog';
@@ -46,6 +48,8 @@ import {
   FieldPrompt,
 } from 'shared/components/entity-page';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
+import PublishButton from 'shared/components/private/PublishButton';
 import { attachRefs, type AttachKind } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import { Pencil, X } from 'lucide-react';
@@ -249,13 +253,14 @@ const NPCDetailPage: React.FC = () => {
   const { rumors, updateRumor } = useRumors();
   const { locations, updateLocation } = useLocations();
   const { activeGroupUserProfile } = useUser();
-  const { activeGroupId } = useGroups();
-  const { activeCampaignId } = useCampaigns();
 
   const npc = npcs.find((candidate) => candidate.id === npcId);
 
-  // The notes: their own documents (T133).
-  const npcsPath = useCampaignCollectionPath('npcs');
+  // The notes: their own documents (T133), where the person lives (T163).
+  const npcsPath = useRecordNotesPath('npc', npc?.id);
+  const linkPrivacy = useLinkPrivacy();
+  const publish = usePublish();
+  const portraitPrefix = useRecordImagePrefix('npc', npc?.id);
   const notes = useRecordNotes<NPCNote>(npcsPath, npc?.id);
 
   // `loading` folds into the gate's resolving state: `npcs` is empty while auth
@@ -364,6 +369,8 @@ const NPCDetailPage: React.FC = () => {
     updateQuest,
     updateLocation,
     updateRumor,
+    // A private record's link to a shared one is held, not written (T163).
+    privacy: linkPrivacy,
   });
 
   /**
@@ -514,10 +521,8 @@ const NPCDetailPage: React.FC = () => {
     });
 
   const portrait = useImageAttachment({
-    prefix:
-      npc && activeGroupId && activeCampaignId
-        ? entityImagePrefix(activeGroupId, activeCampaignId, 'npcs', npc.id)
-        : null,
+    // The campaign's folder, or a private person's author's own (T163).
+    prefix: portraitPrefix,
     current: npc?.image,
     save: (image) => save({ image }),
   });
@@ -637,6 +642,7 @@ const NPCDetailPage: React.FC = () => {
           breadcrumb={breadcrumb}
           entityId={npc.id}
           name={npc.name}
+          notice={npc.isPrivate ? <PrivateNotice /> : undefined}
           // A person is taller than they are wide, so the portrait stands
           // beside the name rather than spanning the page as a location's
           // picture does (T064). Without one the sigil is their picture.
@@ -723,6 +729,16 @@ const NPCDetailPage: React.FC = () => {
           actions={
             gate.canAct && (
               <>
+                {/* Only its author ever sees a private person, so only they publish it (T163). */}
+                {npc.isPrivate && (
+                  <PublishButton
+                    publish={publish}
+                    kind="npc"
+                    id={npc.id}
+                    name={npc.name}
+                    onPublished={(id) => navigateToPage(`/npcs/${id}`)}
+                  />
+                )}
                 {/* Quiet: this page's accents are the controls that change
                     something -- Add note and Delete. Opening every editor is
                     not itself a write (D66). "Change five things at once" is a

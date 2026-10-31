@@ -2,6 +2,7 @@ import React from 'react';
 import { NPC } from '../types';
 import Typography from '../../../../core/components/Typography';
 import { RosterName, RosterStatus, type RosterStatusTone } from 'core/components/Roster';
+import PrivateMark from 'shared/components/private/PrivateMark';
 
 /** Column template shared by every row, so the columns line up across groups. */
 export const NPC_ROW_GRID =
@@ -50,7 +51,7 @@ const STATUS_TONE: Partial<Record<string, RosterStatusTone>> = {
 };
 
 /** What a collapsed NPC row shows, and nothing it does not. */
-export type NPCRowFacts = Pick<NPC, 'name' | 'title' | 'status' | 'relationship' | 'occupation'>;
+export type NPCRowFacts = Pick<NPC, 'name' | 'title' | 'status' | 'relationship' | 'occupation' | 'isPrivate'>;
 
 /**
  * The cells of a collapsed NPC row: name and title, presence, stance,
@@ -62,7 +63,7 @@ export type NPCRowFacts = Pick<NPC, 'name' | 'title' | 'status' | 'relationship'
  */
 const NPCRowCells: React.FC<{ npc: NPCRowFacts }> = ({ npc }) => (
   <>
-    <RosterName name={npc.name} detail={npc.title} />
+    <RosterName name={npc.name} detail={npc.title} badge={npc.isPrivate ? <PrivateMark /> : undefined} />
 
     <RosterStatus
       tone={STATUS_TONE[npc.status] ?? 'valence-1'}

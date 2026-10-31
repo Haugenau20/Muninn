@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { Quest } from '../types';
 import { normaliseObjectives } from '../utils/quest-objectives';
 import { useCampaignCollection } from 'shared/hooks/useCampaignCollection';
+import { useWithPrivate } from '../../shared/private/useWithPrivate';
 
 /**
  * Make a batch of stored quests safe to render.
@@ -30,8 +31,10 @@ const readable = (quests: Quest[]): Quest[] =>
  *   the campaign context status
  */
 export const useQuestData = ({ enabled = true }: { enabled?: boolean } = {}) => {
-  const { items: quests, loading, error, refresh, hasRequiredContext, missingContext } =
+  const { items: shared, loading, error, refresh, hasRequiredContext, missingContext } =
     useCampaignCollection<Quest>('quests', readable, enabled);
+  // With the author's private records beside them (T163).
+  const quests = useWithPrivate('quest', shared, readable);
 
   /**
    * Get a quest by ID

@@ -23,6 +23,10 @@ const FILES = {
   lookalikeCampaign: `groups/${GROUP}/campaigns/c10/npcs/n3/d.webp`,
   crest: `groups/${GROUP}/crest/e.webp`,
   otherGroup: "groups/g2/campaigns/c1/npcs/n1/f.webp",
+  // T163: members' private records' pictures, under their profiles.
+  privateImage: `groups/${GROUP}/users/frodo/campaigns/c1/npcs/gollum/g.webp`,
+  adminPrivateImage: `groups/${GROUP}/users/gandalf/campaigns/c1/locations/cave/h.webp`,
+  privateOtherCampaign: `groups/${GROUP}/users/frodo/campaigns/c2/npcs/smeagol/i.webp`,
 };
 
 const exists = async (path: string) => (await imageBucket().file(path).exists())[0];
@@ -63,6 +67,14 @@ describe("deleting a campaign", () => {
     expect((await db.doc(`groups/${GROUP}/campaigns/c1`).get()).exists).toBe(false);
     expect(await exists(FILES.npcImage)).toBe(false);
     expect(await exists(FILES.locationImage)).toBe(false);
+  });
+
+  it("deletes every member's private records' pictures for the campaign (T163)", async () => {
+    await remove("gandalf");
+
+    expect(await exists(FILES.privateImage)).toBe(false);
+    expect(await exists(FILES.adminPrivateImage)).toBe(false);
+    expect(await exists(FILES.privateOtherCampaign)).toBe(true);
   });
 
   it("leaves every other campaign's, the crest's and other groups' images alone", async () => {
@@ -122,6 +134,40 @@ describe("members' reading progress (T073)", () => {
     await remove("gandalf");
 
     expect((await progress("frodo", "c2").get()).exists).toBe(true);
+  });
+});
+
+describe("members' private records (T163)", () => {
+  const privately = (uid: string, campaignId: string, path: string) =>
+    db.doc(`groups/${GROUP}/users/${uid}/private/${campaignId}/${path}`);
+
+  beforeEach(async () => {
+    await Promise.all([
+      privately("frodo", "c1", "npcs/gollum").set({name: "Gollum"}),
+      privately("frodo", "c1", "npcs/gollum/notes/n1").set({text: "Lost a ring"}),
+      privately("frodo", "c1", "links/l1").set({from: {kind: "npc", id: "gollum"}, to: {kind: "quest", id: "q1"}}),
+      privately("gandalf", "c1", "quests/the-ring").set({title: "The ring"}),
+      privately("frodo", "c2", "npcs/smeagol").set({name: "Sméagol"}),
+    ]);
+  });
+
+  it("go with the campaign, for every member, notes and held links too", async () => {
+    await remove("gandalf");
+
+    for (const ref of [
+      privately("frodo", "c1", "npcs/gollum"),
+      privately("frodo", "c1", "npcs/gollum/notes/n1"),
+      privately("frodo", "c1", "links/l1"),
+      privately("gandalf", "c1", "quests/the-ring"),
+    ]) {
+      expect((await ref.get()).exists).toBe(false);
+    }
+  });
+
+  it("stay for every other campaign", async () => {
+    await remove("gandalf");
+
+    expect((await privately("frodo", "c2", "npcs/smeagol").get()).exists).toBe(true);
   });
 });
 

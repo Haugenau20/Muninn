@@ -91,6 +91,18 @@ service firebase.storage {
       allow delete: if isGroupMember(groupId);
     }
 
+    // A private record's picture (T163), under its author's profile: only
+    // they read it, as only they read the record. Publishing copies it to the
+    // campaign's folder above, server-side (`publishImage`).
+    match /groups/{groupId}/users/{userId}/campaigns/{campaignId}/{entityType}/{entityId}/{fileName} {
+      allow read, delete: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+                       entityType in ['npcs', 'locations'] &&
+                       isPreparedImage(fileName) &&
+                       isGroupMember(groupId);
+      allow update: if false;
+    }
+
     // One level shallower than an entity's folder, so the match above never
     // reaches it. Inside the campaign's folder, so deleteCampaign's prefix
     // delete takes it too.

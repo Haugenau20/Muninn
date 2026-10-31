@@ -12,8 +12,12 @@ import {
   type QuickAddCarry,
   type QuickAddEntity,
   type QuickAddErrors,
+  type QuickAddValues,
 } from "./quickAddSpecs";
-import { useQuickAddCreate } from "./useQuickAddCreate";
+import { useQuickAddCreate, useQuickAddMergePreview, type QuickAddCreateOptions } from "./useQuickAddCreate";
+import { SameNameError, isSameName, usePrivateRecords } from "features/campaign-entities";
+import PrivateCheckbox from "shared/components/private/PrivateCheckbox";
+import { useSameNameDialog } from "shared/components/same-name/useSameNameDialog";
 import { useAutoGrow } from "shared/hooks/useAutoGrow";
 
 export interface QuickAddFormProps {
@@ -53,6 +57,10 @@ export interface QuickAddFormProps {
    * you were already in, not to be taken somewhere else (§5 item 7).
    */
   navigateOnCreate?: boolean;
+  /** Mounted inside a dialog: the "already exists" dialog then opens over it. */
+  inDialog?: boolean;
+  /** Start with "Private" ticked: the extraction's "Add" was asked to (T163). */
+  initialPrivate?: boolean;
 }
 
 /**
@@ -80,10 +88,24 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
   cancelLabel = "Cancel",
   autoFocus = true,
   navigateOnCreate = true,
+  inDialog = false,
+  initialPrivate = false,
 }) => {
   const spec = QUICK_ADD_SPECS[entity];
   const navigate = useNavigate();
   const create = useQuickAddCreate({ entity, parentId, noteId, carry });
+  const previewMerge = useQuickAddMergePreview(entity);
+  const sameName = useSameNameDialog();
+
+  /*
+    Private (T163): only its author sees it until they publish it. A place
+    inside a private place is private too: a shared place never sits inside
+    one, so the box is ticked and stays ticked.
+  */
+  const { isPrivate: isPrivateRecord } = usePrivateRecords();
+  const insidePrivate = entity === "location" && !!parentId && isPrivateRecord("location", parentId);
+  const [privateChosen, setPrivateChosen] = useState(initialPrivate);
+  const isPrivate = privateChosen || insidePrivate;
 
   const [name, setName] = useState(initialName);
   const [line, setLine] = useState(initialLine);
@@ -104,6 +126,58 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
   useEffect(() => {
     if (autoFocus) nameRef.current?.focus();
   }, [autoFocus]);
+
+  /**
+   * "A Grog already exists" (T163): ask, then do what the player chose.
+   * Adding to it resolves with its id, so *Create & open* opens it and a
+   * note's mark points at it; opening it leaves this surface; another name
+   * is checked again, and the same name kept makes a second one.
+   *
+   * @returns The record's id, or `null` when nothing was written
+   */
+  const answerSameName = useCallback(
+    async (
+      first: SameNameError,
+      values: QuickAddValues,
+      base: QuickAddCreateOptions
+    ): Promise<string | null> => {
+      let found = first;
+      let current = values;
+      for (;;) {
+        const choice = await sameName.ask({
+          kind: entity,
+          name: current.name,
+          existingId: found.existingId,
+          existingName: found.existingName,
+          preview: previewMerge(found.existingId, current, carry),
+          isNested: inDialog,
+          // A private record is not added to a shared one: that would publish it.
+          canMerge: !isPrivate || isPrivateRecord(entity, found.existingId),
+        });
+        if (choice.action === "cancel") return null;
+        if (choice.action === "open") {
+          onCreated?.(found.existingId);
+          navigate(spec.destinationFor(found.existingId));
+          return null;
+        }
+        if (choice.action === "merge") {
+          return create(entity, current, { ...base, sameName: { merge: found.existingId } });
+        }
+        const renamed = { ...current, name: choice.name };
+        if (isSameName(choice.name, current.name)) {
+          return create(entity, renamed, { ...base, sameName: { createAnyway: true } });
+        }
+        try {
+          return await create(entity, renamed, base);
+        } catch (err) {
+          if (!(err instanceof SameNameError)) throw err;
+          found = err;
+          current = renamed;
+        }
+      }
+    },
+    [entity, carry, inDialog, create, previewMerge, sameName, onCreated, navigate, spec, isPrivate, isPrivateRecord]
+  );
 
   /**
    * Validate, write, and hand back the new id -- or `null` if anything
@@ -127,14 +201,21 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      return await create(entity, { name, line, parentId }, { noteId, entityId, carry });
+      const values = { name, line, parentId };
+      const base = { noteId, entityId, carry, ...(isPrivate ? { private: true } : {}) };
+      try {
+        return await create(entity, values, base);
+      } catch (err) {
+        if (!(err instanceof SameNameError)) throw err;
+        return await answerSameName(err, values, base);
+      }
     } catch (err) {
       setWriteError(err instanceof Error ? err.message : `Could not add this ${entity}.`);
       return null;
     } finally {
       setIsSubmitting(false);
     }
-  }, [entity, name, line, parentId, noteId, entityId, carry, create]);
+  }, [entity, name, line, parentId, noteId, entityId, carry, create, answerSameName, isPrivate]);
 
   const handleCreateAndOpen = useCallback(async () => {
     const id = await submit();
@@ -162,99 +243,113 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
   }, [submit, onAdded]);
 
   return (
-    <form
-      className="flex flex-col gap-4"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleCreateAndOpen();
-      }}
-      noValidate
-    >
-      <Input
-        ref={nameRef as React.Ref<HTMLInputElement>}
-        label={spec.labels.nameLabel}
-        placeholder={spec.labels.namePlaceholder}
-        value={name}
-        maxLength={TEXT_LIMITS.line}
-        onChange={(event) => setName(event.target.value)}
-        error={fieldErrors.name}
-        aria-invalid={Boolean(fieldErrors.name)}
-        className="font-heading"
-        fullWidth
-      />
+    <>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleCreateAndOpen();
+        }}
+        noValidate
+      >
+        <Input
+          ref={nameRef as React.Ref<HTMLInputElement>}
+          label={spec.labels.nameLabel}
+          placeholder={spec.labels.namePlaceholder}
+          value={name}
+          maxLength={TEXT_LIMITS.line}
+          onChange={(event) => setName(event.target.value)}
+          error={fieldErrors.name}
+          aria-invalid={Boolean(fieldErrors.name)}
+          className="font-heading"
+          fullWidth
+        />
 
-      <Input
-        ref={lineRef as React.Ref<HTMLTextAreaElement>}
-        label={spec.labels.lineLabel}
-        placeholder={spec.labels.linePlaceholder}
-        value={line}
-        maxLength={TEXT_LIMITS.text}
-        onChange={(event) => setLine(event.target.value)}
-        error={fieldErrors.line}
-        aria-invalid={Boolean(fieldErrors.line)}
-        className="font-heading max-h-[50vh]"
-        isTextArea
-        rows={2}
-        fullWidth
+        <Input
+          ref={lineRef as React.Ref<HTMLTextAreaElement>}
+          label={spec.labels.lineLabel}
+          placeholder={spec.labels.linePlaceholder}
+          value={line}
+          maxLength={TEXT_LIMITS.text}
+          onChange={(event) => setLine(event.target.value)}
+          error={fieldErrors.line}
+          aria-invalid={Boolean(fieldErrors.line)}
+          className="font-heading max-h-[50vh]"
+          isTextArea
+          rows={2}
+          fullWidth
+        />
+
+        <PrivateCheckbox
+        checked={isPrivate}
+        onChange={setPrivateChosen}
+        lockedReason={insidePrivate ? "Inside a private place, so private too." : undefined}
+        disabled={isSubmitting}
       />
 
       {writeError && (
-        <div className="flex items-start gap-2" role="alert">
-          <AlertCircle size={16} className="form-error shrink-0 mt-0.5" aria-hidden="true" />
-          <Typography color="error" variant="body-sm">
-            {writeError}
-          </Typography>
-        </div>
-      )}
-
-      {/*
-        Actions stack below the phone breakpoint so both stay reachable above
-        the keyboard at 390px, and neither is ever narrower than a thumb.
-      */}
-      <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-3 pt-1">
-        {onCancel && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            {cancelLabel}
-          </Button>
+          <div className="flex items-start gap-2" role="alert">
+            <AlertCircle size={16} className="form-error shrink-0 mt-0.5" aria-hidden="true" />
+            <Typography color="error" variant="body-sm">
+              {writeError}
+            </Typography>
+          </div>
         )}
 
-        <div className="sm:ml-auto flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void handleCreateAndAddAnother()}
-            isLoading={isSubmitting}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            Create &amp; add another
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isSubmitting}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            Create &amp; open
-          </Button>
-        </div>
-      </div>
+        {/*
+          Actions stack below the phone breakpoint so both stay reachable above
+          the keyboard at 390px, and neither is ever narrower than a thumb.
+        */}
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-3 pt-1">
+          {onCancel && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {cancelLabel}
+            </Button>
+          )}
 
-      {addedCount > 0 && (
-        // Quiet, and a live region: the surface stays open across a run of
-        // additions, so this is the only confirmation that each one landed.
-        <Typography variant="body-sm" color="secondary" aria-live="polite">
-          {addedCount} {addedCount === 1 ? spec.labels.countNoun.replace(/s$/, "") : spec.labels.countNoun} added
-        </Typography>
-      )}
-    </form>
+          <div className="sm:ml-auto flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleCreateAndAddAnother()}
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              Create &amp; add another
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isSubmitting}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              Create &amp; open
+            </Button>
+          </div>
+        </div>
+
+        {addedCount > 0 && (
+          // Quiet, and a live region: the surface stays open across a run of
+          // additions, so this is the only confirmation that each one landed.
+          <Typography variant="body-sm" color="secondary" aria-live="polite">
+            {addedCount} {addedCount === 1 ? spec.labels.countNoun.replace(/s$/, "") : spec.labels.countNoun} added
+          </Typography>
+        )}
+      </form>
+      {/*
+        Beside the form, not in it: the dialog renders through a portal, and a
+        submit inside it would still bubble through React to this form.
+      */}
+      {sameName.dialog}
+    </>
   );
 };
 

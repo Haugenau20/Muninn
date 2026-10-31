@@ -68,7 +68,11 @@ export interface IdentifiableContent {
  * Base content item with ID and attribution
  */
 export interface BaseContent extends IdentifiableContent, ContentAttribution {
-  // Base fields for all content types
+  /**
+   * In memory only, never stored: the record is one of the reader's private
+   * ones (T163), read from their private space rather than the campaign.
+   */
+  isPrivate?: boolean;
 }
 
 /**
@@ -105,6 +109,23 @@ export interface CreateAlongside<S = any> {
   id: string;
   /** The fields to write on the other record. */
   change: (current: (S & { id: string }) | undefined, createdId: string) => Partial<S>;
+}
+
+/**
+ * How a create treats a record that already carries its name (T163).
+ *
+ * `askOnSameName` refuses with a `SameNameError` naming that record, so the
+ * player can open it, add to it or choose another name. Without it a second
+ * "Grog" is created as `grog-2`, which is also what the player gets on
+ * purpose by keeping the name.
+ */
+export interface CreateOptions {
+  askOnSameName?: boolean;
+  /**
+   * Create it in the author's private space (T163): only they see it until
+   * they publish it.
+   */
+  private?: boolean;
 }
 
 /**

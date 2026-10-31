@@ -9,6 +9,7 @@ import {call, clearProject, expectHttpsError, useEmulatorProject} from "./emulat
 import {removeUserFromGroup} from "../src/userManagement/removeUserFromGroup";
 import {deleteUser} from "../src/userManagement/deleteUser";
 import {setMemberRole} from "../src/groupManagement/setMemberRole";
+import {imageBucket} from "../src/shared/imageBucket";
 
 const PROJECT = "demo-last-admin-guard";
 const db = useEmulatorProject(PROJECT);
@@ -108,6 +109,37 @@ describe("a member's reading progress (T073)", () => {
     await deleteAccount("frodo");
 
     expect((await progress("frodo").get()).exists).toBe(false);
+  });
+});
+
+describe("a member's private records and their pictures (T163)", () => {
+  // Under the member's profile, so they go with it on both ways out: the
+  // records with the subtree, the pictures by their prefix in the bucket.
+  const record = () => db.doc(`groups/${GROUP}/users/frodo/private/c1/npcs/gollum`);
+  const picture = `groups/${GROUP}/users/frodo/campaigns/c1/npcs/gollum/a.webp`;
+  const othersPicture = `groups/${GROUP}/users/gandalf/campaigns/c1/npcs/cave/b.webp`;
+  const exists = async (path: string) => (await imageBucket().file(path).exists())[0];
+
+  beforeEach(async () => {
+    await seed({gandalf: "admin", frodo: "member"});
+    await record().set({name: "Gollum"});
+    await imageBucket().file(picture).save(Buffer.from("x"), {contentType: "image/webp"});
+    await imageBucket().file(othersPicture).save(Buffer.from("x"), {contentType: "image/webp"});
+  });
+
+  it("go when they leave the group, and nobody else's do", async () => {
+    await leave("frodo");
+
+    expect((await record().get()).exists).toBe(false);
+    expect(await exists(picture)).toBe(false);
+    expect(await exists(othersPicture)).toBe(true);
+  });
+
+  it("go with their account", async () => {
+    await deleteAccount("frodo");
+
+    expect((await record().get()).exists).toBe(false);
+    expect(await exists(picture)).toBe(false);
   });
 });
 

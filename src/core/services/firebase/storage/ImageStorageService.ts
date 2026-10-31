@@ -6,6 +6,7 @@ import {
   deleteObject
 } from "firebase/storage";
 import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import BaseFirebaseService from "../core/BaseFirebaseService";
 import {
   firebaseConfig,
@@ -46,6 +47,26 @@ export function entityImagePrefix(
 ): string {
   return [
     "groups", segment(groupId),
+    "campaigns", segment(campaignId),
+    entityType, segment(entityId)
+  ].join("/");
+}
+
+/**
+ * The folder a private record's images live in (T163): under its author's
+ * group profile, which only they read, as the record itself is. Publishing
+ * copies the picture to the campaign's folder (`publishPrivate`).
+ */
+export function privateEntityImagePrefix(
+  groupId: string,
+  uid: string,
+  campaignId: string,
+  entityType: ImageEntityType,
+  entityId: string
+): string {
+  return [
+    "groups", segment(groupId),
+    "users", segment(uid),
     "campaigns", segment(campaignId),
     entityType, segment(entityId)
   ].join("/");
@@ -217,6 +238,27 @@ class ImageStorageService extends BaseFirebaseService {
       // Left out rather than undefined: Firestore refuses an undefined field.
       ...(image.brightness ? { brightness: image.brightness } : {})
     };
+  }
+
+  /**
+   * Copy a private record's picture to the campaign's folder, for its
+   * publish (T163). The client cannot copy a file without downloading and
+   * uploading it again, so `publishImage` does it server-side, with a new
+   * name, a new download token and a pending entry in the caller's name;
+   * the caller clears that entry once the record points at the copy.
+   *
+   * @param image The private picture
+   * @param recordId The id the record is published under
+   * @returns The copy, to store on the published record
+   */
+  public async publishPrivate(image: StoredImage, recordId: string): Promise<StoredImage> {
+    const groupId = image.path.split("/")[1];
+    const copy = httpsCallable<{ groupId: string; path: string; recordId: string }, { path: string }>(
+      this.functions,
+      "publishImage"
+    );
+    const { data } = await copy({ groupId, path: image.path, recordId });
+    return { ...image, path: data.path, url: await getDownloadURL(ref(this.storage, data.path)) };
   }
 
   /**
