@@ -1,14 +1,24 @@
 // src/features/collaboration/notes/components/CampaignLinksPanel.tsx
 
 import React, { useEffect, useState } from "react";
-import { EntityType, ExtractedEntity } from "../types";
+import { EntityType, ExtractedEntity, SameNameAnswer } from "../types";
 import { useNotes } from "../context/NoteContext";
 import { useNoteReferences, normalizeTextForComparison } from "./NoteReferences";
 import Typography from "../../../../core/components/Typography";
 import Button from "../../../../core/components/Button";
 import { useEntityExtractor } from "../../entity-extraction/hooks/useEntityExtractor";
 import { useNavigation } from "shared/hooks/useNavigation";
-import { useNPCs, useLocations, useQuests, useRumors } from "features/campaign-entities";
+import {
+  useNPCs,
+  useLocations,
+  useQuests,
+  useRumors,
+  SameNameError,
+  isSameName,
+  planMerge,
+  describeMerge,
+} from "features/campaign-entities";
+import { useSameNameDialog } from "shared/components/same-name/useSameNameDialog";
 import { AlertCircle, ExternalLink } from 'lucide-react';
 import CampaignLinksView from "./CampaignLinksView";
 import { entityPath } from "../utils/entity-path";
@@ -46,6 +56,7 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
   const { locations } = useLocations();
   const { quests } = useQuests();
   const { rumors } = useRumors();
+  const sameName = useSameNameDialog();
 
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedEntities, setExtractedEntities] = useState<ExtractedEntity[]>([]);
@@ -247,11 +258,59 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
     }
   };
 
+  /**
+   * Convert, and when a rumour of that title already exists (T163), ask
+   * what to do and convert again with the answer. Only a rumour is written
+   * here; the other kinds open quick add, which asks for itself.
+   *
+   * @returns The record the detection now points at, or null when the
+   *   player cancelled or opened the existing one instead
+   */
+  const convertAsking = async (entity: ExtractedEntity): Promise<string | null> => {
+    let answer: SameNameAnswer | undefined;
+    let name = entity.text;
+    for (;;) {
+      try {
+        return await (answer
+          ? convertEntity(noteId, entity.id, entity.type, answer)
+          : convertEntity(noteId, entity.id, entity.type));
+      } catch (err) {
+        if (!(err instanceof SameNameError)) throw err;
+        const existing = rumors.find((rumor) => rumor.id === err.existingId);
+        const extra = entity.extraData ?? {};
+        const choice = await sameName.ask({
+          kind: "rumor",
+          name,
+          existingId: err.existingId,
+          existingName: err.existingName,
+          preview: existing
+            ? describeMerge(planMerge("rumor", existing, {
+                content: extra.content,
+                sourceName: extra.sourceName,
+              }))
+            : null,
+        });
+        if (choice.action === "cancel") return null;
+        if (choice.action === "open") {
+          navigateToEntity({ type: "rumor", id: err.existingId });
+          return null;
+        }
+        if (choice.action === "merge") {
+          answer = { merge: err.existingId };
+        } else {
+          // Another name is checked again; the same one kept is created anyway.
+          answer = { createAs: choice.name, anyway: isSameName(choice.name, name) };
+          name = choice.name;
+        }
+      }
+    }
+  };
+
   const handleAdd = async (entity: ExtractedEntity) => {
     setConvertingIds(prev => new Set(prev).add(entity.id));
     try {
-      const createdId = await convertEntity(noteId, entity.id, entity.type);
-      handleEntityConverted(entity.id, createdId);
+      const createdId = await convertAsking(entity);
+      if (createdId !== null) handleEntityConverted(entity.id, createdId);
     } catch (convertError) {
       console.error("Failed to convert entity:", convertError);
     } finally {
@@ -303,62 +362,65 @@ const CampaignLinksPanel: React.FC<CampaignLinksPanelProps> = ({
     references.length === 0;
 
   return (
-    <CampaignLinksView
-      references={references}
-      detections={detections}
-      onScan={handleExtract}
-      scanning={isProcessing}
-      scanDisabled={isProcessing || !isExtractionAvailable() || referencesLoading}
-      onOpenReference={navigateToEntity}
-      onAdd={(detection) => {
-        const entity = detections.find((candidate) => candidate.id === detection.id);
-        if (entity) void handleAdd(entity);
-      }}
-      addingIds={convertingIds}
-      status={
-        <>
-          {looksUnscanned && (
-            <Typography variant="body-sm" color="muted" className="mt-4">
-              Not scanned yet.
-            </Typography>
-          )}
-
-          {scanFoundNothing && detections.length === 0 && (
-            <Typography variant="body-sm" color="secondary" className="mt-4">
-              No new names found in this note.
-            </Typography>
-          )}
-
-          {isUsageLimitExceeded && contactInfo && (
-            <div className="mt-4 p-3 rounded-lg border-l-4 feedback-banner feedback-banner-error">
-              <Typography variant="body-sm" className="font-medium mb-1">
-                Usage Limit Reached
+    <>
+      <CampaignLinksView
+        references={references}
+        detections={detections}
+        onScan={handleExtract}
+        scanning={isProcessing}
+        scanDisabled={isProcessing || !isExtractionAvailable() || referencesLoading}
+        onOpenReference={navigateToEntity}
+        onAdd={(detection) => {
+          const entity = detections.find((candidate) => candidate.id === detection.id);
+          if (entity) void handleAdd(entity);
+        }}
+        addingIds={convertingIds}
+        status={
+          <>
+            {looksUnscanned && (
+              <Typography variant="body-sm" color="muted" className="mt-4">
+                Not scanned yet.
               </Typography>
-              <Typography variant="body-sm" color="secondary" className="mb-2">
-                {contactInfo.message}
-              </Typography>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleContactForLimitIncrease}
-                endIcon={<ExternalLink className="w-4 h-4" />}
-              >
-                Request Limit Increase
-              </Button>
-            </div>
-          )}
+            )}
 
-          {(error || hookError) && !isUsageLimitExceeded && (
-            <div className="mt-4 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 mt-0.5 feedback-error flex-shrink-0" />
-              <Typography variant="body-sm" color="error">
-                {error || hookError}
+            {scanFoundNothing && detections.length === 0 && (
+              <Typography variant="body-sm" color="secondary" className="mt-4">
+                No new names found in this note.
               </Typography>
-            </div>
-          )}
-        </>
-      }
-    />
+            )}
+
+            {isUsageLimitExceeded && contactInfo && (
+              <div className="mt-4 p-3 rounded-lg border-l-4 feedback-banner feedback-banner-error">
+                <Typography variant="body-sm" className="font-medium mb-1">
+                  Usage Limit Reached
+                </Typography>
+                <Typography variant="body-sm" color="secondary" className="mb-2">
+                  {contactInfo.message}
+                </Typography>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleContactForLimitIncrease}
+                  endIcon={<ExternalLink className="w-4 h-4" />}
+                >
+                  Request Limit Increase
+                </Button>
+              </div>
+            )}
+
+            {(error || hookError) && !isUsageLimitExceeded && (
+              <div className="mt-4 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 feedback-error flex-shrink-0" />
+                <Typography variant="body-sm" color="error">
+                  {error || hookError}
+                </Typography>
+              </div>
+            )}
+          </>
+        }
+      />
+      {sameName.dialog}
+    </>
   );
 };
 

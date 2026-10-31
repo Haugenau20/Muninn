@@ -7,7 +7,7 @@ import { FIXTURES } from "../support/seed";
 // note on its own. The migration emptied the records' old arrays, and a note
 // left in one is read by nothing.
 
-const { notedNpc } = FIXTURES;
+const { notedNpc, quest } = FIXTURES;
 
 test("a record's notes show together, each changed where it lives, and none from the old array", async ({ page }) => {
   await page.goto(`/npcs/${notedNpc.id}`);
@@ -58,4 +58,28 @@ test("a record's notes show together, each changed where it lives, and none from
   await page.reload();
   await expect(page.getByRole("region", { name: "Notes" }).getByText("Sold us a leaky boat, twice")).toBeVisible();
   await expect(page.getByRole("region", { name: "Notes" }).getByText("Wants it back by the new moon")).toHaveCount(0);
+});
+
+// T163: a quest keeps notes as a person does, which the production rules
+// allowed only for people, places and rumours before.
+test("a quest takes a note, keeps it on reload, and lets it go", async ({ page }) => {
+  await page.goto(`/quests/${quest.id}`);
+  await expect(page.getByRole("heading", { level: 1, name: quest.title })).toBeVisible();
+  const notes = page.getByRole("region", { name: "Notes" });
+
+  await notes.getByLabel("Add a note").fill("The keeper's lamp was still warm");
+  await notes.getByRole("button", { name: "Add note" }).click();
+  await expect(notes.getByText("The keeper's lamp was still warm")).toBeVisible();
+
+  await page.reload();
+  const reloaded = page.getByRole("region", { name: "Notes" });
+  await expect(reloaded.getByText("The keeper's lamp was still warm")).toBeVisible();
+
+  const today = new Date().toLocaleDateString("en-GB");
+  await reloaded.getByRole("button", { name: `Delete the note from ${today}` }).click();
+  await page.getByRole("button", { name: "Delete note" }).click();
+  await expect(reloaded.getByText("The keeper's lamp was still warm")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: quest.title })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Notes" }).getByText("The keeper's lamp was still warm")).toHaveCount(0);
 });

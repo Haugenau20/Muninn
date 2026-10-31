@@ -62,6 +62,11 @@ jest.mock('../../context/RumorContext', () => ({
   useRumors: jest.fn(),
 }));
 
+// Converting checks the title against the quests (T163).
+jest.mock('../../../quests/context/QuestContext', () => ({
+  useQuests: jest.fn(() => ({ quests: [] })),
+}));
+
 jest.mock('../../../npcs/context/NPCContext', () => ({
   useNPCs: jest.fn(() => ({
     npcs: [{ id: 'npc-1', name: 'Gandalf the Grey', occupation: 'Wizard' }],

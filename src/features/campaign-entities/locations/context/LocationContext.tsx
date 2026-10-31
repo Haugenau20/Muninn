@@ -4,7 +4,7 @@ import { Location, LocationStatus, LocationContextValue, LocationNote, LocationC
 import { descendantIdsDeepestFirst, parentChainReaches, wouldCreateCycle } from '../utils/location-tree';
 import { planBatchDelete } from '../utils/batch-delete';
 import { HIGHLIGHT_DEPTH_CAP } from 'shared/hooks/useHighlightTarget';
-import { DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { useLocationData } from '../hooks/useLocationData';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
 import { writeRecordChange } from '../../shared/writeRecordChange';
@@ -16,6 +16,7 @@ import { buildModificationAttribution, modificationTimes } from 'core/attributio
 import { commitEntityWrites } from '../../shared/commitEntityWrites';
 import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlinkDeleted';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
+import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { releaseImage } from 'shared/hooks/useImageAttachment';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
 
@@ -397,7 +398,11 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const issuedIds = useRef<Set<string>>(new Set());
 
   // Create a new location
-  const createLocation = useCallback(async (locationData: DomainData<Location>, alongside?: CreateAlongside): Promise<string> => {
+  const createLocation = useCallback(async (
+    locationData: DomainData<Location>,
+    alongside?: CreateAlongside,
+    options: CreateOptions = {}
+  ): Promise<string> => {
     if (!user || !activeGroupId || !activeCampaignId) {
       throw new Error('User must be authenticated and group/campaign context must be set to create a location');
     }
@@ -405,15 +410,21 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     // Generate a location ID from the name, disambiguating on collision --
     // including with a location another session wrote that the listener has
     // not delivered yet (#1402).
+    // A record already carrying the name stops here when the caller asks
+    // (T163): one the client holds, or one that took the id a moment ago.
+    if (options.askOnSameName) assertNoSameNamed('location', locationData.name, locations);
     const locationId = await createWithUniqueEntityId({
       name: locationData.name,
       issuedIds: issuedIds.current,
       isLoaded: (candidateId) => Boolean(getLocationById(candidateId)),
-      write: (candidateId) => addData({ ...locationData, id: candidateId }, candidateId, ...(alongside ? [alongside] : []))
+      write: (candidateId) => addData({ ...locationData, id: candidateId }, candidateId, ...(alongside ? [alongside] : [])),
+      onRefused: options.askOnSameName && locationsPath
+        ? stopOnSameNamed('location', locationsPath, locationData.name)
+        : undefined
     });
 
     return locationId;
-  }, [user, activeGroupId, activeCampaignId, getLocationById, addData]);
+  }, [user, activeGroupId, activeCampaignId, getLocationById, addData, locations, locationsPath]);
 
   const value: LocationContextValue = {
     locations,

@@ -2,8 +2,13 @@
 import React, { useState } from 'react';
 import Button from '../../../../core/components/Button';
 import { RosterBatchBar } from 'core/components/Roster';
-import { RumorStatus } from '../types';
+import { JoinOptions, RumorStatus } from '../types';
 import { useRumors } from '../context/RumorContext';
+import { useQuests } from '../../quests/context/QuestContext';
+import { SameNameError, SameNameKind, findSameNamed, isSameName } from '../../shared/sameName';
+import { describeMerge, planMerge } from '../../shared/mergeRecords';
+import { useSameNameDialog } from 'shared/components/same-name/useSameNameDialog';
+import { recordHref } from 'shared/components/same-name/SameNameDialog';
 import DeleteConfirmationDialog from 'shared/components/DeleteConfirmationDialog';
 import { useNavigation } from 'shared/hooks/useNavigation';
 import { 
@@ -32,14 +37,17 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
 }) => {
   const { rumors, updateRumorsStatus, deleteRumors, combineRumors, convertToQuest } = useRumors();
   const { navigateToPage } = useNavigation();
-  
+  const sameName = useSameNameDialog();
+
   // Dialog state
   const [showCombineDialog, setShowCombineDialog] = useState(false);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
+  // The quests, while converting: the title is checked against them (T163).
+  const { quests } = useQuests({ subscribe: showConvertDialog });
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // Selected rumors
   const selectedRumorIds = Array.from(selectedRumors);
   const selectedRumorObjects = rumors.filter(rumor => selectedRumors.has(rumor.id));
@@ -49,10 +57,10 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
     try {
       setIsProcessing(true);
       setActionError(null);
-      
+
       // One write for the whole selection (T032, PERF-06).
       await updateRumorsStatus(selectedRumorIds, status);
-      
+
       onComplete?.();
     } catch (err) {
       setActionError(`Failed to update rumour status: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -72,10 +80,10 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
     try {
       setIsProcessing(true);
       setActionError(null);
-      
+
       // One write for the whole selection (T032, PERF-06).
       await deleteRumors(selectedRumorIds);
-      
+
       setShowDeleteConfirmation(false);
       onComplete?.();
     } catch (err) {
@@ -86,13 +94,72 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
     }
   };
 
+  /**
+   * A combine or a conversion whose title a record already carries (T163):
+   * ask, then add to that record (`into`), go ahead under the name chosen,
+   * or stop. Another name is checked again; the same one kept makes a
+   * second record.
+   *
+   * @param kind What the title names: the combined rumour, or the quest
+   * @param title The title as written
+   * @param incoming What the new record would say, for the dialog's list
+   * @param run The combine or the conversion, under a title and options
+   * @returns The record joined into, or null when nothing was written
+   */
+  const joinAsking = async (
+    kind: Extract<SameNameKind, 'rumor' | 'quest'>,
+    title: string,
+    incoming: object,
+    run: (title: string, options: JoinOptions) => Promise<string>
+  ): Promise<string | null> => {
+    let name = title;
+    let options: JoinOptions = { askOnSameName: true };
+    for (;;) {
+      try {
+        // The rumours are checked by the context, which holds them; the
+        // quests here, where they are read.
+        const twin = kind === 'quest' && options.askOnSameName ? findSameNamed('quest', name, quests) : undefined;
+        if (twin) throw new SameNameError('quest', twin.id, twin.title);
+        return await run(name, options);
+      } catch (err) {
+        if (!(err instanceof SameNameError)) throw err;
+        const existing = (kind === 'quest' ? quests : rumors).find(record => record.id === err.existingId);
+        const choice = await sameName.ask({
+          kind,
+          name,
+          existingId: err.existingId,
+          existingName: err.existingName,
+          preview: existing ? describeMerge(planMerge(kind, existing, incoming)) : null,
+          createVerb: kind === 'quest' ? 'Convert' : 'Combine',
+          isNested: true,
+        });
+        if (choice.action === 'cancel') return null;
+        if (choice.action === 'open') {
+          setShowCombineDialog(false);
+          setShowConvertDialog(false);
+          navigateToPage(recordHref(kind, err.existingId));
+          return null;
+        }
+        if (choice.action === 'merge') {
+          options = { into: err.existingId };
+        } else {
+          options = { askOnSameName: !isSameName(choice.name, name) };
+          name = choice.name;
+        }
+      }
+    }
+  };
+
   // Handle combine rumors
   const handleCombineSubmit = async (rumorIds: string[], newRumor: any) => {
     try {
       setIsProcessing(true);
       setActionError(null);
-      
-      const newRumorId = await combineRumors(rumorIds, newRumor);
+
+      const newRumorId = await joinAsking('rumor', newRumor.title ?? '', newRumor, (title, options) =>
+        combineRumors(rumorIds, { ...newRumor, title }, options)
+      );
+      if (newRumorId === null) return null;
       setShowCombineDialog(false);
       onComplete?.();
       return newRumorId;
@@ -110,8 +177,11 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
     try {
       setIsProcessing(true);
       setActionError(null);
-      
-      const questId = await convertToQuest(rumorIds, questData);
+
+      const questId = await joinAsking('quest', questData.title ?? '', questData, (title, options) =>
+        convertToQuest(rumorIds, { ...questData, title }, options)
+      );
+      if (questId === null) return null;
       setShowConvertDialog(false);
       onComplete?.();
       // The quest that was just authored, at its own address (`15-5` item 11).
@@ -144,7 +214,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
             rumors={selectedRumorObjects}
             onCombine={handleCombineSubmit}
           />
-          
+
           <ConvertToQuestDialog
             open={showConvertDialog}
             onClose={() => setShowConvertDialog(false)}
@@ -152,7 +222,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
             rumors={selectedRumorObjects}
             onConvert={handleConvertSubmit}
           />
-          
+
           <DeleteConfirmationDialog
             isOpen={showDeleteConfirmation}
             onClose={() => setShowDeleteConfirmation(false)}
@@ -161,6 +231,8 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
             itemType="Rumour"
             message={`Are you sure you want to delete ${selectedRumors.size} rumours? This cannot be undone.`}
           />
+
+          {sameName.dialog}
         </>
     </>
   );
@@ -177,7 +249,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
         >
           Mark Confirmed
         </Button>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -187,7 +259,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
         >
           Mark Unconfirmed
         </Button>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -197,7 +269,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
         >
           Mark False
         </Button>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -207,7 +279,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
         >
           Combine
         </Button>
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -217,7 +289,7 @@ const RumorBatchActions: React.FC<RumorBatchActionsProps> = ({
         >
           Convert to Quest
         </Button>
-        
+
         <Button
           variant="ghost"
           size="sm"

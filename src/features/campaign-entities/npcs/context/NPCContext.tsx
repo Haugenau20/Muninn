@@ -1,7 +1,7 @@
 // src/features/campaign-entities/npcs/context/NPCContext.tsx
 import React, { createContext, useContext, useCallback, useRef } from 'react';
 import { NPC, NPCContextValue, NPCRelationship, NPCNote, NPCStatus } from '../types';
-import { DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { useNPCData } from '../hooks/useNPCData';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
 import { writeRecordChange } from '../../shared/writeRecordChange';
@@ -12,6 +12,7 @@ import { buildModificationAttribution, modificationTimes } from 'core/attributio
 import { commitEntityWrites } from '../../shared/commitEntityWrites';
 import { unlinkDeletedQuietly, useCampaignRecordPaths } from '../../shared/unlinkDeleted';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
+import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { releaseImage } from 'shared/hooks/useImageAttachment';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
 
@@ -116,7 +117,11 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const issuedIds = useRef<Set<string>>(new Set());
 
   // Add a new NPC
-  const addNPC = useCallback(async (npcData: DomainData<NPC>, alongside?: CreateAlongside): Promise<string> => {
+  const addNPC = useCallback(async (
+    npcData: DomainData<NPC>,
+    alongside?: CreateAlongside,
+    options: CreateOptions = {}
+  ): Promise<string> => {
     if (!hasRequiredContext) {
       throw new Error('Cannot add NPC: No group or campaign selected');
     }
@@ -130,15 +135,19 @@ export const NPCProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     //
     // The id is derived inside createWithUniqueEntityId, which also takes the
     // next free one if another session has since written the same slug (#1402).
+    // A record already carrying the name stops here when the caller asks
+    // (T163): one the client holds, or one that took the id a moment ago.
+    if (options.askOnSameName) assertNoSameNamed('npc', npcData.name, npcs);
     const id = await createWithUniqueEntityId({
       name: npcData.name,
       issuedIds: issuedIds.current,
       isLoaded: (candidateId) => Boolean(getNPCById(candidateId)),
-      write: (candidateId) => addData({ ...npcData, id: candidateId }, candidateId, ...(alongside ? [alongside] : []))
+      write: (candidateId) => addData({ ...npcData, id: candidateId }, candidateId, ...(alongside ? [alongside] : [])),
+      onRefused: options.askOnSameName && npcsPath ? stopOnSameNamed('npc', npcsPath, npcData.name) : undefined
     });
 
     return id;
-  }, [hasRequiredContext, user, userProfile, getNPCById, addData]);
+  }, [hasRequiredContext, user, userProfile, getNPCById, addData, npcs, npcsPath]);
 
   // Update an existing NPC: only what `change` names; see `RecordChange` (T083)
   const updateNPC = useCallback(async (npcId: string, change: RecordChange<NPC>): Promise<void> => {
