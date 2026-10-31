@@ -7,4 +7,10 @@ Run `/todo` to drain this file: each entry is checked against the code, located,
 sized and filed into TODO.md, then removed from here. `/todo <idea>` files a
 single item directly without going through this file.
 
-Last drained: 2026-10-20
+Last drained: 2026-10-31
+
+Location "Type" cannot be changed currently. when the button/dropdown is pressed no alternatives shows up and nothing happens when pressing again. 
+
+From dev console:    A customizable-<select> changed its `appearance` property while open. As a result, it was closed to avoid circularity problems. <select id=​":​rh:​" class=​"w-full rounded-lg border transition-colors duration-200 focus:​outline-none h-8 text-sm px-2 input">​<option value=​"region">​Region​</option>​slot<option value=​"city">​City​</option>​slot<option value=​"town">​Town​</option>​slot<option value=​"village">​Village​</option>​slot<option value=​"dungeon">​Dungeon​</option>​slot<option value=​"landmark">​Landmark​</option>​slot<option value=​"building">​Building​</option>​slot<option value=​"poi">​Point of Interest​</option>​slot</select>​
+
+We should look at the notes section. yesterday I experienced a name in my notes "Gundren" got recognised as a new potential NPC, even though "Gundren Rockseeker" is already an NPC in my campaign. How do we handle this? Or mispellings like Neverwinter/Neverwinther. where do we draw the line between "same" and "new"?
