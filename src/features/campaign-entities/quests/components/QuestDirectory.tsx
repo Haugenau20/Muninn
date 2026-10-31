@@ -362,6 +362,7 @@ const QuestDirectory: React.FC<QuestDirectoryProps> = ({
                           locationName: questLocationName.get(quest.id),
                           objectivesDone: completedObjectives,
                           objectivesTotal: totalObjectives,
+                          isPrivate: quest.isPrivate,
                         }}
                       />
                     </RosterRow>

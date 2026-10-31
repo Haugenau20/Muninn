@@ -37,6 +37,7 @@ import { useUser, useGroups, useCampaigns } from 'features/user-management';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import { useImageAttachment } from 'shared/hooks/useImageAttachment';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
@@ -439,9 +440,13 @@ const LocationDetailPage: React.FC = () => {
             )
           }
           notice={
+            location.isPrivate ? (
+              <PrivateNotice />
+            ) : (
             // A deletion that failed partway leaves its mark, and the rules
             // refuse every edit to a marked place (T088): the one thing left to
-            // do is finish it, the way it started.
+            // do is finish it, the way it started. A private place is deleted
+            // by its author alone, from the list, and never left marked.
             gate.canAct &&
             location.deleting && (
               <div className="flex items-center gap-3 flex-wrap">
@@ -468,6 +473,7 @@ const LocationDetailPage: React.FC = () => {
                   </Typography>
                 )}
               </div>
+            )
             )
           }
           facts={

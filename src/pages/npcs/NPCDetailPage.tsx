@@ -47,6 +47,7 @@ import {
   FieldPrompt,
 } from 'shared/components/entity-page';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
+import PrivateNotice from 'shared/components/private/PrivateNotice';
 import { attachRefs, type AttachKind } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import { Pencil, X } from 'lucide-react';
@@ -641,6 +642,7 @@ const NPCDetailPage: React.FC = () => {
           breadcrumb={breadcrumb}
           entityId={npc.id}
           name={npc.name}
+          notice={npc.isPrivate ? <PrivateNotice /> : undefined}
           // A person is taller than they are wide, so the portrait stands
           // beside the name rather than spanning the page as a location's
           // picture does (T064). Without one the sigil is their picture.

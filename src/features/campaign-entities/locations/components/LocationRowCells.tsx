@@ -2,6 +2,7 @@
 import React from 'react';
 import Typography from 'core/components/Typography';
 import { RosterName, RosterStatus } from 'core/components/Roster';
+import PrivateMark from 'shared/components/private/PrivateMark';
 import { Location } from '../types';
 import {
   formatLocationStatus,
@@ -31,7 +32,7 @@ export const describeInside = (insideCount: number, npcCount: number, questCount
     .join(' · ');
 
 /** What a collapsed location row shows, and nothing it does not. */
-export type LocationRowFacts = Pick<Location, 'name' | 'type' | 'status'>;
+export type LocationRowFacts = Pick<Location, 'name' | 'type' | 'status' | 'isPrivate'>;
 
 export interface LocationRowCellsProps {
   location: LocationRowFacts;
@@ -52,6 +53,7 @@ const LocationRowCells: React.FC<LocationRowCellsProps> = ({ location, path, ins
   <>
     <RosterName
       name={location.name}
+      badge={location.isPrivate ? <PrivateMark /> : undefined}
       detail={
         <>
           {formatLocationType(location.type)}

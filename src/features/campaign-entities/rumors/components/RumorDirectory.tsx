@@ -643,6 +643,7 @@ const RumorDirectory: React.FC<RumorDirectoryProps> = ({
                           sourceType: rumor.sourceType,
                           convertedToQuest: Boolean(rumor.convertedToQuestId),
                           unsaved: unsavedIds.has(rumor.id),
+                          isPrivate: rumor.isPrivate,
                         }}
                       />
                     </RosterRow>

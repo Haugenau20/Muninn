@@ -31,8 +31,16 @@ const zlib = require("zlib");
  * in the bundle or tree-shaken out, and the cache must be chosen before
  * Firestore's first read. It buys a reload that is billed for what changed
  * rather than for every document again. ~3% headroom.
+ *
+ * Raised 2026-10-31 (T163): 293.47 kB on main, 296.50 kB with "already
+ * exists" (quick add and the notes provider are eager), 300.87 kB with
+ * private records, whose list merge and write routing live in the four
+ * record providers every page mounts. Loading the rare pieces on demand (the
+ * move of a private record whose id was taken, the "already exists" dialog)
+ * made the entry larger, not smaller: what they share became chunks of their
+ * own, preloaded with it. ~3% headroom.
  */
-const MAIN_CEILING_KB = 300;
+const MAIN_CEILING_KB = 310;
 
 const buildDir = path.resolve(__dirname, "..", "build");
 

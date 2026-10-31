@@ -96,6 +96,12 @@ const EMPTY: PrivateRecordsValue = {
  */
 const PrivateRecordsContext = createContext<PrivateRecordsValue>(EMPTY);
 
+/**
+ * Hands a ready value to everything under it, in place of
+ * `PrivateRecordsProvider`'s own: a suite's, without Firestore.
+ */
+export const PrivateRecordsValueProvider = PrivateRecordsContext.Provider;
+
 const mark = (docs: Array<Record<string, any>>): PrivateDoc[] =>
   docs.map((doc) => ({ ...doc, isPrivate: true }) as PrivateDoc);
 

@@ -68,7 +68,7 @@ from each entry's summary alone: a judgement, not a measurement.
 | low | T055 | Opt-in second factor | security | M | needs scoping | Kept for later, not now (2026-10-02); prefer an authenticator app over SMS |
 | low | T111 | Is it worth expanding the notes feature? | feature | L | needs scoping | Kept for later, not now (2026-10-06) |
 | low | T142 | One English in the site's copy, British | ux | M | open | Later, not now (2026-10-10); few spellings differ today, dates follow the browser in places |
-| low | T163 | Private people, places, quests and rumours, published later | feature | L | open | Scoped 2026-10-31: author-only, one-way publish, a private space moved on publish; four PRs: quest notes, "already exists", private records, private pictures |
+| low | T163 | Private people, places, quests and rumours, published later | feature | L | open | Scoped 2026-10-31: author-only, one-way publish, a private space moved on publish; five PRs: quest notes, "already exists", private records, publishing, private pictures |
 
 ### Waiting on the maintainer
 
@@ -892,11 +892,12 @@ without the rest of the group seeing it, and to publish it to everyone later.
   quest context's add and delete, and a notes section on the quest's page.
   The rule only widens, and a merge deploys rules before Hosting, so it
   ships in one PR.
-- **Order**: four PRs, stacked. (1) Notes on quests. (2) "Already exists"
+- **Order**: five PRs, stacked. (1) Notes on quests. (2) "Already exists"
   for shared records, which helps without privacy and builds the merge the
   publish reuses. (3) Private records: the private space, the checkbox,
-  listeners, publish with its groups, held links and id rewrite. (4) Private
-  pictures.
+  listeners, held links, and the id moved when someone else takes it.
+  (4) Publish, with its groups, held links written and the id rewrite; (3)
+  was split here for size. (5) Private pictures.
 - **Related**: T111's "sharing a note" is the same move for notes.
 - **Source**: todo.txt, 2026-10-31; scoped with the maintainer, 2026-10-31
 
