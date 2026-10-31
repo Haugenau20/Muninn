@@ -66,6 +66,7 @@ describe('useLinkPrivacy', () => {
     records: { npc: [], location: [], quest: [], rumor: [] },
     links,
     paths: { npc: null, location: null, quest: null, rumor: null, links: LINKS },
+    sessionNotes: { path: null, campaignId: null },
     isPrivate: (kind, id) => kind === 'npc' && id === 'gollum',
     stamps: () => ({ creation: { createdAt: 'NOW' }, modification: {} }),
   });

@@ -1,7 +1,7 @@
 // src/features/campaign-entities/shared/recordNotes.ts
 import { useEffect, useState } from 'react';
 import firebaseServices from 'core/services/firebase';
-import { recordTimes } from 'core/attribution';
+import { recordTimes, toTime } from 'core/attribution';
 import { assertUnchanged } from 'shared/utils/edit-conflict';
 import { useRecordNotesPath } from './private/useRecordNotesPath';
 import type { PrivateKind } from './private/PrivateRecordsContext';
@@ -32,10 +32,13 @@ export type StoredNote<T> = T & { noteId: string };
 /**
  * Oldest first, as the array kept them: by the server's time of creation, or
  * the string written beside it while that is pending. A document's id is
- * random, so the order the listener delivers says nothing.
+ * random, so the order the listener delivers says nothing. A note moved with
+ * its record (T163) was created again by the move, so the time it was first
+ * written, kept in `recordedAt`, comes first.
  */
-const byCreation = (a: Record<string, unknown>, b: Record<string, unknown>): number =>
-  (recordTimes(a).created?.getTime() ?? Infinity) - (recordTimes(b).created?.getTime() ?? Infinity);
+const writtenAt = (note: Record<string, unknown>): number =>
+  (toTime(note.recordedAt as Parameters<typeof toTime>[0]) ?? recordTimes(note).created)?.getTime() ?? Infinity;
+const byCreation = (a: Record<string, unknown>, b: Record<string, unknown>): number => writtenAt(a) - writtenAt(b);
 
 /**
  * A record's notes from their documents, live and oldest first; undefined

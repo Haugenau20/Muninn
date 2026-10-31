@@ -72,6 +72,12 @@ export interface PrivateRecordsValue {
    * written: the author's id and names, and the server's time.
    */
   stamps: () => MoveStamps;
+  /**
+   * The author's session notes and the campaign they are read for: a note's
+   * extraction marks name the record it was turned into, so they follow it
+   * when its id changes.
+   */
+  sessionNotes: { path: string | null; campaignId: string | null };
 }
 
 /** What a move stamps: a document created now, and one changed now. */
@@ -85,6 +91,7 @@ const EMPTY: PrivateRecordsValue = {
   links: [],
   paths: { npc: null, location: null, quest: null, rumor: null, links: null },
   isPrivate: () => false,
+  sessionNotes: { path: null, campaignId: null },
   stamps: () => {
     throw new Error('You need to be signed in.');
   },
@@ -175,8 +182,15 @@ export const PrivateRecordsProvider: React.FC<{ children: React.ReactNode }> = (
       },
       isPrivate,
       stamps,
+      sessionNotes: {
+        path: user && activeGroupId ? `groups/${activeGroupId}/users/${user.uid}/notes` : null,
+        campaignId: activeCampaignId ?? null,
+      },
     }),
-    [records, links, paths.npc, paths.location, paths.quest, paths.rumor, paths.links, isPrivate, stamps]
+    [
+      records, links, paths.npc, paths.location, paths.quest, paths.rumor, paths.links, isPrivate, stamps,
+      user, activeGroupId, activeCampaignId,
+    ]
   );
 
   return <PrivateRecordsContext.Provider value={value}>{children}</PrivateRecordsContext.Provider>;
