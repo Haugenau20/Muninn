@@ -70,6 +70,8 @@ test("a quest takes a note, keeps it on reload, and lets it go", async ({ page }
   await notes.getByLabel("Add a note").fill("The keeper's lamp was still warm");
   await notes.getByRole("button", { name: "Add note" }).click();
   await expect(notes.getByText("The keeper's lamp was still warm")).toBeVisible();
+  // The composer empties once the write has landed; reloading sooner would race it.
+  await expect(notes.getByLabel("Add a note")).toHaveValue("");
 
   await page.reload();
   const reloaded = page.getByRole("region", { name: "Notes" });
