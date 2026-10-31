@@ -37,6 +37,8 @@ test("a private person is the player's alone: in their space, marked, with notes
   await notes.getByLabel("Add a note").fill("Knows where the keeper went");
   await notes.getByRole("button", { name: "Add note" }).click();
   await expect(notes.getByText("Knows where the keeper went")).toBeVisible();
+  // The composer empties once the write has landed; reloading sooner would race it.
+  await expect(notes.getByLabel("Add a note")).toHaveValue("");
   await page.reload();
   await expect(page.getByRole("region", { name: "Notes" }).getByText("Knows where the keeper went")).toBeVisible();
 
