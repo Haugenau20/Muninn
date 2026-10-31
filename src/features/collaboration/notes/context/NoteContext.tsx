@@ -1,10 +1,10 @@
 // src/features/collaboration/notes/context/NoteContext.tsx - Complete Fixed Version
 import React, { createContext, useContext, useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { TEXT_LIMITS } from "core/constants/textLimits";
-import { Note, NoteContextValue, EntityType, UnsavedNoteEdit } from "../types";
+import { Note, NoteContextValue, EntityType, UnsavedNoteEdit, SameNameAnswer } from "../types";
 import DocumentService from "core/services/firebase/data/DocumentService";
 import { useAuth, useGroups, useCampaigns, useUser } from "features/user-management";
-import { useRumors } from "features/campaign-entities";
+import { useRumors, useMergeIntoRecord } from "features/campaign-entities";
 import { useCampaignContextStatus } from "shared/hooks/useCampaignContextStatus";
 import { buildCreationAttribution } from "core/attribution";
 import { useNavigate } from 'react-router-dom';
@@ -67,6 +67,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
   // Write-only use, so it does not hold the rumour listener open (`PERF-03`):
   // this provider is mounted on every route.
   const { addRumor } = useRumors({ subscribe: false });
+  const mergeIntoRecord = useMergeIntoRecord();
   const { activeGroupUserProfile } = useUser();
   // Single shared source of truth for "still resolving vs. genuinely no
   // selection" (bug #1413) -- see the hook's doc comment. Folded into
@@ -412,7 +413,8 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
   const convertEntity = useCallback(async (
     noteId: string,
     entityId: string,
-    type: EntityType
+    type: EntityType,
+    sameName?: SameNameAnswer
   ): Promise<string> => {
     const note = getNoteById(noteId);
     if (!note) throw new Error("Note not found");
@@ -544,9 +546,16 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
         };
         // The rumour and the note's mark commit together (T088). A draft
         // note has no mark to send; it is marked once the rumour exists.
-        const rumorId = await convertInto(noteId, entityId, (alongside) =>
-          alongside ? addRumor(rumor, alongside) : addRumor(rumor)
-        );
+        // A title a rumour already carries stops the write (T163) until the
+        // caller brings the player's answer: add to that rumour, whose id
+        // the mark then names, or create under the name given.
+        const rumorId = await convertInto(noteId, entityId, (alongside) => {
+          if (sameName && "merge" in sameName) {
+            return mergeIntoRecord('rumor', sameName.merge, rumor, alongside);
+          }
+          const named = sameName ? { ...rumor, title: sameName.createAs } : rumor;
+          return addRumor(named, alongside, { askOnSameName: !sameName?.anyway });
+        });
 
         navigate(`/rumors?highlight=${rumorId}`);
         return rumorId;
@@ -587,7 +596,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({
     // Return empty string since we're not creating immediately. The rumour
     // branch returned above, with a real id.
     return "";
-  }, [getNoteById, navigate, addRumor, convertInto]);
+  }, [getNoteById, navigate, addRumor, convertInto, mergeIntoRecord]);
   
   /**
    * Archive a note

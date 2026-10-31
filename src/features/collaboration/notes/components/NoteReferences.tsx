@@ -29,17 +29,10 @@ interface NoteReferencesProps {
 }
 
 /**
- * Normalize text for consistent comparison
- * This function should be used by both NoteReferences and CampaignLinksPanel
+ * Normalize text for consistent comparison. Lives in `core` since T163, so
+ * the campaign records' "already exists" check compares names the same way.
  */
-export const normalizeTextForComparison = (text: string): string => {
-  return text
-    .toLowerCase()
-    .replace(/^(the|a|an)\s+/i, '') // Remove leading articles
-    .replace(/[.,!?;:\s]+/g, '-') // Replace punctuation and spaces with dashes
-    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
-    .trim();
-};
+export { normalizeTextForComparison } from 'core/utils/text-comparison';
 
 /** One entity as the matcher sees it: an id, a type, and the names to test. */
 interface MatchCandidate {

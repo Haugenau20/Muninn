@@ -108,6 +108,18 @@ export interface CreateAlongside<S = any> {
 }
 
 /**
+ * How a create treats a record that already carries its name (T163).
+ *
+ * `askOnSameName` refuses with a `SameNameError` naming that record, so the
+ * player can open it, add to it or choose another name. Without it a second
+ * "Grog" is created as `grog-2`, which is also what the player gets on
+ * purpose by keeping the name.
+ */
+export interface CreateOptions {
+  askOnSameName?: boolean;
+}
+
+/**
  * What an update writes to one record (T083): the fields to set, or a
  * function that works them out from the record as the server holds it.
  *

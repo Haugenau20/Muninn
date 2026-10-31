@@ -4,6 +4,14 @@
 import { BaseContent, CreateAlongside } from "core/types/common";
 
 /**
+ * The answer to "already exists" (T163) for a rumour converted out of a note:
+ * add it to the rumour of that title, or create it under the name given.
+ * `anyway` when that is the name just asked about, kept on purpose: it makes
+ * a second one. Otherwise the new name is checked like the first.
+ */
+export type SameNameAnswer = { merge: string } | { createAs: string; anyway: boolean };
+
+/**
  * Entity types that can be extracted from notes
  */
 export type EntityType = "npc" | "location" | "quest" | "rumor";
@@ -118,7 +126,7 @@ export interface NoteContextValue {
    * @param type Type of entity to convert to
    * @returns Promise resolving to empty string (navigation instead of creation)
    */
-  convertEntity: (noteId: string, entityId: string, type: EntityType) => Promise<string>;
+  convertEntity: (noteId: string, entityId: string, type: EntityType, sameName?: SameNameAnswer) => Promise<string>;
   
   /**
    * Mark an entity as converted in the note

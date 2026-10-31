@@ -21,6 +21,7 @@ jest.mock("react-router-dom", () => ({
 const mockAddNPC = jest.fn();
 const mockAddQuest = jest.fn();
 const mockCreateLocation = jest.fn();
+const mockMergeIntoRecord = jest.fn();
 /*
   `convertInto` hands the create the note's mark to commit with (T088). The
   stand-in passes a token through, so a test can see the record's write
@@ -71,6 +72,11 @@ jest.mock("features/campaign-entities", () => ({
   normaliseObjectives: jest.requireActual(
     "features/campaign-entities/quests/utils/quest-objectives"
   ).normaliseObjectives,
+  // "Already exists" (T163): the real check and merge plan, and a stand-in
+  // for the merge's write.
+  ...jest.requireActual("features/campaign-entities/shared/sameName"),
+  ...jest.requireActual("features/campaign-entities/shared/mergeRecords"),
+  useMergeIntoRecord: () => mockMergeIntoRecord,
 }));
 
 jest.mock("features/collaboration", () => ({
@@ -448,7 +454,9 @@ describe("QuickAddForm", () => {
       await waitFor(() =>
         expect(mockConvertInto).toHaveBeenCalledWith("note-7", "entity-3", expect.any(Function))
       );
-      expect(mockAddNPC).toHaveBeenCalledWith(expect.objectContaining({ name: "Thorin" }), MARK);
+      expect(mockAddNPC).toHaveBeenCalledWith(expect.objectContaining({ name: "Thorin" }), MARK, {
+        askOnSameName: true,
+      });
     });
 
     it("does not mark anything when the surface was not opened from a note", async () => {
@@ -459,7 +467,9 @@ describe("QuickAddForm", () => {
 
       await waitFor(() => expect(mockAddNPC).toHaveBeenCalled());
       expect(mockConvertInto).not.toHaveBeenCalled();
-      expect(mockAddNPC.mock.calls[0]).toHaveLength(1);
+      // No change commits with it. Since T163 the create also carries its
+      // "already exists" option, so the mark's place is read, not the count.
+      expect(mockAddNPC.mock.calls[0][1]).toBeUndefined();
     });
 
     it("writes the carried fields the surface never showed", async () => {
@@ -533,24 +543,34 @@ describe("QuickAddForm", () => {
 // every mount, though a plain create reads none of them, and a released
 // listener stays open for five minutes.
 describe("QuickAddForm -- the lists it opens", () => {
-  /** Whether the last render asked `name`'s list to stay open. */
-  const subscribed = (name: string) => {
-    const reads = mockListReads[name] ?? [];
-    const last = reads[reads.length - 1] as { subscribe?: boolean } | undefined;
-    return last?.subscribe ?? true;
-  };
+  /**
+   * Whether any reader asked `name`'s list to stay open. Since T163 the form
+   * reads the lists twice, once to write and once, without opening any, for
+   * the "already exists" dialog; a list is open when either asks.
+   */
+  const subscribed = (name: string) =>
+    (mockListReads[name] ?? []).some(
+      (read) => (read as { subscribe?: boolean } | undefined)?.subscribe ?? true
+    );
 
   beforeEach(() => {
     Object.keys(mockListReads).forEach((key) => delete mockListReads[key]);
   });
 
-  it("opens none for a plain create", () => {
-    renderForm({ entity: "npc" });
-    expect(["npcs", "quests", "locations", "notes"].filter(subscribed)).toEqual([]);
+  // CHANGED for T163: a create checks its name against the records of its
+  // kind the client holds, so it opens that one list, and only that one.
+  it.each([
+    ["npc", "npcs"],
+    ["quest", "quests"],
+    ["location", "locations"],
+  ] as const)("opens only its own kind's list for a plain %s", (entity, list) => {
+    renderForm({ entity });
+    expect(["npcs", "quests", "locations", "notes"].filter(subscribed)).toEqual([list]);
   });
 
   it("opens the locations when a carried location name has to become an id", () => {
-    renderForm({ entity: "npc", carry: { location: "Bree" } });
+    // A quest's: since T163 a person's create opens the people anyway.
+    renderForm({ entity: "quest", carry: { location: "Bree" } });
     expect(subscribed("locations")).toBe(true);
     expect(subscribed("npcs")).toBe(false);
   });
@@ -568,5 +588,130 @@ describe("QuickAddForm -- the lists it opens", () => {
   it("opens the notes when it converts a note's detection", () => {
     renderForm({ entity: "npc", noteId: "note-1", entityId: "ent-1" });
     expect(subscribed("notes")).toBe(true);
+  });
+});
+
+// T163: a name a record already carries stops at "already exists", and the
+// player's answer decides what is written.
+describe("QuickAddForm -- already exists", () => {
+  const { SameNameError } = jest.requireActual("features/campaign-entities/shared/sameName");
+  const taken = () => new SameNameError("npc", "npc-frodo", "Frodo");
+
+  const typeFrodo = async () => {
+    await userEvent.type(nameField(), "frodo");
+    await userEvent.type(lineField(), "Carries the ring");
+  };
+
+  beforeEach(() => {
+    mockAddNPC.mockReset();
+    mockMergeIntoRecord.mockReset();
+    mockMergeIntoRecord.mockResolvedValue("npc-frodo");
+  });
+
+  it("asks first, naming the record and what adding would write", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken());
+    renderForm();
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+
+    const dialog = await screen.findByRole("dialog", { name: "A Frodo already exists" });
+    expect(dialog).toHaveTextContent("Description: Carries the ring");
+    expect(mockAddNPC).toHaveBeenCalledWith(expect.objectContaining({ name: "frodo" }), undefined, {
+      askOnSameName: true,
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("adds what was typed to it, and opens it", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken());
+    renderForm();
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+    await userEvent.click(await screen.findByRole("button", { name: "Add to Frodo" }));
+
+    await waitFor(() =>
+      expect(mockMergeIntoRecord).toHaveBeenCalledWith(
+        "npc",
+        "npc-frodo",
+        expect.objectContaining({ name: "frodo", description: "Carries the ring" }),
+        undefined
+      )
+    );
+    expect(mockAddNPC).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("/npcs/npc-frodo", expect.anything())
+    );
+  });
+
+  it("points a note's mark at the record it was added to", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken());
+    renderForm({ noteId: "note-7", entityId: "entity-3" });
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+    await userEvent.click(await screen.findByRole("button", { name: "Add to Frodo" }));
+
+    await waitFor(() =>
+      expect(mockMergeIntoRecord).toHaveBeenCalledWith("npc", "npc-frodo", expect.anything(), MARK)
+    );
+  });
+
+  it("makes a second one when the name is kept on purpose", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken()).mockResolvedValueOnce("frodo-2");
+    renderForm();
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+    await userEvent.click(await screen.findByRole("button", { name: "Choose a name" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create frodo" }));
+
+    await waitFor(() => expect(mockAddNPC).toHaveBeenCalledTimes(2));
+    expect(mockAddNPC).toHaveBeenLastCalledWith(expect.objectContaining({ name: "frodo" }), undefined, {
+      askOnSameName: false,
+    });
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/npcs/frodo-2", expect.anything()));
+  });
+
+  it("checks another name again", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken()).mockResolvedValueOnce("frodo-baggins");
+    renderForm();
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+    await userEvent.click(await screen.findByRole("button", { name: "Choose a name" }));
+    const rename = screen.getAllByLabelText("Name").pop()!;
+    await userEvent.clear(rename);
+    await userEvent.type(rename, "Frodo Baggins{Enter}");
+
+    await waitFor(() => expect(mockAddNPC).toHaveBeenCalledTimes(2));
+    expect(mockAddNPC).toHaveBeenLastCalledWith(expect.objectContaining({ name: "Frodo Baggins" }), undefined, {
+      askOnSameName: true,
+    });
+  });
+
+  it("keeps everything typed on cancel, and writes nothing", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken());
+    renderForm();
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "A Frodo already exists" })).not.toBeInTheDocument()
+    );
+    expect(nameField()).toHaveValue("frodo");
+    expect(mockAddNPC).toHaveBeenCalledTimes(1);
+    expect(mockMergeIntoRecord).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("opens the record instead, closing the surface", async () => {
+    mockAddNPC.mockRejectedValueOnce(taken());
+    const onCreated = jest.fn();
+    renderForm({ onCreated });
+    await typeFrodo();
+    await userEvent.click(createAndOpen());
+    await userEvent.click(await screen.findByRole("button", { name: "Open Frodo" }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/npcs/npc-frodo"));
+    expect(onCreated).toHaveBeenCalledWith("npc-frodo");
+    expect(mockMergeIntoRecord).not.toHaveBeenCalled();
   });
 });

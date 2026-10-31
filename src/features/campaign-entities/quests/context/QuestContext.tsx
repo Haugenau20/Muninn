@@ -1,7 +1,7 @@
 // src/features/campaign-entities/quests/context/QuestContext.tsx
 import React, { createContext, useContext, useCallback, useRef } from 'react';
 import { Quest, QuestStatus, QuestContextValue, QuestNote } from '../types';
-import { DomainData, RecordChange, CreateAlongside } from 'core/types/common';
+import { DomainData, RecordChange, CreateAlongside, CreateOptions } from 'core/types/common';
 import { useQuestData } from '../hooks/useQuestData';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
 import { writeRecordChange } from '../../shared/writeRecordChange';
@@ -15,6 +15,7 @@ import { keyPlaceIsLocation, referencesLocation } from '../../locations/utils/lo
 import { moveObjective } from '../utils/quest-presentation';
 import { normaliseObjectives } from '../utils/quest-objectives';
 import { addRecordNote, deleteRecordNotes } from '../../shared/recordNotes';
+import { assertNoSameNamed, stopOnSameNamed } from '../../shared/sameName';
 import { assertUnchanged } from 'shared/utils/edit-conflict';
 import { Location } from '../../locations/types';
 import { createListenerDemandContext, useListenerDemand, ListReaderOptions } from 'shared/hooks/useListenerDemand';
@@ -274,7 +275,11 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user, userProfile, activeGroupId, activeCampaignId, questsPath, getQuestById]);
 
   // Add quest
-  const addQuest = useCallback(async (questData: DomainData<Quest>, alongside?: CreateAlongside) => {
+  const addQuest = useCallback(async (
+    questData: DomainData<Quest>,
+    alongside?: CreateAlongside,
+    options: CreateOptions = {}
+  ) => {
     if (!user || !userProfile) {
       throw new Error('User must be authenticated to add quests');
     }
@@ -300,15 +305,19 @@ export const QuestProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Generate the ID from the title, disambiguating on collision -- including
     // with a quest another session wrote that the listener has not delivered
     // yet (#1402).
+    // A record already carrying the name stops here when the caller asks
+    // (T163): one the client holds, or one that took the id a moment ago.
+    if (options.askOnSameName) assertNoSameNamed('quest', questData.title, quests);
     const id = await createWithUniqueEntityId({
       name: questData.title,
       issuedIds: issuedIds.current,
       isLoaded: (candidateId) => Boolean(getQuestById(candidateId)),
-      write: (candidateId) => addData(buildQuest(candidateId), candidateId, ...(alongside ? [alongside] : []))
+      write: (candidateId) => addData(buildQuest(candidateId), candidateId, ...(alongside ? [alongside] : [])),
+      onRefused: options.askOnSameName && questsPath ? stopOnSameNamed('quest', questsPath, questData.title) : undefined
     });
 
     return id;
-  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, addData]);
+  }, [user, userProfile, activeGroupId, activeCampaignId, getQuestById, addData, quests, questsPath]);
 
   // Update an existing quest: only what `change` names; see `RecordChange` (T083)
   const updateQuest = useCallback(async (questId: string, change: RecordChange<Quest>) => {

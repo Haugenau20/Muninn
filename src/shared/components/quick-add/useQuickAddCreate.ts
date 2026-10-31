@@ -1,8 +1,15 @@
 // src/shared/components/quick-add/useQuickAddCreate.ts
 import { useCallback } from "react";
-import { useNPCs, useQuests, useLocations } from "features/campaign-entities";
+import {
+  useNPCs,
+  useQuests,
+  useLocations,
+  useMergeIntoRecord,
+  planMerge,
+  describeMerge,
+} from "features/campaign-entities";
 import { useNotes } from "features/collaboration";
-import type { CreateAlongside } from "core/types/common";
+import type { CreateAlongside, CreateOptions } from "core/types/common";
 import {
   resolveNameToId,
   resolveNamesToIds,
@@ -27,6 +34,13 @@ export interface QuickAddCreateOptions {
   entityId?: string;
   /** Extracted fields the two-field surface does not show. See `QuickAddCarry`. */
   carry?: QuickAddCarry;
+  /**
+   * The answer to "already exists" (T163). Without one the create stops at
+   * a name a record already carries, with a `SameNameError`. `merge` adds
+   * what was typed to that record instead; `createAnyway` creates it all the
+   * same, a second record of the name if the name was kept.
+   */
+  sameName?: { merge: string } | { createAnyway: true };
 }
 
 /**
@@ -126,15 +140,17 @@ export interface QuickAddReads {
  */
 export function listsToRead({ entity, parentId, noteId, carry }: QuickAddReads): {
   npcs: boolean;
+  quests: boolean;
   locations: boolean;
   notes: boolean;
 } {
   return {
-    npcs: entity === "quest" && carry?.relatedNPCNames !== undefined,
+    // Its own kind's list always (T163): the name is checked against the
+    // records the client holds before anything is written.
+    npcs: entity === "npc" || (entity === "quest" && carry?.relatedNPCNames !== undefined),
+    quests: entity === "quest",
     locations:
-      entity === "location"
-        ? Boolean(parentId) || Boolean(carry?.parentId)
-        : Boolean(carry?.location),
+      entity === "location" || Boolean(carry?.location),
     notes: Boolean(noteId),
   };
 }
@@ -152,12 +168,12 @@ export function listsToRead({ entity, parentId, noteId, carry }: QuickAddReads):
  * surface can keep the typed text and say what happened (§7).
  */
 export function useQuickAddCreate(reads?: QuickAddReads) {
-  const lists = reads ? listsToRead(reads) : { npcs: true, locations: true, notes: true };
+  const lists = reads ? listsToRead(reads) : { npcs: true, quests: true, locations: true, notes: true };
   const { addNPC, npcs } = useNPCs({ subscribe: lists.npcs });
-  // Writes only, never reads: a quest's create needs no other quest.
-  const { addQuest } = useQuests({ subscribe: false });
+  const { addQuest } = useQuests({ subscribe: lists.quests });
   const { createLocation, updateLocation, locations } = useLocations({ subscribe: lists.locations });
   const { convertInto } = useNotes({ subscribe: lists.notes });
+  const mergeIntoRecord = useMergeIntoRecord();
 
   return useCallback(
     async (
@@ -209,16 +225,23 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
         npcDocument.locationId = "";
       }
 
+      const { sameName } = options;
+      // Asked unless the player already answered (T163).
+      const createOptions: CreateOptions = { askOnSameName: !sameName };
+
       /** The write, with a change to commit alongside it when there is one. */
       const create = (alongside?: CreateAlongside): Promise<string> => {
-        const extra = alongside ? [alongside] : [];
+        // Added to the record of the same name: the note's mark points there.
+        if (sameName && "merge" in sameName) {
+          return mergeIntoRecord(entity, sameName.merge, document as object, alongside);
+        }
         switch (entity) {
           case "npc":
-            return addNPC(document as Parameters<typeof addNPC>[0], ...extra);
+            return addNPC(document as Parameters<typeof addNPC>[0], alongside, createOptions);
           case "quest":
-            return addQuest(document as Parameters<typeof addQuest>[0], ...extra);
+            return addQuest(document as Parameters<typeof addQuest>[0], alongside, createOptions);
           case "location":
-            return createLocation(document as Parameters<typeof createLocation>[0], ...extra);
+            return createLocation(document as Parameters<typeof createLocation>[0], alongside, createOptions);
         }
       };
 
@@ -237,7 +260,32 @@ export function useQuickAddCreate(reads?: QuickAddReads) {
       }
       return id;
     },
-    [addNPC, addQuest, createLocation, updateLocation, convertInto, npcs, locations]
+    [addNPC, addQuest, createLocation, updateLocation, convertInto, mergeIntoRecord, npcs, locations]
+  );
+}
+
+/**
+ * What "Add what you know to it" would write, for the dialog to list before
+ * anything is (T163): worked out from the record as this client holds it,
+ * or `null` while that record has not reached it.
+ *
+ * Reads the lists `useQuickAddCreate` opened; it opens none of its own.
+ */
+export function useQuickAddMergePreview(entity: QuickAddEntity) {
+  const { npcs } = useNPCs({ subscribe: false });
+  const { quests } = useQuests({ subscribe: false });
+  const { locations } = useLocations({ subscribe: false });
+
+  return useCallback(
+    (existingId: string, values: QuickAddValues, carry?: QuickAddCarry): string[] | null => {
+      const list: ReadonlyArray<{ id: string }> =
+        (entity === "npc" ? npcs : entity === "quest" ? quests : locations) ?? [];
+      const existing = list.find((record) => record.id === existingId);
+      if (!existing) return null;
+      const incoming = QUICK_ADD_SPECS[entity].buildDocument(values, carry);
+      return describeMerge(planMerge(entity, existing, incoming as object));
+    },
+    [entity, npcs, quests, locations]
   );
 }
 
