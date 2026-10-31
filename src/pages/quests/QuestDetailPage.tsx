@@ -22,6 +22,7 @@ import {
   rumorTitleText,
   createLinkActions,
   useLinkPrivacy,
+  usePublish,
   useRecordNotesPath,
   npcIdsOfQuest,
   locationIdsOfNpc,
@@ -37,6 +38,7 @@ import { getUserName, getActiveCharacterName } from 'core/utils/user-utils';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
 import PrivateNotice from 'shared/components/private/PrivateNotice';
+import PublishButton from 'shared/components/private/PublishButton';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
@@ -171,6 +173,7 @@ const QuestDetailPage: React.FC = () => {
   // Where the quest lives: its notes sit under it (T163).
   const questsPath = useRecordNotesPath('quest', questId);
   const linkPrivacy = useLinkPrivacy();
+  const publish = usePublish();
   const { rumors, updateRumor } = useRumors();
   const { notes } = useNotes();
   const { activeGroupUserProfile } = useUser();
@@ -482,6 +485,16 @@ const QuestDetailPage: React.FC = () => {
           actions={
             canAct && (
               <>
+                {/* Only its author ever sees a private quest, so only they publish it (T163). */}
+                {quest.isPrivate && (
+                  <PublishButton
+                    publish={publish}
+                    kind="quest"
+                    id={quest.id}
+                    name={quest.title}
+                    onPublished={(id) => navigateToPage(`/quests/${id}`)}
+                  />
+                )}
                 {quest.status === 'active' && (
                   <Button
                     variant="outline"

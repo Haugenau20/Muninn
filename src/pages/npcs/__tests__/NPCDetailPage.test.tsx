@@ -215,6 +215,7 @@ jest.mock("features/campaign-entities", () => ({
   createLinkActions: jest.requireActual("features/campaign-entities/shared/linkActions").createLinkActions,
   // Private records (T163): none here, so every record lives in the campaign.
   useLinkPrivacy: () => undefined,
+  usePublish: () => jest.fn(),
   useRecordNotesPath: jest.requireActual("features/campaign-entities/shared/private/useRecordNotesPath").useRecordNotesPath,
   // Notes are documents of their own (T133); see the mock.
   ...require("@/test-utils/record-notes-mock").recordNotesMock(),

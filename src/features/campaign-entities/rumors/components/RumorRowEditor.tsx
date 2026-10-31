@@ -1,5 +1,7 @@
 // src/features/campaign-entities/rumors/components/RumorRowEditor.tsx
 import React, { useEffect, useRef, useState } from 'react';
+import PublishButton from 'shared/components/private/PublishButton';
+import { usePublish } from '../../shared/private/usePublish';
 import { TEXT_LIMITS } from 'core/constants/textLimits';
 import Button from 'core/components/Button';
 import Input from 'core/components/Input';
@@ -154,6 +156,7 @@ export const RumorRowEditor: React.FC<RumorRowEditorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const publish = usePublish();
   const titleRef = useRef<HTMLInputElement>(null);
   // Named as the rumour's attribution names it everywhere else (T124).
   const recordedBy = useCreatorName(rumor);
@@ -390,6 +393,10 @@ export const RumorRowEditor: React.FC<RumorRowEditorProps> = ({
           </span>
 
           <div className="ml-auto flex items-center gap-2">
+            {/* A private rumour is published from its row: it has no page (T163). */}
+            {rumor.isPrivate && !confirmingDelete && (
+              <PublishButton publish={publish} kind="rumor" id={rumor.id} name={name} />
+            )}
             {confirmingDelete ? (
               <>
                 <Typography variant="body-sm" color="secondary">

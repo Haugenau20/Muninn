@@ -205,6 +205,7 @@ jest.mock('features/campaign-entities', () => {
     createLinkActions: jest.requireActual('features/campaign-entities/shared/linkActions').createLinkActions,
     // Private records (T163): none here, so every record lives in the campaign.
     useLinkPrivacy: () => undefined,
+    usePublish: () => jest.fn(),
     useRecordNotesPath: jest.requireActual('features/campaign-entities/shared/private/useRecordNotesPath').useRecordNotesPath,
 
     // The real helper: a rumour is named the way its own list names it.
