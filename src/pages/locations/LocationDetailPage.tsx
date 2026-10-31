@@ -7,7 +7,6 @@ import Typography from 'core/components/Typography';
 import Button from 'core/components/Button';
 import Select from 'core/components/Select';
 import EntitySigil from 'core/components/EntitySigil';
-import { entityImagePrefix } from 'core/services/firebase/storage/ImageStorageService';
 import {
   useLocations,
   useNPCs,
@@ -16,6 +15,7 @@ import {
   createLinkActions,
   useLinkPrivacy,
   usePublish,
+  useRecordImagePrefix,
   useRecordNotesPath,
   npcIdsOfLocation,
   questIdsOfLocation,
@@ -34,7 +34,7 @@ import {
 } from 'features/campaign-entities';
 import type { Location, LocationNote, LocationType, LocationStatus, StoredNote } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
-import { useUser, useGroups, useCampaigns } from 'features/user-management';
+import { useUser } from 'features/user-management';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import { useImageAttachment } from 'shared/hooks/useImageAttachment';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
@@ -137,8 +137,6 @@ const LocationDetailPage: React.FC = () => {
   const { navigateToPage } = useNavigation();
   const { openQuickAdd } = useQuickAdd();
   const { activeGroupUserProfile } = useUser();
-  const { activeGroupId } = useGroups();
-  const { activeCampaignId } = useCampaigns();
 
   const {
     locations,
@@ -156,6 +154,7 @@ const LocationDetailPage: React.FC = () => {
   const locationsPath = useRecordNotesPath('location', locationId);
   const linkPrivacy = useLinkPrivacy();
   const publish = usePublish();
+  const picturePrefix = useRecordImagePrefix('location', locationId);
   // The notes: their own documents (T133).
   const notes = useRecordNotes<LocationNote>(locationsPath, locationId);
   const { npcs, updateNPC } = useNPCs();
@@ -279,10 +278,8 @@ const LocationDetailPage: React.FC = () => {
   };
 
   const picture = useImageAttachment({
-    prefix:
-      location && activeGroupId && activeCampaignId
-        ? entityImagePrefix(activeGroupId, activeCampaignId, 'locations', location.id)
-        : null,
+    // The campaign's folder, or a private place's author's own (T163).
+    prefix: picturePrefix,
     current: location?.image,
     save: (image) => save({ image }),
   });
@@ -384,9 +381,7 @@ const LocationDetailPage: React.FC = () => {
           imageAlt={location.name}
           imageShape="wide"
           imageUpload={
-            // No picture on a private place yet: its file would be stored
-            // where every member reads it (T163).
-            canAct && !location.isPrivate
+            canAct
               ? { subject: 'picture', onUpload: picture.upload, onRemove: picture.remove }
               : undefined
           }

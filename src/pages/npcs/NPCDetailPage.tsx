@@ -13,6 +13,7 @@ import {
   createLinkActions,
   useLinkPrivacy,
   usePublish,
+  useRecordImagePrefix,
   useRecordNotesPath,
   locationIdsOfNpc,
   resolveLocationName,
@@ -26,10 +27,9 @@ import {
 import type { StoredNote } from 'features/campaign-entities';
 import type { NPC, NPCNote, NPCRelationship, NPCStatus } from 'features/campaign-entities';
 import type { RecordChange } from 'core/types/common';
-import { useUser, useGroups, useCampaigns } from 'features/user-management';
+import { useUser } from 'features/user-management';
 import AttributionInfo from 'shared/components/AttributionInfo';
 import { useImageAttachment } from 'shared/hooks/useImageAttachment';
-import { entityImagePrefix } from 'core/services/firebase/storage/ImageStorageService';
 import { toNoteDate } from 'shared/utils/dateFormatter';
 import Breadcrumb from 'shared/components/Breadcrumb';
 import DeleteConfirmationDialog from 'shared/components/DeleteConfirmationDialog';
@@ -253,8 +253,6 @@ const NPCDetailPage: React.FC = () => {
   const { rumors, updateRumor } = useRumors();
   const { locations, updateLocation } = useLocations();
   const { activeGroupUserProfile } = useUser();
-  const { activeGroupId } = useGroups();
-  const { activeCampaignId } = useCampaigns();
 
   const npc = npcs.find((candidate) => candidate.id === npcId);
 
@@ -262,6 +260,7 @@ const NPCDetailPage: React.FC = () => {
   const npcsPath = useRecordNotesPath('npc', npc?.id);
   const linkPrivacy = useLinkPrivacy();
   const publish = usePublish();
+  const portraitPrefix = useRecordImagePrefix('npc', npc?.id);
   const notes = useRecordNotes<NPCNote>(npcsPath, npc?.id);
 
   // `loading` folds into the gate's resolving state: `npcs` is empty while auth
@@ -522,10 +521,8 @@ const NPCDetailPage: React.FC = () => {
     });
 
   const portrait = useImageAttachment({
-    prefix:
-      npc && activeGroupId && activeCampaignId
-        ? entityImagePrefix(activeGroupId, activeCampaignId, 'npcs', npc.id)
-        : null,
+    // The campaign's folder, or a private person's author's own (T163).
+    prefix: portraitPrefix,
     current: npc?.image,
     save: (image) => save({ image }),
   });
@@ -653,9 +650,7 @@ const NPCDetailPage: React.FC = () => {
           imageAlt={`Portrait of ${npc.name}`}
           imageShape="tall"
           imageUpload={
-            // No portrait on a private person yet: its file would be stored
-            // where every member reads it (T163).
-            gate.canAct && !npc.isPrivate
+            gate.canAct
               ? { subject: 'portrait', onUpload: portrait.upload, onRemove: portrait.remove }
               : undefined
           }

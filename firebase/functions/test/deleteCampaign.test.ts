@@ -23,6 +23,10 @@ const FILES = {
   lookalikeCampaign: `groups/${GROUP}/campaigns/c10/npcs/n3/d.webp`,
   crest: `groups/${GROUP}/crest/e.webp`,
   otherGroup: "groups/g2/campaigns/c1/npcs/n1/f.webp",
+  // T163: members' private records' pictures, under their profiles.
+  privateImage: `groups/${GROUP}/users/frodo/campaigns/c1/npcs/gollum/g.webp`,
+  adminPrivateImage: `groups/${GROUP}/users/gandalf/campaigns/c1/locations/cave/h.webp`,
+  privateOtherCampaign: `groups/${GROUP}/users/frodo/campaigns/c2/npcs/smeagol/i.webp`,
 };
 
 const exists = async (path: string) => (await imageBucket().file(path).exists())[0];
@@ -63,6 +67,14 @@ describe("deleting a campaign", () => {
     expect((await db.doc(`groups/${GROUP}/campaigns/c1`).get()).exists).toBe(false);
     expect(await exists(FILES.npcImage)).toBe(false);
     expect(await exists(FILES.locationImage)).toBe(false);
+  });
+
+  it("deletes every member's private records' pictures for the campaign (T163)", async () => {
+    await remove("gandalf");
+
+    expect(await exists(FILES.privateImage)).toBe(false);
+    expect(await exists(FILES.adminPrivateImage)).toBe(false);
+    expect(await exists(FILES.privateOtherCampaign)).toBe(true);
   });
 
   it("leaves every other campaign's, the crest's and other groups' images alone", async () => {

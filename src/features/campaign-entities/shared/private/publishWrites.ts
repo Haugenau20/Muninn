@@ -204,6 +204,12 @@ export function publishWrites(
       const existing = sharedNow(kind, targetId);
       if (!existing) throw new Error(`${nameOf(kind, record)} was to be added to a record that has since been deleted.`);
       const plan = planMerge(kind, existing, shareable);
+      // A picture fills one it lacks, as any field does (T163); its copy was
+      // made for this.
+      if (shareable.image && !existing.image) {
+        plan.fields.image = shareable.image;
+        plan.added.push('Picture');
+      }
       if (Object.keys(plan.fields).length) {
         writes.push({ type: 'update', collection: shared[kind], id: targetId, data: { ...plan.fields, ...stamps.modification } });
         touched.set(keyOf(kind, targetId), { ...existing, ...plan.fields });

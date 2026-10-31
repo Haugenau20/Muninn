@@ -191,6 +191,36 @@ describe("campaign entity images", () => {
   });
 });
 
+// T163: a private record's picture lives under its author's profile, and
+// only they read, write or delete it.
+describe("a private record's picture", () => {
+  const dir = (name: string, kind = "npcs") => `groups/${G}/users/${uid(name)}/campaigns/c1/${kind}/gollum`;
+
+  it("control: its author uploads, reads and deletes it", async () => {
+    const path = fresh(dir("frodo"));
+    await assertSucceeds(as("frodo").ref(path).put(small(), WEBP).then());
+    await assertSucceeds(as("frodo").ref(path).getDownloadURL());
+    await assertSucceeds(as("frodo").ref(path).delete());
+  });
+
+  it("another member, the admin included, can neither read, write nor delete it", async () => {
+    const path = fresh(dir("frodo"));
+    await env.withSecurityRulesDisabled((context) => context.storage().ref(path).put(small(), WEBP).then());
+    await assertFails(as("gandalf").ref(path).getDownloadURL());
+    await assertFails(as("gandalf").ref(path).delete());
+    await assertFails(as("gandalf").ref(fresh(dir("frodo"))).put(small(), WEBP).then());
+  });
+
+  it("refuses an upload by someone no longer a member, even into their own folder", async () => {
+    await assertFails(as("sauron").ref(fresh(`groups/${G}/users/${uid("sauron")}/campaigns/c1/npcs/gollum`)).put(small(), WEBP).then());
+  });
+
+  it("takes only what a record's picture may be", async () => {
+    await assertFails(as("frodo").ref(fresh(dir("frodo", "quests"))).put(small(), WEBP).then());
+    await assertFails(as("frodo").ref(`${dir("frodo")}/portrait.webp`).put(small(), WEBP).then());
+  });
+});
+
 describe("the campaign banner", () => {
   it("a member can get its download URL", async () => {
     await assertSucceeds(as("frodo").ref(`${BANNER_DIR}/${NAME}`).getDownloadURL());

@@ -139,6 +139,7 @@ export default firebaseServices;
 export { firebaseConfig };
 export {
   entityImagePrefix,
+  privateEntityImagePrefix,
   crestPrefix,
   isOwnBucketUrl
 } from './storage/ImageStorageService';

@@ -12,11 +12,13 @@ import {deleteWithin, MIN_AGE_MS, PENDING_LEASE_MS} from "./shared";
 
 /**
  * The object paths the app writes images to (see the storage images design,
- * §3). Anything else in the bucket -- a path added later -- is not the sweep's
- * to judge, however unreferenced it looks.
+ * §3), a private record's included (T163: under its author's profile). The
+ * collection-group reads below find the private records' pictures too. Anything
+ * else in the bucket -- a path added later -- is not the sweep's to judge,
+ * however unreferenced it looks.
  */
 const IMAGE_PATH = new RegExp(
-  "^groups/[^/]+/(campaigns/[^/]+/((npcs|locations)/[^/]+|banner)|crest)/[^/]+$"
+  "^groups/[^/]+/((users/[^/]+/)?campaigns/[^/]+/((npcs|locations)/[^/]+|banner)|crest)/[^/]+$"
 );
 
 /**

@@ -17,6 +17,9 @@ const P = 'groups/g1/users/u1/private/c1';
 let mockLists: Record<string, any[]> = {};
 const mockCommit = jest.fn();
 const mockGetCollection = jest.fn();
+const mockPublishPrivate = jest.fn();
+const mockClearPending = jest.fn();
+const mockRelease = jest.fn();
 
 jest.mock('../../../npcs/context/NPCContext', () => ({ useNPCs: () => ({ npcs: mockLists.npcs }) }));
 jest.mock('../../../quests/context/QuestContext', () => ({ useQuests: () => ({ quests: mockLists.quests }) }));
@@ -29,6 +32,16 @@ jest.mock('core/services/firebase', () => ({
       commitAfterReading: (...args: unknown[]) => mockCommit(...args),
       getCollectionFromServer: (path: string) => mockGetCollection(path),
     },
+    images: {
+      publishPrivate: (...args: unknown[]) => mockPublishPrivate(...args),
+      clearPendingUpload: (path: string) => mockClearPending(path),
+    },
+  },
+}));
+jest.mock('shared/hooks/useImageAttachment', () => ({
+  releaseImage: (path: string) => {
+    mockRelease(path);
+    return () => undefined;
   },
 }));
 
@@ -175,4 +188,59 @@ it('takes the rumours converted into a quest with it, named in the question', as
     { kind: 'quest', id: 'fish', name: 'The fish' },
     { kind: 'rumor', id: 'riddles', name: 'Riddles' },
   ]);
+});
+
+// T163: a private picture is copied to the campaign's folder before the
+// commit, which points the shared record at the copy; the private file is
+// released once published.
+describe('a private picture', () => {
+  const PRIVATE_PIC = `groups/g1/users/u1/private-pics/gollum/a.webp`;
+  const COPY = `${C}/npcs/gollum/b.webp`;
+  const pictured = priv({ id: 'gollum', name: 'Gollum', image: { path: PRIVATE_PIC, url: 'private-url' } });
+
+  beforeEach(() => {
+    mockLists.npcs = [{ id: 'bilbo', name: 'Bilbo' }, pictured];
+    mockPublishPrivate.mockResolvedValue({ path: COPY, url: 'shared-url' });
+  });
+
+  it('is copied under the id it is published under, and the shared record points at the copy', async () => {
+    await publishWith(space({ npc: [pictured] }))('npc', 'gollum', ask());
+
+    expect(mockPublishPrivate).toHaveBeenCalledWith({ path: PRIVATE_PIC, url: 'private-url' }, 'gollum');
+    const create = (await writesOf()).find((write: any) => write.type === 'create');
+    expect(create.data.image).toEqual({ path: COPY, url: 'shared-url' });
+  });
+
+  it('is released once published, and the copy’s lease cleared', async () => {
+    await publishWith(space({ npc: [pictured] }))('npc', 'gollum', ask());
+    expect(mockRelease).toHaveBeenCalledWith(PRIVATE_PIC);
+    expect(mockClearPending).toHaveBeenCalledWith(COPY);
+  });
+
+  it('is copied once, though the publish tries a second id', async () => {
+    mockCommit.mockRejectedValueOnce(new DocumentAlreadyExistsError(`${C}/npcs`, 'gollum'));
+    await publishWith(space({ npc: [pictured] }))('npc', 'gollum', ask());
+    expect(mockPublishPrivate).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not copied, nor released, when nothing is published', async () => {
+    await publishWith(space({ npc: [pictured] }))('npc', 'gollum', ask({ confirm: jest.fn(async () => false) }));
+    expect(mockPublishPrivate).not.toHaveBeenCalled();
+    expect(mockRelease).not.toHaveBeenCalled();
+  });
+
+  it('stays out when added to a shared record that has a picture of its own', async () => {
+    const mine = priv({ id: 'grog-private', name: 'Grog', image: { path: PRIVATE_PIC, url: 'private-url' } });
+    mockLists.npcs = [{ id: 'grog', name: 'Grog', image: { path: `${C}/npcs/grog/x.webp` } }, mine];
+    await publishWith(space({ npc: [mine] }))(
+      'npc',
+      'grog-private',
+      ask({ sameName: jest.fn(async () => ({ action: 'merge' as const })) })
+    );
+
+    expect(mockPublishPrivate).not.toHaveBeenCalled();
+    const update = (await writesOf()).find((write: any) => write.type === 'update' && write.id === 'grog');
+    expect(update?.data?.image).toBeUndefined();
+    expect(mockRelease).toHaveBeenCalledWith(PRIVATE_PIC);
+  });
 });

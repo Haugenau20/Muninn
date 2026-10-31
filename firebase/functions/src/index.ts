@@ -12,7 +12,7 @@ export {
   deleteCampaign,
   resumeCampaignDeletionsDaily,
 } from "./campaignManagement";
-export { sweepOrphanedImagesDaily } from "./imageMaintenance";
+export { sweepOrphanedImagesDaily, publishImage } from "./imageMaintenance";
 export {
   createGroup,
   createInvitation,

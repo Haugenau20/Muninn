@@ -13,6 +13,8 @@ import { findSameNamed, isSameName, nameOf } from '../sameName';
 import { blockedByParent, findPublishGroup, type RecordRef } from './publishGroup';
 import { publishReads, publishWrites, type PublishItem, type PublishTarget } from './publishWrites';
 import { sessionNoteMarkWrites, storedFields } from './rekey';
+import { releaseImage } from 'shared/hooks/useImageAttachment';
+import type { StoredImage } from 'core/types/storedImage';
 import { usePrivateRecords, type PrivateKind } from './PrivateRecordsContext';
 
 /** One record a publish names to the author before anything is written. */
@@ -50,6 +52,9 @@ export interface PublishQuestions {
 export type PublishOutcome =
   | { published: true; ids: Record<string, string> }
   | { published: false; open?: { kind: PrivateKind; id: string } };
+
+/** The id a record ends up under. */
+const publishedIdOf = (item: PublishItem) => (item.target.kind === 'own' ? item.target.id : item.target.into);
 
 /** How many times a publish tries again when an id was taken meanwhile. */
 const MAX_ATTEMPTS = 5;
@@ -147,6 +152,9 @@ export function usePublish() {
 
       const { author } = space;
       const refused = new Set<string>();
+      // Pictures copied to the campaign's folder, by record: once, on the
+      // first attempt, under the id chosen then (T163).
+      const copied = new Map<string, StoredImage>();
       for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         // An id free in the shared list, among those this publish assigns,
         // and of the author's own records that stay private.
@@ -171,15 +179,42 @@ export function usePublish() {
           oldId: item.record.id,
           newId: item.target.kind === 'own' ? item.target.id : item.target.into,
         }));
+        // A private picture is copied to the campaign's folder before the
+        // commit, which then points the shared record at the copy. A record
+        // added to a shared one that already has a picture keeps that one.
+        for (const item of ready) {
+          const image = item.record.image as StoredImage | null | undefined;
+          const key = `${item.kind}:${item.record.id}`;
+          if (!image || copied.has(key)) continue;
+          if (item.target.kind === 'merge') {
+            const into = item.target.into;
+            const existing = sharedOf(item.kind).find((record) => record.id === into) as { image?: unknown } | undefined;
+            if (existing?.image) continue;
+          }
+          copied.set(key, await firebaseServices.images.publishPrivate(image, publishedIdOf(item)));
+        }
+        const withPictures = ready.map((item) => {
+          const image = copied.get(`${item.kind}:${item.record.id}`);
+          if (image) return { ...item, record: { ...item.record, image } };
+          // A picture it does not take into the campaign stays out of it.
+          return item.record.image ? { ...item, record: { ...item.record, image: null } } : item;
+        });
         const marked = await sessionNoteMarkWrites(space, renames);
         const marks = space.sessionNotes.path
           ? { path: space.sessionNotes.path, noteIds: marked.map((write) => write.id) }
           : undefined;
-        const input = { items: ready, space, shared: sharedPaths, stamps: space.stamps(), author, marks };
+        const input = { items: withPictures, space, shared: sharedPaths, stamps: space.stamps(), author, marks };
         try {
           await firebaseServices.document.commitAfterReading(publishReads(input), async (read) =>
             publishWrites(input, read as (collection: string, id: string) => Record<string, unknown> | undefined)
           );
+          // Published: the copies are named by their records, and the private
+          // files are named by nothing. Both clean-ups are the sweep's if they fail.
+          for (const image of copied.values()) firebaseServices.images.clearPendingUpload(image.path);
+          for (const item of ready) {
+            const image = item.record.image as StoredImage | null | undefined;
+            if (image) releaseImage(image.path)();
+          }
           return {
             published: true,
             ids: Object.fromEntries(

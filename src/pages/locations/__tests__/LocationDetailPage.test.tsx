@@ -196,6 +196,7 @@ jest.mock('features/campaign-entities', () => {
     // Private records (T163): none here, so every record lives in the campaign.
     useLinkPrivacy: () => undefined,
     usePublish: () => jest.fn(),
+    useRecordImagePrefix: jest.requireActual('features/campaign-entities/shared/private/useRecordImagePrefix').useRecordImagePrefix,
     useRecordNotesPath: jest.requireActual('features/campaign-entities/shared/private/useRecordNotesPath').useRecordNotesPath,
 
     // The real modules, not stubs: the page's contract is that it reuses the

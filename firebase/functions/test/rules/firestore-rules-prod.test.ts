@@ -1554,9 +1554,42 @@ describe("private records are their author's alone (T163)", () => {
     await assertSucceeds(db.doc(`${P}/npcs/r1`).set({name: "x".repeat(200), ...created("frodo")}));
   });
 
-  it("refuses a picture on a private record", async () => {
-    const image = {path: `groups/${G}/campaigns/c1/npcs/r1/a.jpg`, url: "https://example.com/a.jpg"};
-    await assertFails(as("frodo").doc(`${P}/npcs/r1`).set({name: "Gollum", image, ...created("frodo")}));
+  // A private record's picture is its author's own, leased as any upload is,
+  // in their folder for this campaign, which only they read (T163).
+  describe("a private record's picture", () => {
+    const leased = async (uid: string, path: string) =>
+      as(uid).doc(`groups/${G}/pendingUploads/${path.split("/").pop()}`).set({
+        path,
+        uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    const image = (path: string) => ({path, url: "https://example.com/a.webp", width: 1, height: 1});
+    const mine = `groups/${G}/users/frodo/campaigns/c1/npcs/r1/0a1b2c3d.webp`;
+
+    it("control: takes the author's own upload, leased, in their folder", async () => {
+      await assertSucceeds(leased("frodo", mine));
+      await assertSucceeds(as("frodo").doc(`${P}/npcs/r1`).set({name: "Gollum", image: image(mine), ...created("frodo")}));
+    });
+
+    it("refuses one whose upload was never recorded", async () => {
+      await assertFails(as("frodo").doc(`${P}/npcs/r1`).set({name: "Gollum", image: image(mine), ...created("frodo")}));
+    });
+
+    it("refuses one in the campaign's folder, or in another member's, leased or not", async () => {
+      for (const path of [
+        `groups/${G}/campaigns/c1/npcs/r1/0a1b2c3e.webp`,
+        `groups/${G}/users/gandalf/campaigns/c1/npcs/r1/0a1b2c3f.webp`,
+        `groups/${G}/users/frodo/campaigns/c2/npcs/r1/0a1b2c40.webp`,
+      ]) {
+        await assertSucceeds(leased("frodo", path));
+        await assertFails(as("frodo").doc(`${P}/npcs/r1`).set({name: "Gollum", image: image(path), ...created("frodo")}));
+      }
+    });
+
+    it("keeps a shared record from pointing at one, even leased", async () => {
+      await assertSucceeds(leased("frodo", mine));
+      await assertFails(as("frodo").doc(`groups/${G}/campaigns/c1/npcs/n1`).update({image: image(mine), ...modified("frodo")}));
+    });
   });
 
   it("takes nothing while the campaign is being deleted, but lets a record go", async () => {

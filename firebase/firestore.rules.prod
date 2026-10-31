@@ -382,7 +382,9 @@ service cloud.firestore {
     function imageLeased(groupId, field) {
       let after = request.resource.data.get(field, null);
       let before = resource == null ? null : resource.data.get(field, null);
-      return after == null || after == before || uploadLeased(groupId, after.path);
+      return after == null || after == before ||
+             // Never a private record's picture (T163): only its author reads it.
+             (uploadLeased(groupId, after.path) && !after.path.matches('groups/[^/]+/users/.*'));
     }
 
     // Whether `path` has a `pendingUploads` entry naming exactly it, inside the
@@ -470,10 +472,15 @@ service cloud.firestore {
              fits(changed, 'date', 200) && fits(changed, 'author', 200);
     }
 
-    // A private record carries no picture (T163): a picture's file is stored
-    // where every member of the group can read it.
-    function holdsNoPicture() {
-      return request.resource.data.get('image', null) == null;
+    // A private record's picture (T163): none, the one it had, or a new
+    // upload of the author's own, leased as any picture is, in their folder
+    // for this campaign, which only they read.
+    function privatePictureLeased(groupId, userId, campaignId) {
+      let after = request.resource.data.get('image', null);
+      let before = resource == null ? null : resource.data.get('image', null);
+      return after == null || after == before ||
+             (uploadLeased(groupId, after.path) &&
+              after.path.matches('groups/' + groupId + '/users/' + userId + '/campaigns/' + campaignId + '/.+'));
     }
 
     // A held link (T163): its two ends, each a kind and an id, and nothing
@@ -726,18 +733,18 @@ service cloud.firestore {
         // with the DM -- until they publish them. Owner-only, like notes:
         // not even an admin reads them. Shaped and capped as the campaign's
         // own records are, so publishing moves one across unchanged; writing
-        // also requires membership and a campaign that takes writes. No
-        // picture yet: a record's picture lives where every member reads it.
+        // also requires membership and a campaign that takes writes. A
+        // picture is the author's own, in their folder (T163).
         match /private/{campaignId}/{entityCollection}/{entityId} {
           allow read, delete: if isSignedIn() && request.auth.uid == userId &&
                                hasNotes(entityCollection);
           allow create: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
                          hasNotes(entityCollection) && keepsItsName(entityCollection) &&
-                         textFits(entityCollection) && stampsCreation() && holdsNoPicture() &&
+                         textFits(entityCollection) && stampsCreation() && privatePictureLeased(groupId, userId, campaignId) &&
                          campaignOpen(groupId, campaignId);
           allow update: if isSignedIn() && request.auth.uid == userId && isGroupMember(groupId) &&
                          hasNotes(entityCollection) && keepsItsName(entityCollection) &&
-                         textFits(entityCollection) && stampsModification() && holdsNoPicture() &&
+                         textFits(entityCollection) && stampsModification() && privatePictureLeased(groupId, userId, campaignId) &&
                          campaignOpen(groupId, campaignId);
 
           // A private record's notes, as a shared record's are (T133).

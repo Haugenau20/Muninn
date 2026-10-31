@@ -1,5 +1,6 @@
 // functions/src/shared/deleteUserSubtree.ts
 import {getFirestore} from "firebase-admin/firestore";
+import {imageBucket} from "./imageBucket";
 
 /**
  * Deletes a user's profile document inside a group, together with everything
@@ -14,7 +15,8 @@ import {getFirestore} from "firebase-admin/firestore";
  * for it to be gone.
  *
  * `recursiveDelete` walks the whole subtree, so it stays correct if another
- * per-user subcollection is added later. It cannot participate in a
+ * per-user subcollection is added later. The private records' pictures
+ * (T163) are files, not documents, and are deleted by their prefix. It cannot participate in a
  * WriteBatch, so callers must invoke it alongside their batch rather than
  * inside it.
  *
@@ -33,4 +35,8 @@ export async function deleteGroupUserDocument(
     .doc(userId);
 
   await getFirestore().recursiveDelete(groupUserRef);
+  // The pictures of their private records (T163), stored under the same
+  // path in the bucket. After the documents, so a failure leaves files that
+  // nothing names, which the monthly sweep finds.
+  await imageBucket().deleteFiles({prefix: `groups/${groupId}/users/${userId}/`});
 }

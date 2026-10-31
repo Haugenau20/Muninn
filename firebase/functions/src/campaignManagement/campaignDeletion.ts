@@ -111,6 +111,13 @@ export async function finishCampaignDeletion(
   await imageBucket().deleteFiles({
     prefix: `groups/${groupId}/campaigns/${campaignId}/`,
   });
+  // And each member's private records' pictures for it (T163), under
+  // their profile rather than the campaign.
+  for (const userDoc of groupUsersSnapshot.docs) {
+    await imageBucket().deleteFiles({
+      prefix: `groups/${groupId}/users/${userDoc.id}/campaigns/${campaignId}/`,
+    });
+  }
 
   // 4. Everything is gone: the deletion is finished.
   await deletionRef.delete();

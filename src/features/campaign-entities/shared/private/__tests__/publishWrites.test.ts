@@ -188,6 +188,18 @@ describe('added to a same-named shared record', () => {
     expect(writes.some((write) => write.type === 'create')).toBe(false);
   });
 
+  it('fills a picture it lacks with the copy made for it, and leaves one it has', () => {
+    const copy = { path: `${C}/npcs/grog/copy.webp`, url: 'u' };
+    const pictured = priv({ id: 'grog-private', name: 'Grog', image: copy });
+    const i = input([{ kind: 'npc', record: pictured, notes: [], target: { kind: 'merge', into: 'grog' } }]);
+
+    const lacking = publishWrites(i, () => ({ ...grog }));
+    expect(lacking.find((w) => w.type === 'update')?.data).toMatchObject({ image: copy });
+
+    const having = publishWrites(i, () => ({ ...grog, image: { path: 'theirs' } }));
+    expect(having.find((w) => w.type === 'update')?.data?.image).toBeUndefined();
+  });
+
   it('refuses when that record was deleted meanwhile', () => {
     expect(() =>
       publishWrites(input([{ kind: 'npc', record: mine, notes: [], target: { kind: 'merge', into: 'grog' } }]), noneRead)

@@ -47,9 +47,12 @@ jest.mock('firebase/firestore', () => ({
   serverTimestamp: () => SERVER_TIME,
 }));
 jest.mock('firebase/analytics', () => ({ getAnalytics: jest.fn(() => ({})) }));
+const mockCallable = jest.fn();
+const mockHttpsCallable = jest.fn((_functions: unknown, _name: string) => mockCallable);
 jest.mock('firebase/functions', () => ({
   getFunctions: jest.fn(() => ({})),
   connectFunctionsEmulator: jest.fn(),
+  httpsCallable: function () { return (mockHttpsCallable as Function).apply(null, arguments); },
 }));
 
 const mockConfig = {
@@ -62,6 +65,7 @@ jest.mock('../../config/firebaseConfig', () => mockConfig);
 
 import ImageStorageService, {
   entityImagePrefix,
+  privateEntityImagePrefix,
   crestPrefix,
   campaignBannerPrefix,
   supportScreenshotPrefix,
@@ -509,5 +513,39 @@ describe('ImageStorageService.remove', () => {
   it('passes any other failure on', async () => {
     mockDeleteObject.mockRejectedValue(Object.assign(new Error('no'), { code: 'storage/unauthorized' }));
     await expect(service.remove('groups/g1/crest/a.webp')).rejects.toMatchObject({ code: 'storage/unauthorized' });
+  });
+});
+
+// T163: a private record's picture is copied server-side for its publish,
+// and handed back with the copy's own download URL.
+describe('ImageStorageService.publishPrivate', () => {
+  const service = ImageStorageService.getInstance();
+  const PRIVATE = 'groups/g1/users/u1/campaigns/c1/npcs/gollum/a.webp';
+  const COPY = 'groups/g1/campaigns/c1/npcs/gollum-2/b.webp';
+  const image = { path: PRIVATE, url: 'private-url', width: 4, height: 3, uploadedBy: 'u1', uploadedAt: 'then' };
+
+  it('asks publishImage for a copy under the published id, and keeps the rest of the picture', async () => {
+    mockCallable.mockResolvedValue({ data: { path: COPY } });
+    mockGetDownloadURL.mockResolvedValue('copy-url');
+
+    const copy = await service.publishPrivate(image, 'gollum-2');
+
+    expect(mockHttpsCallable).toHaveBeenCalledWith(expect.anything(), 'publishImage');
+    expect(mockCallable).toHaveBeenCalledWith({ groupId: 'g1', path: PRIVATE, recordId: 'gollum-2' });
+    expect(mockRef).toHaveBeenCalledWith(expect.anything(), COPY);
+    expect(copy).toEqual({ ...image, path: COPY, url: 'copy-url' });
+  });
+
+  it('passes a refusal on', async () => {
+    mockCallable.mockRejectedValue(Object.assign(new Error('no'), { code: 'functions/permission-denied' }));
+    await expect(service.publishPrivate(image, 'gollum')).rejects.toMatchObject({ code: 'functions/permission-denied' });
+  });
+});
+
+describe('privateEntityImagePrefix', () => {
+  it('is under the author’s group profile, by campaign, kind and record', () => {
+    expect(privateEntityImagePrefix('g1', 'u1', 'c1', 'locations', 'cave')).toBe(
+      'groups/g1/users/u1/campaigns/c1/locations/cave'
+    );
   });
 });
