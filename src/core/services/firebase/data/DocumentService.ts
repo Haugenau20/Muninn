@@ -598,6 +598,71 @@ class DocumentService extends BaseFirebaseService {
   }
 
   /**
+   * Read some documents and write several, anywhere, as one transaction
+   * (T163's publish): the writes are decided from the documents as the
+   * server holds them, and commit together or not at all.
+   *
+   * `decide` gets each document read, by `collection/id`, undefined when it
+   * does not exist, and returns the writes, each with its collection's full
+   * path. A `create` refuses with {@link DocumentAlreadyExistsError} when its
+   * document exists -- it must be among `reads`, so the transaction knows --
+   * and nothing is written. Writes carry their data exactly as given: the
+   * caller stamps attribution. It may run more than once.
+   *
+   * Needs the server: offline, the transaction fails rather than queueing.
+   *
+   * @param reads The documents to read first
+   * @param decide Works out the writes from them
+   */
+  public async commitAfterReading(
+    reads: ReadonlyArray<{ collection: string; id: string }>,
+    decide: (read: (collection: string, id: string) => DocumentData | undefined) => Promise<Array<{
+      type: 'create' | 'set' | 'update' | 'delete';
+      collection: string;
+      id: string;
+      data?: DocumentData;
+    }>>
+  ): Promise<void> {
+    // Resolved before any await, as in `createDocument` (T082).
+    const refs = reads.map((target) => ({
+      key: `${target.collection}/${target.id}`,
+      ref: doc(this.getCollectionRef(target.collection), target.id),
+    }));
+
+    await runTransaction(this.db, async (transaction) => {
+      const read = new Map<string, DocumentData | undefined>();
+      for (const { key, ref } of refs) {
+        const snapshot = await transaction.get(ref);
+        read.set(key, snapshot.exists() ? { ...snapshot.data(), id: snapshot.id } : undefined);
+      }
+      const writes = await decide((collectionName, id) => read.get(`${collectionName}/${id}`));
+      for (const write of writes) {
+        const collectionRef = this.getCollectionRef(write.collection);
+        if (write.type !== 'delete') this.assertTextFits(collectionRef, write.data);
+        const ref = doc(collectionRef, write.id);
+        switch (write.type) {
+          case 'create': {
+            const key = `${write.collection}/${write.id}`;
+            if (!read.has(key)) throw new Error(`A create must read its document first: ${key}`);
+            if (read.get(key)) throw new DocumentAlreadyExistsError(write.collection, write.id);
+            transaction.set(ref, write.data as DocumentData);
+            break;
+          }
+          case 'set':
+            transaction.set(ref, write.data as DocumentData);
+            break;
+          case 'update':
+            transaction.update(ref, write.data as DocumentData);
+            break;
+          case 'delete':
+            transaction.delete(ref);
+            break;
+        }
+      }
+    });
+  }
+
+  /**
    * Update specific fields in a document without attribution metadata
    * Use updateDocumentWithAttribution for automatic attribution
    */

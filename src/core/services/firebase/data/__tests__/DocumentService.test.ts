@@ -1173,6 +1173,88 @@ describe('DocumentService', () => {
     });
   });
 
+  // ─── commitAfterReading (T163) ──────────────────────────────────────────────
+  // A publish: documents read, then writes anywhere, decided from them and
+  // committed together; a create refused when its document exists.
+  describe('commitAfterReading', () => {
+    const flatDoc = mockDoc.getMockImplementation()!;
+    const flatCollection = mockCollection.getMockImplementation()!;
+    const C = 'groups/g1/campaigns/c1/npcs';
+    const P = 'groups/g1/users/u1/private/c1/npcs';
+
+    beforeEach(() => {
+      mockDoc.mockImplementation((parent: any, ...segs: string[]) => {
+        const path = [parent?.path, ...segs].filter(Boolean).join('/');
+        return { path, id: path.split('/').pop()! };
+      });
+      mockCollection.mockImplementation((parent: any, ...segs: string[]) => ({
+        path: [parent?.path, ...segs].filter(Boolean).join('/'),
+      }));
+    });
+    afterEach(() => {
+      mockDoc.mockImplementation(flatDoc);
+      mockCollection.mockImplementation(flatCollection);
+    });
+
+    const svc = () => {
+      const service = DocumentService.getInstance();
+      service.setActiveGroup('g1');
+      service.setActiveCampaign('c1');
+      return service;
+    };
+
+    test('decides from what it read, and commits every write', async () => {
+      mockFirestoreStore.seed(`${P}/gollum`, { name: 'Gollum' });
+      let seen: unknown;
+
+      await svc().commitAfterReading([{ collection: C, id: 'gollum' }, { collection: P, id: 'gollum' }], async (read) => {
+        seen = [read(C, 'gollum'), read(P, 'gollum')];
+        return [
+          { type: 'create', collection: C, id: 'gollum', data: { name: 'Gollum' } },
+          { type: 'delete', collection: P, id: 'gollum' },
+        ];
+      });
+
+      expect(seen).toEqual([undefined, { name: 'Gollum', id: 'gollum' }]);
+      expect(mockFirestoreStore.read(`${C}/gollum`)).toEqual({ name: 'Gollum' });
+      expect(mockFirestoreStore.read(`${P}/gollum`)).toBeUndefined();
+    });
+
+    test('refuses a create whose document exists, and writes nothing', async () => {
+      mockFirestoreStore.seed(`${C}/gollum`, { name: 'Someone else' });
+      mockFirestoreStore.seed(`${P}/gollum`, { name: 'Gollum' });
+
+      const caught = await svc()
+        .commitAfterReading([{ collection: C, id: 'gollum' }], async () => [
+          { type: 'delete', collection: P, id: 'gollum' },
+          { type: 'create', collection: C, id: 'gollum', data: { name: 'Gollum' } },
+        ])
+        .then(() => null, (e: unknown) => e);
+
+      expect(caught).toBeInstanceOf(DocumentAlreadyExistsError);
+      expect(mockFirestoreStore.read(`${C}/gollum`)).toEqual({ name: 'Someone else' });
+      expect(mockFirestoreStore.read(`${P}/gollum`)).toEqual({ name: 'Gollum' });
+    });
+
+    test('refuses a create it did not read first: it could not know the document is free', async () => {
+      await expect(
+        svc().commitAfterReading([], async () => [{ type: 'create', collection: C, id: 'gollum', data: { name: 'Gollum' } }])
+      ).rejects.toThrow(`A create must read its document first: ${C}/gollum`);
+      expect(mockFirestoreStore.read(`${C}/gollum`)).toBeUndefined();
+    });
+
+    test('refuses the whole commit when a write is too long', async () => {
+      mockFirestoreStore.seed(`${P}/gollum`, { name: 'Gollum' });
+      await expect(
+        svc().commitAfterReading([{ collection: C, id: 'gollum' }], async () => [
+          { type: 'delete', collection: P, id: 'gollum' },
+          { type: 'create', collection: C, id: 'gollum', data: { name: 'x'.repeat(201) } },
+        ])
+      ).rejects.toMatchObject({ name: 'TextTooLongError' });
+      expect(mockFirestoreStore.read(`${P}/gollum`)).toEqual({ name: 'Gollum' });
+    });
+  });
+
   // ─── collection path construction ───────────────────────────────────────────
 
 

@@ -22,6 +22,7 @@ const value = (overrides: Partial<PrivateRecordsValue> = {}): PrivateRecordsValu
   links: [],
   paths: { npc: 'p/npcs', location: 'p/locations', quest: 'p/quests', rumor: 'p/rumors', links: 'p/links' },
   sessionNotes: { path: null, campaignId: null },
+  campaignPaths: { npc: null, location: null, quest: null, rumor: null },
   isPrivate: () => false,
   stamps: () => ({ creation: {}, modification: {} }),
   ...overrides,

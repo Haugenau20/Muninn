@@ -12,6 +12,7 @@ import {
   useLocations,
   createLinkActions,
   useLinkPrivacy,
+  usePublish,
   useRecordNotesPath,
   locationIdsOfNpc,
   resolveLocationName,
@@ -48,6 +49,7 @@ import {
 } from 'shared/components/entity-page';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
 import PrivateNotice from 'shared/components/private/PrivateNotice';
+import PublishButton from 'shared/components/private/PublishButton';
 import { attachRefs, type AttachKind } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import { Pencil, X } from 'lucide-react';
@@ -259,6 +261,7 @@ const NPCDetailPage: React.FC = () => {
   // The notes: their own documents (T133), where the person lives (T163).
   const npcsPath = useRecordNotesPath('npc', npc?.id);
   const linkPrivacy = useLinkPrivacy();
+  const publish = usePublish();
   const notes = useRecordNotes<NPCNote>(npcsPath, npc?.id);
 
   // `loading` folds into the gate's resolving state: `npcs` is empty while auth
@@ -731,6 +734,16 @@ const NPCDetailPage: React.FC = () => {
           actions={
             gate.canAct && (
               <>
+                {/* Only its author ever sees a private person, so only they publish it (T163). */}
+                {npc.isPrivate && (
+                  <PublishButton
+                    publish={publish}
+                    kind="npc"
+                    id={npc.id}
+                    name={npc.name}
+                    onPublished={(id) => navigateToPage(`/npcs/${id}`)}
+                  />
+                )}
                 {/* Quiet: this page's accents are the controls that change
                     something -- Add note and Delete. Opening every editor is
                     not itself a write (D66). "Change five things at once" is a

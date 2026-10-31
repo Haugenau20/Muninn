@@ -49,16 +49,33 @@ export async function sessionNoteMarkWrites(
   );
   const ops: BatchOp[] = [];
   for (const note of notes) {
-    let changed = false;
-    const extractedEntities = (note.extractedEntities ?? []).map((entity) => {
-      const rename = changes.find(({ kind, oldId }) => entity.type === kind && entity.convertedToId === oldId);
-      if (!rename) return entity;
-      changed = true;
-      return { ...entity, convertedToId: rename.newId };
-    });
-    if (changed) ops.push({ type: 'update', collection: path, id: note.id, data: { extractedEntities } });
+    const extractedEntities = remapMarks(note.extractedEntities, changes);
+    if (extractedEntities) ops.push({ type: 'update', collection: path, id: note.id, data: { extractedEntities } });
   }
   return ops;
+}
+
+/**
+ * A session note's extraction marks with each renamed record's id changed,
+ * or null when none names one.
+ *
+ * @param entities The note's extracted entities
+ * @param renamed Each record whose id changes
+ */
+export function remapMarks(
+  entities: ReadonlyArray<Record<string, unknown>> | undefined,
+  renamed: ReadonlyArray<{ kind: PrivateKind; oldId: string; newId: string }>
+): Array<Record<string, unknown>> | null {
+  let changed = false;
+  const remapped = (entities ?? []).map((entity) => {
+    const rename = renamed.find(
+      ({ kind, oldId, newId }) => oldId !== newId && entity.type === kind && entity.convertedToId === oldId
+    );
+    if (!rename) return entity;
+    changed = true;
+    return { ...entity, convertedToId: rename.newId };
+  });
+  return changed ? remapped : null;
 }
 
 /** A record's fields as stored: without its id, its in-memory mark and its stamps. */

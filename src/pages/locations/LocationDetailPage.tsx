@@ -15,6 +15,7 @@ import {
   useRumors,
   createLinkActions,
   useLinkPrivacy,
+  usePublish,
   useRecordNotesPath,
   npcIdsOfLocation,
   questIdsOfLocation,
@@ -38,6 +39,7 @@ import AttributionInfo from 'shared/components/AttributionInfo';
 import { useImageAttachment } from 'shared/hooks/useImageAttachment';
 import AttachTray from 'shared/components/attach-tray/AttachTray';
 import PrivateNotice from 'shared/components/private/PrivateNotice';
+import PublishButton from 'shared/components/private/PublishButton';
 import { attachRefs } from 'shared/components/attach-tray/attachCandidates';
 import StateLadder from 'shared/components/row-controls/StateLadder';
 import {
@@ -153,6 +155,7 @@ const LocationDetailPage: React.FC = () => {
   // Where the place lives: its notes sit under it (T163).
   const locationsPath = useRecordNotesPath('location', locationId);
   const linkPrivacy = useLinkPrivacy();
+  const publish = usePublish();
   // The notes: their own documents (T133).
   const notes = useRecordNotes<LocationNote>(locationsPath, locationId);
   const { npcs, updateNPC } = useNPCs();
@@ -420,6 +423,16 @@ const LocationDetailPage: React.FC = () => {
           actions={
             canAct && (
               <>
+                {/* Only its author ever sees a private place, so only they publish it (T163). */}
+                {location.isPrivate && (
+                  <PublishButton
+                    publish={publish}
+                    kind="location"
+                    id={location.id}
+                    name={location.name}
+                    onPublished={(id) => navigateToPage(`/locations/${id}`)}
+                  />
+                )}
                 <Button
                   variant="outline"
                   size="sm"

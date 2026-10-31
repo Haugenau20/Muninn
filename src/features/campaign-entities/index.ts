@@ -147,3 +147,5 @@ export type { PrivateKind, HeldLink } from './shared/private/PrivateRecordsConte
 export { useLinkPrivacy } from './shared/private/heldLinks';
 export { PrivateLinkError } from './shared/private/usePrivateRouting';
 export { useRecordNotesPath } from './shared/private/useRecordNotesPath';
+export { usePublish } from './shared/private/usePublish';
+export type { PublishListed, PublishSameName, PublishAnswer, PublishQuestions, PublishOutcome } from './shared/private/usePublish';

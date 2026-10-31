@@ -1,7 +1,8 @@
 // src/features/campaign-entities/shared/private/PrivateRecordsContext.tsx
 import React, { createContext, useCallback, useContext, useMemo } from 'react';
-import { privateCollectionPath } from 'core/services/firebase/data/campaignCollectionPath';
+import { campaignCollectionPath, privateCollectionPath } from 'core/services/firebase/data/campaignCollectionPath';
 import { useFirebaseData } from 'shared/hooks/useFirebaseData';
+import { getActiveCharacterName, getUserName } from 'core/utils/user-utils';
 import { useAuth, useUser, useGroups, useCampaigns } from 'features/user-management';
 import {
   buildCreationAttribution,
@@ -78,6 +79,10 @@ export interface PrivateRecordsValue {
    * when its id changes.
    */
   sessionNotes: { path: string | null; campaignId: string | null };
+  /** Who signs a note a publish writes: the acting character, or the username. */
+  author?: string;
+  /** Where each kind lives in the campaign, which a publish moves records to. */
+  campaignPaths: Record<PrivateKind, string | null>;
 }
 
 /** What a move stamps: a document created now, and one changed now. */
@@ -90,6 +95,7 @@ const EMPTY: PrivateRecordsValue = {
   records: { npc: [], location: [], quest: [], rumor: [] },
   links: [],
   paths: { npc: null, location: null, quest: null, rumor: null, links: null },
+  campaignPaths: { npc: null, location: null, quest: null, rumor: null },
   isPrivate: () => false,
   sessionNotes: { path: null, campaignId: null },
   stamps: () => {
@@ -186,10 +192,17 @@ export const PrivateRecordsProvider: React.FC<{ children: React.ReactNode }> = (
         path: user && activeGroupId ? `groups/${activeGroupId}/users/${user.uid}/notes` : null,
         campaignId: activeCampaignId ?? null,
       },
+      author: getActiveCharacterName(activeGroupUserProfile) || getUserName(activeGroupUserProfile) || undefined,
+      campaignPaths: {
+        npc: campaignCollectionPath(Boolean(user), activeGroupId, activeCampaignId, 'npcs'),
+        location: campaignCollectionPath(Boolean(user), activeGroupId, activeCampaignId, 'locations'),
+        quest: campaignCollectionPath(Boolean(user), activeGroupId, activeCampaignId, 'quests'),
+        rumor: campaignCollectionPath(Boolean(user), activeGroupId, activeCampaignId, 'rumors'),
+      },
     }),
     [
       records, links, paths.npc, paths.location, paths.quest, paths.rumor, paths.links, isPrivate, stamps,
-      user, activeGroupId, activeCampaignId,
+      activeGroupUserProfile, user, activeGroupId, activeCampaignId,
     ]
   );
 

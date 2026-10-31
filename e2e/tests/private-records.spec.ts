@@ -61,3 +61,36 @@ test("a rumour from the composer can be kept private", async ({ page }) => {
   await page.reload();
   await expect(page.getByRole("button", { name: /The keeper owes Ysolde money/ }).first().getByText("Private")).toBeVisible();
 });
+
+test("publishing moves a private person into the campaign, with their notes, for good", async ({ page }) => {
+  await page.goto("/npcs/create");
+  await page.getByRole("checkbox", { name: /private/i }).check();
+  await page.getByLabel("Name", { exact: true }).fill("Corwin Hale");
+  await page.getByLabel("Who are they, in a line?").fill("The keeper's brother, met alone");
+  await page.getByRole("button", { name: "Create & open" }).click();
+  await expect(page).toHaveURL(/\/npcs\/corwin-hale$/);
+
+  const notes = page.getByRole("region", { name: "Notes" });
+  await notes.getByLabel("Add a note").fill("Asked us not to tell the others yet");
+  await notes.getByRole("button", { name: "Add note" }).click();
+  await expect(notes.getByText("Asked us not to tell the others yet")).toBeVisible();
+  await expect(notes.getByLabel("Add a note")).toHaveValue("");
+
+  await page.getByRole("button", { name: "Publish" }).click();
+  const dialog = page.getByRole("dialog", { name: "Publish Corwin Hale?" });
+  await expect(dialog.getByText(/Publishing cannot be undone/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Publish" }).click();
+
+  await expect(page.getByText("Only you see this until you publish it.")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Publish" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Notes" }).getByText("Asked us not to tell the others yet")).toBeVisible();
+
+  const shared = `groups/${group.id}/campaigns/${campaign.id}/npcs/corwin-hale`;
+  const mine = `groups/${group.id}/users/${player.uid}/private/${campaign.id}/npcs/corwin-hale`;
+  expect(await stored(shared)).toBe(true);
+  expect(await stored(mine)).toBe(false);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1, name: "Corwin Hale" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Notes" }).getByText("Asked us not to tell the others yet")).toBeVisible();
+});

@@ -102,6 +102,7 @@ function space(records: Partial<PrivateRecordsValue['records']>, links: PrivateR
       links: `${PRIVATE}/links`,
     },
     sessionNotes: { path: null, campaignId: null },
+    campaignPaths: { npc: null, location: null, quest: null, rumor: null },
     isPrivate: (kind, id) => all[kind].some((record: PrivateDoc) => record.id === id),
     stamps: () => ({ creation: {}, modification: {} }),
   };
